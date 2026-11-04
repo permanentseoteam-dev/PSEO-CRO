@@ -1,0 +1,32 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and builds
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+
+# Next / tooling
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+*.pem
+npm-debug.log*
+.pnp.*
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Local clone of the remote, not part of this repo
+/PSEO CRO/

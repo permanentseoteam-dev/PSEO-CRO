@@ -1,0 +1,16 @@
+{
+  "name": "Permanent SEO",
+  "short_name": "PSEO",
+  "description": "Team and client portal",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8f8",
+  "theme_color": "#0d9488",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }],
+  "shortcuts": [
+    { "name": "My work", "url": "/my" },
+    { "name": "Chat", "url": "/chat" },
+    { "name": "Tickets", "url": "/tickets" }
+  ]
+}
