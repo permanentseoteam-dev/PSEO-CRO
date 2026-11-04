@@ -30,3 +30,6 @@ supabase/.branches/
 
 # Local clone of the remote, not part of this repo
 /PSEO CRO/
+
+# Claude Code local settings
+.claude/settings.local.json
