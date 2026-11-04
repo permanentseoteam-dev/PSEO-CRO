@@ -1,0 +1,33 @@
+/* Shared by the Finance B screens (payments, billing clients, reminders, profitability, settings). Theme variables only. */
+.note { padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; }
+.noteWarn { background: var(--warn-soft); border-color: var(--warn); }
+.noteDanger { background: var(--danger-soft); border-color: var(--danger); }
+.noteOk { background: var(--ok-soft); border-color: var(--ok); }
+.aging { display: grid; grid-template-columns: 90px 1fr 120px; gap: 10px; align-items: center; font-size: 14px; }
+.aging :global(.bar) { margin: 0; }
+.owed { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; }
+.alloc td { vertical-align: middle; }
+.alloc input[type="number"] { width: 120px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.clickRow { cursor: pointer; }
+.clickRow:hover td { background: var(--surface-2); }
+.faded { opacity: 0.45; }
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.monthnav { display: flex; align-items: center; gap: 10px; }
+.monthnav strong { min-width: 130px; text-align: center; font-size: 16px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--ink-3); font-size: 11px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.rowActions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: nowrap; }
+.hours { min-width: 150px; }
+.hours > div:first-child { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; margin-bottom: 4px; }
+.radios { display: flex; gap: 16px; flex-wrap: wrap; }
+.radios label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.wrapNote { max-width: 240px; white-space: normal; }
+@media (max-width: 900px) {
+  .owed { grid-template-columns: minmax(0, 1fr); }
+  .aging { grid-template-columns: 76px 1fr 100px; }
+  .kv { grid-template-columns: 110px 1fr; }
+}

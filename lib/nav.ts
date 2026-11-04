@@ -65,6 +65,11 @@ export const STAFF_NAV: NavGroup[] = [
       { href: "/settings", title: "Settings", icon: "Settings" },
     ],
   },
+  {
+    name: "Admin",
+    label: "Admin",
+    items: [{ href: "/admin", title: "Admin", icon: "ShieldCheck", perm: "admin.access.manage" }],
+  },
 ];
 
 // Client portal lives under /portal (route groups share one URL space, so it needs its own prefix).

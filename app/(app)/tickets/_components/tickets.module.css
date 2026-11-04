@@ -1,0 +1,22 @@
+.headRow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.saved { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 13px; }
+.saved a { color: var(--accent-ink); }
+.saved button { background: none; border: 0; padding: 0; color: var(--ink-3); cursor: pointer; font-size: 12px; }
+.saved button:hover { color: var(--danger); }
+.bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius); }
+.bulk strong { color: var(--accent-ink); margin-right: 6px; }
+.bulk select, .bulk input { width: auto; min-width: 130px; }
+.key { font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+.tags { color: var(--ink-3); font-size: 12px; }
+.title { color: var(--ink); font-weight: 500; }
+.groupHead { margin: 6px 0 0; font-size: 15px; color: var(--ink); display: flex; gap: 8px; align-items: baseline; }
+.kTop { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.kTitle { font-size: 14px; color: var(--ink); line-height: 1.35; }
+.kFoot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
+.kBlocked { font-size: 12px; color: var(--danger); }
+.colN { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.calCell.over { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.more { background: none; border: 0; padding: 0; color: var(--accent-ink); font-size: 12px; cursor: pointer; text-align: left; }
+.ev { cursor: grab; }
+.ev a { color: inherit; }
+.ev a:hover { text-decoration: none; }

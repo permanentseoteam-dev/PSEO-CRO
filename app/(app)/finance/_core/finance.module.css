@@ -1,0 +1,44 @@
+/* Finance dashboard and invoice screens. Colours come from the theme variables only. */
+.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); background: var(--warn-soft); }
+.banner strong { color: var(--ink); }
+.smallStats :global(.value) { font-size: 18px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--ink-3); font-size: 11px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.aging { display: grid; grid-template-columns: 90px 1fr 120px; gap: 10px; align-items: center; font-size: 14px; }
+.aging :global(.bar) { margin: 0; }
+.wide { display: grid; gap: 16px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.late { color: var(--danger); }
+.note { padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; }
+.noteWarn { background: var(--warn-soft); border-color: var(--warn); }
+.noteDanger { background: var(--danger-soft); border-color: var(--danger); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lines input { width: 100%; min-width: 60px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+.lines td { vertical-align: top; }
+.lines .detail { margin-top: 4px; font-size: 13px; color: var(--ink-2); }
+.totals { display: grid; grid-template-columns: 1fr auto; gap: 6px 18px; margin-left: auto; max-width: 340px; width: 100%; font-variant-numeric: tabular-nums; }
+.totals .r { text-align: right; }
+.grand { font-weight: 700; font-size: 17px; color: var(--ink); border-top: 1px solid var(--line); padding-top: 8px; }
+.discount { width: 120px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+.doc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; display: flex; flex-direction: column; gap: 18px; font-size: 13px; color: var(--ink-2); position: sticky; top: 16px; }
+.doc h2 { margin: 0; font-size: 20px; color: var(--ink); }
+.doc strong { color: var(--ink); }
+.doc table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.doc th { text-align: left; font-weight: 600; color: var(--ink-3); border-bottom: 1px solid var(--line); padding: 6px 4px; }
+.doc td { border-bottom: 1px solid var(--line-2); padding: 8px 4px; vertical-align: top; }
+.doc .r { text-align: right; }
+.paybox { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface-2); }
+.kv { display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; margin: 0; }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; color: var(--ink); }
+.hist { display: flex; gap: 10px; align-items: flex-start; }
+.editor { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.dueBtns { display: flex; gap: 6px; margin-top: 6px; }
+.autoAvatar { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 600; flex: none; }
+.clickRow { cursor: pointer; }
+@media (max-width: 900px) {
+  .wide, .editor { grid-template-columns: minmax(0, 1fr); }
+  .aging { grid-template-columns: 76px 1fr 100px; }
+  .doc { padding: 18px; position: static; }
+}
