@@ -1,5 +1,6 @@
 // Server entry points for the Phase 1 finance pages. Each does its own guard and reads, and renders nothing
 // when the signed-in person may not see it. See WIRING.md for where each one mounts.
+import type { ReactNode } from "react";
 import { can, requireMe } from "@/lib/auth/can";
 import { ApplyCreditButton, ClientCreditCard } from "./components/credit";
 import { EmailSendingCard } from "./components/email-sending-card";
@@ -18,6 +19,7 @@ import {
   getInvoiceExtra,
   getOpenInvoicesFor,
   getSubAccounts,
+  getSubAccountsFor,
   getUpwork,
   listClients,
   listEntities,
@@ -128,6 +130,29 @@ export async function EmailSendingSection() {
   const { settings, log } = await getEmailStatus();
   const connected = getEmailSender(settings?.provider ?? "none").configured;
   return <EmailSendingCard settings={settings} summary={sendSummary(log, todayIso())} connected={connected} canManage />;
+}
+
+/** Billing clients table: one SubAccountsField per client, read once. Pass into the client dialog as slots. */
+export async function subAccountsSlots(clientIds: string[]): Promise<Record<string, ReactNode>> {
+  const me = await staffWith("clients.billing.view");
+  if (!me) return {};
+  const all = await getSubAccountsFor(clientIds);
+  const canEdit = can(me, "clients.billing.edit");
+  return Object.fromEntries(
+    clientIds.map((id) => {
+      const { subs, candidates } = all.get(id)!;
+      return [
+        id,
+        <SubAccountsField
+          key={id}
+          clientId={id}
+          subs={subs.map((s) => ({ childId: s.childId, name: s.name, billing: s.billing }))}
+          candidates={candidates}
+          canEdit={canEdit}
+        />,
+      ];
+    }),
+  );
 }
 
 /** Billing clients > Edit billing dialog: sub-accounts billed under this client. */

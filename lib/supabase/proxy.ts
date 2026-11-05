@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./env";
 
-/** Paths that work without signing in. */
-const PUBLIC_PATHS = ["/login", "/invite", "/reset", "/auth"];
+/** Paths that work without signing in. `/api/v1` checks its own Bearer API key. */
+const PUBLIC_PATHS = ["/login", "/invite", "/reset", "/auth", "/api/v1"];
 
 export function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

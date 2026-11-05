@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Checkbox, Dialog, Field, FormGrid, Input, Select, useToast } from "@/components/ui";
 import { copyTicket, deleteTicket, setWatching, updateTicket } from "@/lib/modules/tickets/actions";
-import type { ProjectOpt } from "@/lib/modules/tickets/types";
+import type { PriorityLevel, ProjectOpt } from "@/lib/modules/tickets/types";
+import { saveRule } from "@/features/work-p2/actions";
+import { WEEKDAYS } from "@/features/work-p2/logic";
 import { cn } from "@/lib/utils";
 import s from "./ticket.module.css";
 
@@ -65,16 +67,22 @@ type ActionsProps = {
   watching: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  assigneeId: string | null;
+  priority: PriorityLevel;
+  today: string;
+  /** Can set up a recurring rule (work.recurring.manage). Needs a project, since rules always have one. */
+  canRepeat: boolean;
   fileCount: number;
   commentCount: number;
 };
 
-/** Watch, Copy link, Copy to…, Delete. */
+/** Watch, Copy link, Copy to…, Repeat…, Delete. */
 export function HeaderActions(p: ActionsProps) {
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [dlg, setDlg] = useState<"" | "copy" | "delete">("");
+  const [dlg, setDlg] = useState<"" | "copy" | "repeat" | "delete">("");
+  const [freq, setFreq] = useState("monthly");
 
   function watch() {
     start(async () => {
@@ -112,6 +120,27 @@ export function HeaderActions(p: ActionsProps) {
     });
   }
 
+  function onRepeat(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    start(async () => {
+      const r = await saveRule({
+        titlePattern: String(fd.get("title") ?? ""),
+        projectId: p.projectId,
+        assigneeId: p.assigneeId,
+        priority: p.priority,
+        frequency: freq,
+        weekday: freq === "weekly" ? fd.get("weekday") : null,
+        monthDay: freq === "monthly" ? fd.get("monthDay") : null,
+        dueOffsetDays: fd.get("dueOffsetDays"),
+        startsOn: String(fd.get("startsOn") ?? ""),
+      });
+      if (!r.ok) return toast(r.error);
+      setDlg("");
+      toast("Recurring rule created");
+    });
+  }
+
   function onDelete() {
     start(async () => {
       const r = await deleteTicket(p.id);
@@ -126,6 +155,7 @@ export function HeaderActions(p: ActionsProps) {
       <Button size="sm" onClick={watch} disabled={pending}>{p.watching ? "Watching" : "Watch"}</Button>
       <Button size="sm" onClick={copyLink}>Copy link</Button>
       {p.canEdit ? <Button size="sm" onClick={() => setDlg("copy")}>Copy to…</Button> : null}
+      {p.canRepeat && p.projectId ? <Button size="sm" onClick={() => setDlg("repeat")}>Repeat…</Button> : null}
       {p.canDelete ? <Button size="sm" variant="danger" onClick={() => setDlg("delete")}>Delete</Button> : null}
 
       <Dialog
@@ -153,6 +183,53 @@ export function HeaderActions(p: ActionsProps) {
             <Checkbox name="checklist" label="Checklist" defaultChecked />
             <Checkbox name="subtasks" label="Subtasks" defaultChecked />
             <Checkbox name="assignees" label="Assignees" />
+          </FormGrid>
+        </form>
+      </Dialog>
+
+      <Dialog
+        open={dlg === "repeat"}
+        onClose={() => setDlg("")}
+        title="Repeat this ticket"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDlg("")}>Cancel</Button>
+            <Button variant="primary" type="submit" form="tk-repeat" disabled={pending}>Create rule</Button>
+          </>
+        }
+      >
+        <form id="tk-repeat" onSubmit={onRepeat}>
+          <FormGrid>
+            <Field label="Ticket title" htmlFor="tk-repeat-title" hint="Use {client}, {project}, {month} or {date}" full>
+              <Input id="tk-repeat-title" name="title" required minLength={2} maxLength={200} defaultValue={p.title.slice(0, 200)} />
+            </Field>
+            <Field label="Repeats" htmlFor="tk-repeat-freq">
+              <Select id="tk-repeat-freq" value={freq} onChange={(e) => setFreq(e.target.value)}>
+                <option value="daily">Daily</option>
+                <option value="weekdays">Weekdays</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </Select>
+            </Field>
+            {freq === "weekly" ? (
+              <Field label="Day" htmlFor="tk-repeat-wd">
+                <Select id="tk-repeat-wd" name="weekday" defaultValue="1">
+                  {WEEKDAYS.map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
+                </Select>
+              </Field>
+            ) : freq === "monthly" ? (
+              <Field label="Day of month" htmlFor="tk-repeat-md">
+                <Input id="tk-repeat-md" name="monthDay" type="number" min={1} max={28} defaultValue={1} required />
+              </Field>
+            ) : (
+              <div />
+            )}
+            <Field label="Due after (days)" htmlFor="tk-repeat-due">
+              <Input id="tk-repeat-due" name="dueOffsetDays" type="number" min={0} max={90} defaultValue={5} required />
+            </Field>
+            <Field label="Start" htmlFor="tk-repeat-start">
+              <Input id="tk-repeat-start" name="startsOn" type="date" defaultValue={p.today} required />
+            </Field>
           </FormGrid>
         </form>
       </Dialog>

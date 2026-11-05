@@ -20,6 +20,8 @@ export type ListRow = {
   currency: string;
   total: number;
   balance: number;
+  /** Phase 2: recorded after the fact. */
+  past: boolean;
   status: { label: string; tone: Tone; sub?: string };
   keys: string[];
 };
@@ -96,7 +98,10 @@ export function InvoiceList({ rows, entities, clients }: { rows: ListRow[]; enti
               <tr key={r.id} className={s.clickRow} onClick={(e) => !(e.target as HTMLElement).closest("a") && router.push(`/finance/invoices/${r.id}`)}>
                 <Td num>
                   <Link href={`/finance/invoices/${r.id}`}>{r.label}</Link>
-                  <div className="small muted hide-sm">{r.title}</div>
+                  <div className="small muted hide-sm">
+                    {r.title}
+                    {r.past ? `${r.title ? " · " : ""}Recorded after the fact` : ""}
+                  </div>
                 </Td>
                 <Td>{r.client}</Td>
                 <Td hideSm>{r.entity}</Td>

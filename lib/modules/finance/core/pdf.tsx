@@ -1,6 +1,6 @@
 // Invoice PDF for @react-pdf/renderer (server only). Print colours are fixed; the app themes don't apply to paper.
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
-import { balance, computeTotals, fmtDate, invoiceLabel, money, round2 } from "./logic";
+import { balance, computeTotals, fmtDate, invoiceLabel, money, round2, settledOutside } from "./logic";
 import type { Entity, InvoiceDetail, PayChannel } from "./types";
 
 const s = StyleSheet.create({
@@ -26,7 +26,7 @@ export function InvoicePdf({ invoice: i, entity: e, channel }: PdfProps) {
   const cur = i.currency;
   const b = i.bill_to ?? {};
   const paid = round2(i.amount_paid - i.amount_refunded);
-  const due = i.status === "draft" ? t.total : balance({ status: i.status, total: i.total, paid: i.amount_paid, due: i.due_on });
+  const due = i.status === "draft" ? t.total : balance({ status: i.status, total: i.total, paid: i.amount_paid, settled: settledOutside(i), due: i.due_on });
   const taxLabel = e && e.tax_label !== "None" ? e.tax_label : "Tax";
 
   return (

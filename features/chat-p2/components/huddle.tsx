@@ -17,6 +17,8 @@ type Props = {
   huddle: HuddleRow | null;
   /** False in archived or admins-only conversations where I can't post. */
   canStart: boolean;
+  /** Called after starting, joining or leaving instead of router.refresh() (client chat screen reloads the huddle itself). */
+  onChange?: () => void;
 };
 
 type Peer = { id: string; name: string; stream: MediaStream | null };
@@ -26,9 +28,10 @@ type Peer = { id: string; name: string; stream: MediaStream | null };
  * offers, answers and ICE travel over the private Realtime broadcast topic huddle:<channel_id>,
  * and Presence says who is in the call. STUN: stun.l.google.com (no TURN yet).
  */
-export function Huddle({ channelId, me, huddle, canStart }: Props) {
+export function Huddle({ channelId, me, huddle, canStart, onChange }: Props) {
   const toast = useToast();
   const router = useRouter();
+  const changed = () => (onChange ? onChange() : router.refresh());
   const [choose, setChoose] = useState(false);
   const [busy, setBusy] = useState(false);
   const [call, setCall] = useState<{ huddleId: string; media: HuddleMedia } | null>(null);
@@ -161,7 +164,7 @@ export function Huddle({ channelId, me, huddle, canStart }: Props) {
     }
     await connect(huddleId, huddle ? huddle.media : media);
     setBusy(false);
-    router.refresh();
+    changed();
   }
 
   async function leave() {
@@ -170,7 +173,7 @@ export function Huddle({ channelId, me, huddle, canStart }: Props) {
     teardown();
     setCall(null);
     await leaveHuddle({ huddleId: id });
-    router.refresh();
+    changed();
   }
 
   function toggleMic() {

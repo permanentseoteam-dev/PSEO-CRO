@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { Button, Card, CardHead, Select, StatusDot, useToast } from "@/components/ui";
 import { startWinback, updateWinback } from "../actions";
@@ -37,7 +38,9 @@ export function WinbackCard({ clients, canManage }: { clients: EndedClient[]; ca
             return (
               <div key={c.id} className="item between" style={{ gap: 12, flexWrap: "wrap" }}>
                 <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <strong>{c.name}</strong>
+                  <Link href={`/clients/${c.id}`}>
+                    <strong>{c.name}</strong>
+                  </Link>
                   <span className="small muted">{endedLine(c)}</span>
                   {w ? (
                     <span className="small">

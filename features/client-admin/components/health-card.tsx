@@ -8,7 +8,6 @@ import { CHURN_OUTCOMES, CHURN_TRIGGERS, SENTIMENTS, type ChurnAlert, type Churn
 
 type Props = {
   clientId: string;
-  healthScore: number | null;
   sentiments: SentimentRow[];
   alerts: ChurnAlert[];
   /** Triggers the data points to that have no open alert yet. */
@@ -16,8 +15,8 @@ type Props = {
   canManage: boolean;
 };
 
-/** Health card extras: sentiment with trend, churn alerts and their outcomes. */
-export function HealthCard({ clientId, healthScore, sentiments, alerts, suggestions, canManage }: Props) {
+/** Sits under the Phase 1 Health card (score ring and factors): sentiment with trend, churn alerts and their outcomes. */
+export function HealthCard({ clientId, sentiments, alerts, suggestions, canManage }: Props) {
   const [dialog, setDialog] = useState<null | "sentiment" | ChurnTrigger>(null);
   const [busy, start] = useTransition();
   const toast = useToast();
@@ -34,7 +33,7 @@ export function HealthCard({ clientId, healthScore, sentiments, alerts, suggesti
   return (
     <Card>
       <CardHead
-        title="Health"
+        title="Sentiment and churn"
         actions={
           canManage ? (
             <Button size="sm" onClick={() => setDialog("sentiment")}>
@@ -44,12 +43,7 @@ export function HealthCard({ clientId, healthScore, sentiments, alerts, suggesti
         }
       />
       <CardBody className="stack">
-        <div className="row" style={{ gap: 12, alignItems: "baseline" }}>
-          <strong className="num" style={{ fontSize: 28 }}>
-            {healthScore ?? "–"}
-          </strong>
-          <span className="small muted">{sentimentLine(sentiments)}</span>
-        </div>
+        <span className="small muted">{sentimentLine(sentiments)}</span>
         {sentiments[0]?.note ? <p className="small" style={{ margin: 0 }}>{sentiments[0].note}</p> : null}
 
         {open.map((a) => (

@@ -291,7 +291,8 @@ export async function saveHrDetails(raw: unknown): Promise<Result> {
   // member_profiles is written by the person or admin.access.manage (0112), so use the service client after the check.
   const { error: e1 } = await createAdminClient()
     .from("member_profiles")
-    .upsert({ member_id: d.memberId, joined_on: d.joinedOn }, { onConflict: "member_id" });
+    // shift is the Phase 1 text the profile header and clock card read, kept in step with shift_start/shift_end.
+    .upsert({ member_id: d.memberId, joined_on: d.joinedOn, shift: `${d.shiftStart.slice(0, 5)}–${d.shiftEnd.slice(0, 5)}` }, { onConflict: "member_id" });
   if (e1) return fail(e1.message);
   // members_guard() only lets admins change these columns; can() above already checked HR has "all".
   const { error: e2 } = await createAdminClient()

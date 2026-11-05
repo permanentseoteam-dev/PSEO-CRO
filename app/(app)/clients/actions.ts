@@ -116,33 +116,6 @@ export async function saveClient(raw: unknown): Promise<Result<{ id: string }>> 
   return { ok: true, id };
 }
 
-// ---------------------------------------------------------------- terms
-const TermsInput = z.object({
-  client_id: uuid,
-  monthly_fee: optNum,
-  currency: z.enum(CURRENCIES),
-  term_months: optNum,
-  term_start: optDate,
-  notice_days: optNum,
-  renewal_date: optDate,
-  hours_per_month: optNum,
-  in_scope: optText(2000),
-  out_of_scope: optText(2000),
-  agreement_name: optText(200),
-});
-
-export async function saveTerms(raw: unknown): Promise<Result> {
-  const v = TermsInput.safeParse(raw);
-  if (!v.success) return FORM_ERROR;
-  const me = await getMe();
-  if (!me || me.kind !== "staff" || !(can(me, "clients.billing.edit") || can(me, "clients.manage"))) return NO_ACCESS;
-  const db = await createClient();
-  const { error } = await db.from("client_terms").upsert(v.data, { onConflict: "client_id" });
-  if (error) return { ok: false, error: error.message };
-  refresh(v.data.client_id);
-  return { ok: true };
-}
-
 // ---------------------------------------------------------------- timeline: calls, chats, notes
 const LogInput = z.object({
   client_id: uuid,

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, CardBody, CardHead, Checkbox, Dialog, Field, FormGrid, PhaseTwo, StatusDot, Table, Td, Th, useToast } from "@/components/ui";
+import { Button, Card, CardBody, CardHead, Checkbox, Dialog, Field, FormGrid, Table, Td, Th, useToast } from "@/components/ui";
 import { CURRENCIES, fmtDay, money, type Currency } from "@/lib/modules/finance/core/logic";
 import type { ChannelRow, EntityRow, SalaryRow } from "@/lib/modules/finance/ops/types";
 import { saveChannel, saveEntity, saveRates, saveSalary } from "../actions";
 import s from "../../payments/_components/ops.module.css";
 
 type Rates = Partial<Record<Currency, { rate: number; validFrom: string; updatedAt: string }>>;
-type Props = { entities: EntityRow[]; channels: ChannelRow[]; rates: Rates; salaries: SalaryRow[] | null; today: string; reminderFrom: string };
+type Props = { entities: EntityRow[]; channels: ChannelRow[]; rates: Rates; salaries: SalaryRow[] | null; today: string; emailSending: ReactNode };
 
 const CHANNEL_TYPES: { value: ChannelRow["type"]; label: string }[] = [
   { value: "wise", label: "Wise" },
@@ -46,7 +46,7 @@ const ErrorNote = ({ error }: { error: string | null }) =>
     </div>
   ) : null;
 
-export function SettingsView({ entities, channels, rates, salaries, today, reminderFrom }: Props) {
+export function SettingsView({ entities, channels, rates, salaries, today, emailSending }: Props) {
   const [entity, setEntity] = useState<EntityRow | "new" | null>(null);
   const [channel, setChannel] = useState<ChannelRow | "new" | null>(null);
   const [salary, setSalary] = useState<SalaryRow | null>(null);
@@ -141,25 +141,7 @@ export function SettingsView({ entities, channels, rates, salaries, today, remin
               <RatesForm rates={rates} today={today} />
             </CardBody>
           </Card>
-          <Card>
-            <CardHead
-              title={
-                <>
-                  Email sending <PhaseTwo />
-                </>
-              }
-            />
-            <CardBody>
-              <dl className={s.kv}>
-                <dt>Sender</dt>
-                <dd>Permanent SEO Billing &lt;{reminderFrom}&gt;</dd>
-                <dt>Status</dt>
-                <dd>
-                  <StatusDot tone="warn">Not connected</StatusDot>
-                </dd>
-              </dl>
-            </CardBody>
-          </Card>
+          {emailSending}
         </div>
       </div>
 

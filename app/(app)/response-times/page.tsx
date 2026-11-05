@@ -1,7 +1,8 @@
 import { requireMe, can } from "@/lib/auth/can";
-import { Avatar, Button, Card, CardBody, CardHead, NoAccess, PhaseTwo, Seg, StatCard, Stats, StatusDot, Table, Tabs, Td, Th } from "@/components/ui";
-import { formatMinutes, formatTarget, KIND_LABEL, parseRange, RANGES, whenLabel } from "@/lib/modules/clientops/logic";
+import { Avatar, NoAccess, Seg, StatCard, Stats, StatusDot, Table, Tabs, Td, Th } from "@/components/ui";
+import { formatMinutes, KIND_LABEL, parseRange, RANGES, whenLabel } from "@/lib/modules/clientops/logic";
 import { getResponseTimes } from "@/lib/modules/clientops/queries";
+import { InboxCountsCard } from "@/features/platform-p2/components/server";
 import { TargetsButton } from "./_components/targets-dialog";
 
 export const metadata = { title: "Response times" };
@@ -219,26 +220,7 @@ export default async function ResponseTimesPage({ searchParams }: { searchParams
         </Table>
       ) : null}
 
-      <Card>
-        <CardHead
-          title={
-            <>
-              Client email inboxes <PhaseTwo />
-            </>
-          }
-          actions={
-            <Button size="sm" disabled>
-              Connect inbox
-            </Button>
-          }
-        />
-        <CardBody>
-          <p className="small muted" style={{ margin: 0 }}>
-            A shared inbox will be checked every 10 minutes. Emails from client contacts start a wait or join a ticket. Targets: reply {formatTarget(d.settings.replyHours)},
-            request {formatTarget(d.settings.requestHours)}, changes {formatTarget(d.settings.changesHours)}.
-          </p>
-        </CardBody>
-      </Card>
+      <InboxCountsCard />
     </div>
   );
 }

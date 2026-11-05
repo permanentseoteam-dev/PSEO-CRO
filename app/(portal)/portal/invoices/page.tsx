@@ -1,6 +1,8 @@
 import { can } from "@/lib/auth/can";
 import { Card, CardBody, CardHead, EmptyState, NoAccess, StatCard, Stats } from "@/components/ui";
 import { listInvoices, portalContext } from "@/lib/modules/portal/queries";
+import { getPortalInvoiceExtras } from "@/features/finance-p2/queries";
+import type { InvoiceStatus } from "@/features/finance-p2/types";
 import { dubaiToday, fmtDate, invoiceTotals, money } from "@/lib/modules/portal/logic";
 import { NoClient, PageHead } from "../../_components/page-head";
 import { InvoiceTable } from "./_components/invoice-table";
@@ -13,7 +15,10 @@ export default async function PortalInvoices() {
   if (!client) return <NoClient />;
 
   const today = dubaiToday(new Date());
-  const { invoices, channels, receipts } = await listInvoices(client.id);
+  const { invoices: all, channels, receipts } = await listInvoices(client.id);
+  // Drops drafts, voids and invoices hidden from the portal; adds links to original documents of past invoices.
+  const { visibleIds, docs } = await getPortalInvoiceExtras(all.map((i) => ({ id: i.id, status: i.status as InvoiceStatus })));
+  const invoices = all.filter((i) => visibleIds.includes(i.id));
   const t = invoiceTotals(
     invoices.map((i) => ({ number: i.number, status: i.status, due_on: i.dueOn, total: i.total, amount_paid: i.amountPaid, written_off_amount: i.writtenOff, currency: i.currency })),
     receipts,
@@ -37,7 +42,7 @@ export default async function PortalInvoices() {
       <Card>
         <CardHead title="All invoices" />
         {invoices.length ? (
-          <InvoiceTable invoices={invoices} channels={channels} today={today} clientName={client.name} />
+          <InvoiceTable invoices={invoices} channels={channels} today={today} clientName={client.name} docs={Object.fromEntries(docs)} />
         ) : (
           <EmptyState title="No invoices yet">Invoices we send you show here.</EmptyState>
         )}

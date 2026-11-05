@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, Button, Checkbox, Dialog, Field, FormGrid, Input, PhaseTwo, Seg, Select, Textarea, useToast } from "@/components/ui";
+import { Avatar, Button, Checkbox, Dialog, Field, FormGrid, Input, Seg, Select, Textarea, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { convLabel, dubai, slugChannel } from "@/lib/modules/chat/logic";
 import type { BrowseRow, ClientOption, Conversation, Message, Notify, Person } from "@/lib/modules/chat/types";
@@ -17,6 +17,7 @@ import {
   startConversation,
   updateChannel,
 } from "@/app/(app)/chat/actions";
+import { ChannelSettingsP2 } from "@/features/chat-p2/components/channel-settings";
 import s from "./chat.module.css";
 
 type Base = { onClose: () => void };
@@ -450,11 +451,19 @@ export function SettingsDialog({
   onNotify,
   onSaved,
   onLeft,
-}: Base & { conv: Conversation; canAdmin: boolean; onNotify: (n: Notify) => void; onSaved: (topic: string, adminsOnly: boolean) => void; onLeft: () => void }) {
+  onExtras,
+}: Base & {
+  conv: Conversation;
+  canAdmin: boolean;
+  onNotify: (n: Notify) => void;
+  onSaved: (topic: string, adminsOnly: boolean) => void;
+  onLeft: () => void;
+  /** Phase 2 rows (only admins can post, archive) save at once and report here. */
+  onExtras: (patch: { adminsOnly?: boolean; archivedAt?: string | null }) => void;
+}) {
   const toast = useToast();
   const [topic, setTopic] = useState(conv.topic ?? "");
   const [notify, setN] = useState<Notify>(conv.notify);
-  const [adminsOnly, setAdminsOnly] = useState(conv.adminsOnly);
   const [busy, start] = useTransition();
   const isChannel = conv.kind !== "dm" && conv.kind !== "group";
   const save = () =>
@@ -464,10 +473,10 @@ export function SettingsDialog({
         if (!r.ok) return toast(r.error);
         onNotify(notify);
       }
-      if (canAdmin && isChannel && (topic !== (conv.topic ?? "") || adminsOnly !== conv.adminsOnly)) {
-        const r = await updateChannel({ channelId: conv.id, topic, adminsOnly });
+      if (canAdmin && isChannel && topic !== (conv.topic ?? "")) {
+        const r = await updateChannel({ channelId: conv.id, topic, adminsOnly: conv.adminsOnly });
         if (!r.ok) return toast(r.error);
-        onSaved(topic, adminsOnly);
+        onSaved(topic, conv.adminsOnly);
       }
       toast("Saved");
       onClose();
@@ -507,21 +516,16 @@ export function SettingsDialog({
             <option value="mute">Mute</option>
           </Select>
         </Field>
-        {isChannel && canAdmin ? (
-          <Field label="Posting">
-            <Checkbox label="Only admins can post" checked={adminsOnly} onChange={(e) => setAdminsOnly(e.target.checked)} />
-          </Field>
-        ) : null}
       </FormGrid>
-      <div className={cn("row between", s.danger)}>
-        <div>
-          <b>Archive this conversation</b> <PhaseTwo />
-          <div className="small muted">Hides it for everyone. History stays searchable.</div>
+      {canAdmin && conv.kind !== "dm" ? (
+        <div className={s.danger}>
+          <ChannelSettingsP2
+            channel={{ id: conv.id, kind: conv.kind, name: conv.name, topic: conv.topic, clientId: conv.clientId, adminsOnly: conv.adminsOnly, archivedAt: conv.archivedAt }}
+            isAdmin={canAdmin}
+            onChange={onExtras}
+          />
         </div>
-        <Button size="sm" variant="danger" disabled>
-          Archive
-        </Button>
-      </div>
+      ) : null}
       <div className={cn("row between", s.danger)}>
         <div>
           <b>Leave conversation</b>

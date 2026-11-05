@@ -6,6 +6,8 @@ export const COMMITMENT_STATUSES = ["met", "on_track", "at_risk", "missed"] as c
 export const TIERS = ["A", "B", "C"] as const;
 export const LOG_KINDS = ["touch", "call", "whatsapp", "email", "meeting", "note", "wish", "gift", "card", "win", "complaint"] as const;
 export const MOODS = ["happy", "neutral", "unhappy"] as const;
+/** Portfolio "Status review": the account person's weekly read on a client. */
+export const REVIEW_STATUSES = ["on_track", "watch", "at_risk"] as const;
 export const OPPORTUNITY_STAGES = ["idea", "pitch", "quote_sent", "won", "lost"] as const;
 export const REPORT_STATUSES = ["draft", "submitted", "changes", "approved", "sent"] as const;
 export const QBR_STATUSES = ["draft", "ready", "presented"] as const;
@@ -16,6 +18,7 @@ export type CommitmentStatus = (typeof COMMITMENT_STATUSES)[number];
 export type Tier = (typeof TIERS)[number];
 export type LogKind = (typeof LOG_KINDS)[number];
 export type Mood = (typeof MOODS)[number];
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 export type OpportunityStage = (typeof OPPORTUNITY_STAGES)[number];
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 export type QbrStatus = (typeof QBR_STATUSES)[number];

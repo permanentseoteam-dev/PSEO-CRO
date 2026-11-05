@@ -9,7 +9,7 @@ import { HealthCard } from "./components/health-card";
 import { TermsCard } from "./components/terms-card";
 import { VaultCard } from "./components/vault-card";
 import { WinbackCard } from "./components/winback-card";
-import { suggestChurnTriggers } from "./logic";
+import { isEnded, suggestChurnTriggers } from "./logic";
 import {
   getActivityLines,
   getAgreement,
@@ -44,7 +44,6 @@ export async function ClientHealthCard({ clientId }: { clientId: string }) {
   return (
     <HealthCard
       clientId={clientId}
-      healthScore={healthScore}
       sentiments={sentiments}
       alerts={alerts}
       suggestions={suggestions}
@@ -84,11 +83,11 @@ export async function ClientEmailButton({ clientId, to = "", contactName = "" }:
   return <EmailDraftButton clientId={clientId} to={to} contactName={contactName} aiConnected={getEmailDrafter().configured} />;
 }
 
-/** Edit client dialog (or header menu): "Delete client" button. Only for clients.delete 'all'. */
+/** Edit client dialog (or header menu): "Delete client" button, which archives instead when invoices exist. Only for clients.delete 'all'. */
 export async function ClientDeleteButton({ clientId }: { clientId: string }) {
   const me = await requireMe();
   if (me.kind !== "staff" || !can(me, "clients.delete", "all")) return null;
   const client = await getClientBasics(clientId);
   if (!client) return null;
-  return <DeleteClientButton clientId={clientId} clientName={client.name} />;
+  return <DeleteClientButton clientId={clientId} clientName={client.name} ended={isEnded(client.status)} />;
 }

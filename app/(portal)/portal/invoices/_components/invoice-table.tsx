@@ -10,8 +10,20 @@ const pdfHref = (id: string) => `/api/finance/invoices/${id}/pdf`;
 const view = (i: PortalInvoice, today: string) =>
   invoiceView({ status: i.status, due_on: i.dueOn, total: i.total, amount_paid: i.amountPaid, written_off_amount: i.writtenOff }, today);
 
-/** Invoice list with a View dialog (lines, totals, how to pay). PDFs come from the finance module's route. */
-export function InvoiceTable({ invoices, channels, today, clientName }: { invoices: PortalInvoice[]; channels: PayChannel[]; today: string; clientName: string }) {
+/** Invoice list with a View dialog (lines, totals, how to pay). PDFs come from the finance module's route; `docs` maps invoice id to a signed link to its original document. */
+export function InvoiceTable({
+  invoices,
+  channels,
+  today,
+  clientName,
+  docs = {},
+}: {
+  invoices: PortalInvoice[];
+  channels: PayChannel[];
+  today: string;
+  clientName: string;
+  docs?: Record<string, string>;
+}) {
   const [open, setOpen] = useState<PortalInvoice | null>(null);
   const v = open ? view(open, today) : null;
   const channel = open ? channels.find((c) => c.id === open.channelId) : undefined;
@@ -61,6 +73,11 @@ export function InvoiceTable({ invoices, channels, today, clientName }: { invoic
                     <a className="btn ghost sm hide-sm" href={pdfHref(i.id)}>
                       Download PDF
                     </a>
+                    {docs[i.id] ? (
+                      <a className="btn ghost sm hide-sm" href={docs[i.id]} target="_blank" rel="noopener noreferrer">
+                        Original document
+                      </a>
+                    ) : null}
                   </div>
                 </Td>
               </tr>

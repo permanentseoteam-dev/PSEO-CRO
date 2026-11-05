@@ -1,4 +1,4 @@
-// notify-push Edge Function (stub). Move to supabase/functions/notify-push/index.ts (see WIRING.md).
+// notify-push Edge Function (stub). Lives at supabase/functions/notify-push/index.ts (see features/chat-p2/WIRING.md).
 // Called by a Database Webhook on INSERT into public.notifications. It loads the recipient's quiet hours
 // (user_settings, 0101_shell) and devices (push_subscriptions, 0205), skips quiet hours, and hands the
 // payload to a PushSender. No VAPID keys exist yet, so the sender is the not-configured one and nothing is sent.

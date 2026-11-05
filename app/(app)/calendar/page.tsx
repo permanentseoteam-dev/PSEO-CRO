@@ -2,6 +2,7 @@ import { requireMe, can } from "@/lib/auth/can";
 import { NoAccess } from "@/components/ui";
 import { listBusy, listClients, listMyEvents, listPeople } from "@/lib/modules/calendar/queries";
 import { parseParams, toLocal, viewRange } from "@/lib/modules/calendar/logic";
+import { CalendarSyncBar } from "@/features/platform-p2/components/server";
 import { Calendar } from "./_components/calendar";
 
 export const metadata = { title: "Calendar" };
@@ -32,6 +33,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       busy={busy.filter((b) => b.memberId !== me.id)}
       people={people}
       clients={clients}
+      syncBar={<CalendarSyncBar />}
     />
   );
 }

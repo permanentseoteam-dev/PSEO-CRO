@@ -5,6 +5,7 @@ import { EmptyState, NoAccess, Priority, TicketStatusDot } from "@/components/ui
 import { getTicket, listPeople, listProjects } from "@/lib/modules/tickets/queries";
 import { markRead } from "@/lib/modules/tickets/actions";
 import { todayIn } from "@/lib/modules/tickets/logic";
+import { TicketClientCard, TicketDependencies, TicketPeopleFields, TicketScopeCard } from "@/features/work-p2";
 import { DueLabel } from "../../tickets/_components/bits";
 import { HeaderActions, TicketTitle } from "./_components/header";
 import { Description } from "./_components/description";
@@ -66,6 +67,10 @@ export default async function TicketPage({ params }: Params) {
           watching={t.watching}
           canEdit={t.canEdit}
           canDelete={t.canDelete}
+          assigneeId={t.assigneeId}
+          priority={t.priority}
+          today={today}
+          canRepeat={t.canEdit && can(me, "work.recurring.manage")}
           fileCount={t.attachments.length}
           commentCount={t.comments.length}
         />
@@ -82,6 +87,7 @@ export default async function TicketPage({ params }: Params) {
           <Description id={t.id} description={t.description} doneWhen={t.doneWhen} canEdit={t.canEdit} />
           <Checklist ticketId={t.id} items={t.checklist} canEdit={t.canEdit} />
           {!t.parent ? <Subtasks parentId={t.id} items={t.subtasks} people={people} canEdit={t.canEdit} /> : null}
+          <TicketDependencies ticketId={t.id} />
           <Review
             ticketId={t.id}
             status={t.status}
@@ -93,11 +99,13 @@ export default async function TicketPage({ params }: Params) {
             canEdit={t.canEdit}
             canModerate={t.canModerate}
           />
+          <TicketClientCard ticketId={t.id} />
           <Files ticketId={t.id} files={t.attachments} canDelete={t.canEdit} />
           <Activity ticketId={t.id} comments={t.comments} history={t.history} names={names} meId={me.id} canModerate={t.canModerate} />
         </div>
-        <aside>
-          <SidePanel t={t} people={people} projects={projects} today={today} />
+        <aside className="stack" style={{ gap: 16 }}>
+          <SidePanel t={t} people={people} projects={projects} today={today} peopleFields={<TicketPeopleFields ticketId={t.id} />} />
+          <TicketScopeCard ticketId={t.id} />
         </aside>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { dubai, formatSize, reactionSummary, threadInfo, tokenize } from "@/lib/modules/chat/logic";
 import type { FileRef, Message } from "@/lib/modules/chat/types";
+import { VoiceNote } from "@/features/chat-p2/components/voice-note";
 import { useChat } from "./context";
 import s from "./chat.module.css";
 
@@ -77,10 +78,10 @@ function useUrl(path: string) {
 export function FileView({ f }: { f: FileRef }) {
   const isImg = f.mime.startsWith("image/");
   const isAudio = f.mime.startsWith("audio/");
-  const url = useUrl(isImg || isAudio ? f.path : "");
+  const url = useUrl(isImg ? f.path : "");
   const [broken, setBroken] = useState(false);
 
-  if (isAudio && url) return <audio className={s.attAudio} controls preload="none" src={url} aria-label={f.name} />;
+  if (isAudio && f.path) return <VoiceNote file={f} />;
   if (isImg)
     return (
       <a

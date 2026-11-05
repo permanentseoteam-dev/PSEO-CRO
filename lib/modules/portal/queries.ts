@@ -105,7 +105,7 @@ export async function listClientTickets(clientId: string, done: boolean, limit =
   const supabase = await createClient();
   let q = supabase
     .from("tickets")
-    .select("id, title, client_title, status, due_date, completed_at, assignee:members!tickets_assignee_id_fkey(name)")
+    .select("id, title, client_title, client_details, client_needs_approval, status, due_date, completed_at, assignee:members!tickets_assignee_id_fkey(name)")
     .eq("client_id", clientId)
     .eq("client_visible", true)
     .is("parent_id", null)
@@ -120,6 +120,8 @@ export async function listClientTickets(clientId: string, done: boolean, limit =
     dueDate: r.due_date,
     completedAt: r.completed_at,
     assignee: one<Row>(r.assignee)?.name ?? null,
+    details: r.client_details ?? null,
+    needsApproval: Boolean(r.client_needs_approval),
   }));
 }
 

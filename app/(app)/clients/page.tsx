@@ -1,7 +1,8 @@
 import { requireMe, can } from "@/lib/auth/can";
-import Link from "next/link";
 import { Avatar, Card, CardHead, NoAccess, StatCard, Stats, Table, Td, Th } from "@/components/ui";
-import { byOwner, fmtDay, fmtMeeting, money } from "@/lib/modules/clients/logic";
+import { EndedClientsCard } from "@/features/client-admin/sections";
+import { StatusReviewButton } from "@/features/client-success/components/status-review";
+import { byOwner, fmtMeeting, money } from "@/lib/modules/clients/logic";
 import { getPortfolio } from "@/lib/modules/clients/queries";
 import { ClientFormButton } from "./_components/client-form";
 import { PortfolioGrid } from "./_components/portfolio-grid";
@@ -17,13 +18,17 @@ export default async function ClientsPage() {
   const owners = byOwner(data.byOwner);
   const canManage = can(me, "clients.manage");
   const showFee = can(me, "clients.billing.view") && (can(me, "clients.billing.edit") || canManage);
-  const year = String(now.getFullYear());
 
   return (
     <div className="page">
       <div className="between">
         <h1>Client portfolio</h1>
-        {canManage ? <ClientFormButton people={people} showFee={showFee} label="Add client" variant="primary" /> : null}
+        {canManage ? (
+          <div className="row">
+            <StatusReviewButton clients={data.cards.filter((c) => c.status !== "paused").map((c) => ({ id: c.id, name: c.name, band: c.band }))} />
+            <ClientFormButton people={people} showFee={showFee} label="Add client" variant="primary" />
+          </div>
+        ) : null}
       </div>
 
       <Stats>
@@ -95,29 +100,7 @@ export default async function ClientsPage() {
             </tbody>
           </Table>
         </Card>
-        <Card>
-          <CardHead title="Ended clients" />
-          <div className="card-body">
-            {data.ended.length ? (
-              <div className="list">
-                {data.ended.map((c) => (
-                  <div className="item" key={c.id}>
-                    <div className="stack" style={{ gap: 2 }}>
-                      <Link href={`/clients/${c.id}`}>
-                        <strong>{c.name}</strong>
-                      </Link>
-                      <span className="small muted">
-                        {[c.endDate ? `Ended ${fmtDay(c.endDate, year)}` : "Ended", c.reason, c.fee ? `was ${c.fee}/month` : null].filter(Boolean).join(" · ")}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="muted small">No ended clients.</p>
-            )}
-          </div>
-        </Card>
+        <EndedClientsCard />
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { balance } from "@/lib/modules/finance/core/logic";
+import { settledByInvoice } from "@/lib/modules/finance/core/queries";
 import { CONTACT_KINDS, daysBetween, dubaiDate, healthScore, isEnded, money, weekStart, type Band, type Health, type Severity } from "./logic";
 import type { ClientPage, ClientRow, Escalation, Meeting, Person, Portfolio, PortfolioCard, PortalLogin, Terms } from "./types";
 
@@ -9,14 +11,14 @@ import type { ClientPage, ClientRow, Escalation, Meeting, Person, Portfolio, Por
 //   time_entries  (0106_tickets): ticket_id, member_id, minutes, date
 //   events        (0104_calendar): id, title, kind, client_id, starts_at, meet_link, location, event_attendees
 //   sla_waits     (0109_clientops, assumed): client_id, answered_at
-//   invoices      (0110_finance_core, assumed like Home): client_id, status, currency, total, amount_paid, due_date
+//   invoices      (0110_finance_core, assumed like Home): client_id, status, currency, total, amount_paid, due_on
 // A missing table reads as empty, so the pages still render before those modules are applied.
 
 type DB = Awaited<ReturnType<typeof createClient>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 const rows = (res: { data: unknown; error: unknown }): Row[] => (res.error || !res.data ? [] : (res.data as Row[]));
-const OPEN_INVOICE = ["sent", "partly_paid", "overdue"];
+const OPEN_INVOICE = ["issued", "partly_paid", "disputed"];
 
 const CLIENT_COLS =
   "id, name, site, services, country, channel, currency, status, start_date, end_date, end_reason, owner_id, manager_id, notes, health_score, health_band, health_factors, health_at, portal_logo_url, portal_color, portal_welcome";
@@ -184,12 +186,16 @@ export async function getClient(id: string, now: Date): Promise<ClientPage | nul
   for (const t of time) minutesBy.set(t.member_id, (minutesBy.get(t.member_id) ?? 0) + Number(t.minutes));
 
   // Balance due from Finance (if that module is applied and I can see invoices).
-  const inv = await db.from("invoices").select("currency, total, amount_paid").eq("client_id", id).in("status", OPEN_INVOICE);
-  let balance: ClientPage["balance"] = null;
+  const inv = await db.from("invoices").select("id, status, currency, total, amount_paid, due_on").eq("client_id", id).in("status", OPEN_INVOICE);
+  let balanceDue: ClientPage["balance"] = null;
   if (!inv.error) {
+    const settled = await settledByInvoice(rows(inv).map((i) => i.id as string));
     const sums = new Map<string, number>();
-    for (const i of rows(inv)) sums.set(i.currency, (sums.get(i.currency) ?? 0) + Number(i.total ?? 0) - Number(i.amount_paid ?? 0));
-    balance = [...sums.entries()].map(([currency, amount]) => ({ currency, amount }));
+    for (const i of rows(inv)) {
+      const bal = balance({ status: i.status, total: Number(i.total ?? 0), paid: Number(i.amount_paid ?? 0), settled: settled.get(i.id) ?? 0, due: i.due_on });
+      sums.set(i.currency, (sums.get(i.currency) ?? 0) + bal);
+    }
+    balanceDue = [...sums.entries()].map(([currency, amount]) => ({ currency, amount }));
   }
 
   const loginRows = rows(logins);
@@ -243,7 +249,7 @@ export async function getClient(id: string, now: Date): Promise<ClientPage | nul
     openTickets: open.length,
     overdueTickets: open.filter((t) => t.due_date && t.due_date < today).length,
     hoursThisMonth: Math.round([...minutesBy.values()].reduce((a, b) => a + b, 0) / 60),
-    balance,
+    balance: balanceDue,
     lastContact,
     logins: portal,
   };
@@ -263,7 +269,7 @@ export async function computeHealth(db: SupabaseClient, id: string, now: Date): 
     db.from("tickets").select("id").eq("client_id", id).neq("status", "done").lt("due_date", today),
     db.from("client_timeline").select("happened_on").eq("client_id", id).in("kind", CONTACT_KINDS).order("happened_on", { ascending: false }).limit(1),
     db.from("sla_waits").select("id").eq("client_id", id).is("answered_at", null),
-    db.from("invoices").select("id").eq("client_id", id).in("status", OPEN_INVOICE).lt("due_date", today),
+    db.from("invoices").select("id").eq("client_id", id).in("status", OPEN_INVOICE).lt("due_on", today),
     db.from("escalations").select("severity").eq("client_id", id).eq("status", "open"),
   ]);
   return healthScore({

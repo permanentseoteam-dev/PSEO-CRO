@@ -1,6 +1,7 @@
 import "server-only";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { toMessage } from "./logic";
+import { congratsMessage, dubai, toMessage } from "./logic";
 import type { BrowseRow, ClientOption, Conversation, Message, MessageRow, Person, Reaction } from "./types";
 
 // Reads run as the signed-in user, so RLS decides what comes back.
@@ -24,8 +25,8 @@ type ChannelRow = {
   created_by: string | null;
 };
 
-/** My conversations with members, notify setting, read position and unread counts. */
-export async function listConversations(meId: string): Promise<Conversation[]> {
+/** My conversations with members, notify setting, read position and unread counts. Archived ones only with `withArchived`. */
+export async function listConversations(meId: string, { withArchived = false } = {}): Promise<Conversation[]> {
   const supabase = await createClient();
   const { data: mine } = await supabase
     .from("channel_members")
@@ -44,7 +45,7 @@ export async function listConversations(meId: string): Promise<Conversation[]> {
   const out: Conversation[] = [];
   for (const r of rows) {
     const c = Array.isArray(r.channel) ? r.channel[0] : r.channel;
-    if (!c || c.archived_at) continue;
+    if (!c || (c.archived_at && !withArchived)) continue;
     out.push({
       id: c.id,
       kind: c.kind,
@@ -52,6 +53,7 @@ export async function listConversations(meId: string): Promise<Conversation[]> {
       topic: c.topic,
       clientId: c.client_id,
       adminsOnly: c.admins_only,
+      archivedAt: c.archived_at,
       lastMessageAt: c.last_message_at,
       createdBy: c.created_by,
       members: (members ?? [])
@@ -118,4 +120,44 @@ export async function listClients(): Promise<ClientOption[]> {
   const { data, error } = await supabase.from("clients").select("id, name").order("name");
   if (error) return [];
   return (data ?? []).map((c) => ({ id: c.id as string, name: c.name as string }));
+}
+
+/**
+ * Posts the #general congratulations for title changes that asked for one (career_steps.post_congrats, 0207)
+ * once their date has come, then stamps congrats_posted_at. Runs on the service client because the HR row
+ * and the #general post belong to other people; each row is claimed first so two page loads can't post twice.
+ * Best effort: any failure leaves the rest for the next load.
+ */
+export async function postCareerCongrats(): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const today = dubai(new Date().toISOString()).day;
+    const { data: due } = await admin
+      .from("career_steps")
+      .select("id, kind, title, created_by, member:members!career_steps_member_id_fkey(name)")
+      .eq("post_congrats", true)
+      .is("congrats_posted_at", null)
+      .lte("on_date", today)
+      .limit(20);
+    if (!due?.length) return;
+    const { data: general } = await admin.from("channels").select("id").eq("kind", "public").eq("name", "general").is("archived_at", null).maybeSingle();
+    if (!general) return;
+    for (const row of due) {
+      const { data: claimed } = await admin
+        .from("career_steps")
+        .update({ congrats_posted_at: new Date().toISOString() })
+        .eq("id", row.id)
+        .is("congrats_posted_at", null)
+        .select("id");
+      if (!claimed?.length) continue;
+      const m = row.member as unknown as { name: string } | { name: string }[] | null;
+      const name = (Array.isArray(m) ? m[0]?.name : m?.name) ?? "A teammate";
+      const { error } = await admin
+        .from("messages")
+        .insert({ channel_id: general.id, author_id: row.created_by, body: congratsMessage(name, row.kind, row.title) });
+      if (error) await admin.from("career_steps").update({ congrats_posted_at: null }).eq("id", row.id);
+    }
+  } catch {
+    // No service key (local dev) or a missing table: skip quietly.
+  }
 }

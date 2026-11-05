@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { can, getMe } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { getSlackAdapter } from "./adapters";
+import { getChannelExtras } from "./queries";
 import { MAX_HUDDLE_PEOPLE, MAX_VOICE_SECONDS, MEETING_MINUTES, canArchive, canSetAdminsOnly, duplicateTargets, meetingMessage } from "./logic";
-import { BRIDGE_STATES, IMPORT_DAYS, type Result } from "./types";
+import { BRIDGE_STATES, IMPORT_DAYS, type Huddle, type Result } from "./types";
 
 // Every action: zod parse -> can() check -> Supabase write (RLS is the real guard) -> revalidate.
 const bad = { ok: false as const, error: "Check the form and try again." };
@@ -59,6 +60,15 @@ export async function sendVoiceNote(raw: unknown): Promise<Result> {
 }
 
 // ---------------------------------------------------------------- huddles
+/** Live huddle of a conversation, for the client chat screen when it switches conversations. */
+export async function getLiveHuddle(raw: unknown): Promise<Result<{ huddle: Huddle | null }>> {
+  const input = id.safeParse(raw);
+  if (!input.success) return bad;
+  if (!(await chatter())) return no;
+  const x = await getChannelExtras(input.data);
+  return { ok: true, data: { huddle: x && !x.channel.archivedAt ? x.huddle : null } };
+}
+
 const Start = z.object({ channelId: id, media: z.enum(["audio", "video"]) });
 
 /** Start a huddle (or join the live one) in a conversation. Returns the huddle id. */

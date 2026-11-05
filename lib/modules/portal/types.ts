@@ -23,6 +23,8 @@ export type ClientTicket = {
   dueDate: string | null;
   completedAt: string | null;
   assignee: string | null;
+  details: string | null;
+  needsApproval: boolean;
 };
 
 export type Activity = { id: string; actorName: string; action: string; href: string | null; happenedAt: string };

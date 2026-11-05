@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireMe, can } from "@/lib/auth/can";
 import { Avatar, Card, CardHead, NoAccess, StatusDot } from "@/components/ui";
-import { balance, displayStatus, fmtDate, invoiceLabel, money, round2 } from "@/lib/modules/finance/core/logic";
+import { balance, displayStatus, fmtDate, invoiceLabel, money, round2, settledOutside } from "@/lib/modules/finance/core/logic";
 import { getInvoice, getRefData, todayIso } from "@/lib/modules/finance/core/queries";
+import { InvoicePortalSection } from "@/features/finance-p2/sections";
 import { InvoiceActions } from "../_components/invoice-actions";
 import { InvoiceEditor } from "../_components/invoice-editor";
 import s from "../../_core/finance.module.css";
@@ -28,7 +29,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const { invoice: i, events } = found;
   const today = todayIso();
 
-  const m = { status: i.status, total: i.total, paid: i.amount_paid, due: i.due_on };
+  const m = { status: i.status, total: i.total, paid: i.amount_paid, settled: settledOutside(i), due: i.due_on };
   const st = displayStatus(m, today);
   const bal = balance(m);
   const paid = round2(i.amount_paid - i.amount_refunded);
@@ -118,6 +119,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         channels={ref.channels}
         clients={clients}
       >
+        <InvoicePortalSection invoiceId={i.id} />
         <Card>
           <CardHead title="History" />
           {events.length ? (

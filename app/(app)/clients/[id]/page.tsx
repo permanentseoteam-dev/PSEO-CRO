@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 import { requireMe, can } from "@/lib/auth/can";
-import { Avatar, ButtonLink, Card, CardBody, EmptyState, NoAccess, PhaseTwo, StatusDot, Tabs } from "@/components/ui";
+import { Avatar, ButtonLink, Card, CardBody, NoAccess, StatusDot, Tabs } from "@/components/ui";
+import { ClientDeleteButton, ClientEmailButton } from "@/features/client-admin/sections";
+import { AccountsTab, AdsTab, AnalysisTab, LeadsTab, PerformanceTab, SeoTab, WebsiteTab, visibleDataTabs } from "@/features/client-data";
+import { CommitmentsTab, RatingsTab, RelationshipTab, ReportsTab } from "@/features/client-success/tabs";
+import { SubAccountsSection } from "@/features/finance-p2/sections";
 import { CHANNELS, daysAgo, daysBetween, dubaiDate, fmtDay, fmtMeeting, fmtMonth, money, statusLabel, statusTone } from "@/lib/modules/clients/logic";
 import { getClient, listPeople } from "@/lib/modules/clients/queries";
 import { BandDot, HealthRing } from "../_components/health-ring";
@@ -11,25 +15,25 @@ import { ContactsTeam, Escalations, FilesLink, MeetingsNotes, Overview, Portal }
 
 export const metadata = { title: "Client" };
 
-// [value, label, phase 2]
-const TABS: [string, string, boolean][] = [
-  ["overview", "Overview", false],
-  ["accounts", "Accounts & projects", true],
-  ["commitments", "Commitments", true],
-  ["relationship", "Relationship", true],
-  ["meetings", "Meetings & notes", false],
-  ["reports", "Reports", true],
-  ["escalations", "Escalations", false],
-  ["ratings", "Delivery ratings", true],
-  ["contacts", "Contacts & team", false],
-  ["files", "Files", false],
-  ["performance", "Performance", true],
-  ["analysis", "Analysis", true],
-  ["ads", "Ads", true],
-  ["leads", "Leads", true],
-  ["website", "Website", true],
-  ["seo", "SEO", true],
-  ["portal", "Client portal", false],
+// Tab ids match the ?tab= values the client-data and client-success features link back to.
+const TABS: [string, string][] = [
+  ["overview", "Overview"],
+  ["accounts", "Accounts & projects"],
+  ["commit", "Commitments"],
+  ["rel", "Relationship"],
+  ["meetings", "Meetings & notes"],
+  ["reports", "Reports"],
+  ["escalations", "Escalations"],
+  ["ratings", "Delivery ratings"],
+  ["contacts", "Contacts & team"],
+  ["files", "Files"],
+  ["perf", "Performance"],
+  ["analysis", "Analysis"],
+  ["ads", "Ads"],
+  ["leads", "Leads"],
+  ["web", "Website"],
+  ["seo", "SEO"],
+  ["portal", "Client portal"],
 ];
 
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
@@ -45,7 +49,10 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const { client, terms } = page;
   const today = dubaiDate(now);
   const year = today.slice(0, 4);
-  const tab = TABS.find((t) => t[0] === rawTab) ?? TABS[0];
+  // Ads shows only for PPC clients (visibleDataTabs); passing hasCampaigns=false skips an extra read.
+  const showAds = visibleDataTabs({ services: client.services, hasCampaigns: false }).some((t) => t.value === "ads");
+  const tabs = showAds ? TABS : TABS.filter((t) => t[0] !== "ads");
+  const tab = tabs.find((t) => t[0] === rawTab) ?? tabs[0];
   const canManage = can(me, "clients.manage");
   const canAdmin = can(me, "admin.access.manage", "all");
   const showTerms = can(me, "clients.billing.view");
@@ -102,11 +109,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
             </div>
           </div>
           <div className="row">
-            {main?.email ? (
-              <a className="btn primary" href={`mailto:${main.email}`}>
-                Email client
-              </a>
-            ) : null}
+            <ClientEmailButton clientId={client.id} to={main?.email ?? undefined} contactName={main?.name ?? undefined} />
             <ButtonLink href="/calendar">Schedule meeting</ButtonLink>
             <EscalateButton clientId={client.id} people={people} />
             <LogButton clientId={client.id} contacts={page.contacts} />
@@ -117,6 +120,8 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
                 fee={terms ? { monthly_fee: terms.monthly_fee, hours_per_month: terms.hours_per_month } : null}
                 showFee={showTerms && canEditTerms}
                 label="Edit"
+                deleteSlot={<ClientDeleteButton clientId={client.id} />}
+                subAccountsSlot={<SubAccountsSection clientId={client.id} />}
               />
             ) : null}
           </div>
@@ -164,27 +169,37 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       <Tabs
         label="Client sections"
         value={tab[0]}
-        items={TABS.map(([value, label, p2]) => ({
+        items={tabs.map(([value, label]) => ({
           value,
           href: value === "overview" ? `/clients/${id}` : `/clients/${id}?tab=${value}`,
-          label: p2 ? (
-            <>
-              {label} <PhaseTwo />
-            </>
-          ) : (
-            label
-          ),
+          label,
         }))}
       />
 
-      {tab[2] ? (
-        <Card>
-          <CardBody>
-            <EmptyState title={tab[1]}>This section arrives in phase 2.</EmptyState>
-          </CardBody>
-        </Card>
+      {tab[0] === "accounts" ? (
+        <AccountsTab clientId={id} />
+      ) : tab[0] === "commit" ? (
+        <CommitmentsTab clientId={id} />
+      ) : tab[0] === "rel" ? (
+        <RelationshipTab clientId={id} />
+      ) : tab[0] === "reports" ? (
+        <ReportsTab clientId={id} />
+      ) : tab[0] === "ratings" ? (
+        <RatingsTab clientId={id} />
+      ) : tab[0] === "perf" ? (
+        <PerformanceTab clientId={id} />
+      ) : tab[0] === "analysis" ? (
+        <AnalysisTab clientId={id} />
+      ) : tab[0] === "ads" ? (
+        <AdsTab clientId={id} />
+      ) : tab[0] === "leads" ? (
+        <LeadsTab clientId={id} />
+      ) : tab[0] === "web" ? (
+        <WebsiteTab clientId={id} />
+      ) : tab[0] === "seo" ? (
+        <SeoTab clientId={id} />
       ) : tab[0] === "overview" ? (
-        <Overview page={page} now={now} year={year} canManage={canManage} showTerms={showTerms} canEditTerms={canEditTerms} />
+        <Overview page={page} now={now} year={year} canManage={canManage} showTerms={showTerms} />
       ) : tab[0] === "meetings" ? (
         <MeetingsNotes page={page} year={year} />
       ) : tab[0] === "escalations" ? (

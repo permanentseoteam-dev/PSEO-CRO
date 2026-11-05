@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { BellOff, ChevronLeft, FileText, Hash, Lock, MessagesSquare, Pencil, Phone, Pin, Plus, Search, Settings, Users } from "lucide-react";
-import { Avatar, Avatars, Button, EmptyState, IconButton, PhaseTwo, Seg, StatusDot, useToast } from "@/components/ui";
+import { BellOff, ChevronLeft, FileText, Hash, Lock, MessagesSquare, Pencil, Pin, Plus, Search, Settings, Users } from "lucide-react";
+import { Avatar, Avatars, Button, EmptyState, IconButton, Seg, StatusDot, useToast } from "@/components/ui";
 import { can, type Scope } from "@/lib/auth/perms";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,10 @@ import {
   setPinned,
   setReaction,
 } from "@/app/(app)/chat/actions";
+import { getLiveHuddle } from "@/features/chat-p2/actions";
+import { Huddle } from "@/features/chat-p2/components/huddle";
+import { ScheduleMeeting } from "@/features/chat-p2/components/schedule-meeting";
+import type { Huddle as LiveHuddle } from "@/features/chat-p2/types";
 import { Composer, type ComposerHandle } from "./composer";
 import { ChatContext, type ChatCtx } from "./context";
 import { BrowseDialog, ForwardDialog, NewChannelDialog, NewMessageDialog, SearchDialog, SettingsDialog, TicketDialog } from "./dialogs";
@@ -49,6 +53,8 @@ type Props = {
   maxId: number;
   today: string;
   focusId: number | null;
+  /** Sidebar "Slack import" (chat-p2 SlackImportButton, rendered on the server). */
+  slackImport?: ReactNode;
 };
 
 type DialogState =
@@ -98,6 +104,7 @@ export function ChatApp(props: Props) {
   const [drafts, setDrafts] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [liveHuddle, setLiveHuddle] = useState<{ channelId: string; huddle: LiveHuddle | null } | null>(null);
 
   const currentRef = useRef(props.currentId);
   const maxIdRef = useRef(props.maxId);
@@ -113,7 +120,8 @@ export function ChatApp(props: Props) {
   const label = conv ? convLabel(conv, people, me.id) : "";
   const isStaff = me.kind === "staff";
   const canModerate = !!conv && isStaff && (can(me, "admin.access.manage", "all") || conv.createdBy === me.id || conv.members.some((m) => m.memberId === me.id && m.role === "admin"));
-  const canPost = !!conv && (!conv.adminsOnly || canModerate);
+  const archived = !!conv?.archivedAt;
+  const canPost = !!conv && !archived && (!conv.adminsOnly || canModerate);
   const memberPeople = conv ? conv.members.map((m) => people.get(m.memberId)).filter((p): p is Person => !!p && p.id !== me.id) : [];
 
   // ---------------------------------------------------------------- loading conversations
@@ -326,6 +334,18 @@ export function ChatApp(props: Props) {
     const t = setTimeout(() => setTyping((cur) => Object.fromEntries(Object.entries(cur).filter(([, exp]) => exp > Date.now()))), 1000);
     return () => clearTimeout(t);
   }, [typing]);
+
+  // Live huddle of the open conversation (chat-p2). Reloaded on switch and after I start, join or leave one.
+  async function loadHuddle() {
+    const id = currentRef.current;
+    if (!id) return;
+    const r = await getLiveHuddle(id);
+    if (r.ok && currentRef.current === id) setLiveHuddle({ channelId: id, huddle: r.data?.huddle ?? null });
+  }
+  const doLoadHuddle = useEffectEvent(() => loadHuddle());
+  useEffect(() => {
+    if (currentId) void doLoadHuddle();
+  }, [currentId]);
 
   function sendTyping() {
     const now = Date.now();
@@ -574,7 +594,9 @@ export function ChatApp(props: Props) {
   }
 
   const sorted = (kinds: string[]) => {
-    const list = convs.filter((c) => kinds.includes(c.kind) && (!q || convLabel(c, people, me.id).toLowerCase().includes(q)));
+    const list = convs.filter(
+      (c) => kinds.includes(c.kind) && (!c.archivedAt || c.id === currentId) && (!q || convLabel(c, people, me.id).toLowerCase().includes(q)),
+    );
     return kinds.includes("dm")
       ? list.sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""))
       : list.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
@@ -629,11 +651,7 @@ export function ChatApp(props: Props) {
                 </Button>
               </div>
             ) : null}
-            {isStaff ? (
-              <Button size="sm" variant="ghost" disabled>
-                Slack import <PhaseTwo />
-              </Button>
-            ) : null}
+            {props.slackImport}
             <div className={s.liveRow}>
               <StatusDot tone={liveDot[live][1]}>{liveDot[live][0]}</StatusDot>
             </div>
@@ -677,9 +695,24 @@ export function ChatApp(props: Props) {
                     </Avatars>
                   </span>
                   <span className={cn("small muted num", s.hideXs)}>{conv.members.length} members</span>
-                  <Button size="sm" variant="ghost" className={s.hideXs} disabled>
-                    <Phone size={14} /> Huddle <PhaseTwo />
-                  </Button>
+                  <Huddle
+                    channelId={conv.id}
+                    me={{ id: me.id, name: me.name }}
+                    huddle={!archived && liveHuddle?.channelId === conv.id ? liveHuddle.huddle : null}
+                    canStart={canPost}
+                    onChange={() => void loadHuddle()}
+                  />
+                  {isStaff && can(me, "calendar.use") && !archived ? (
+                    <ScheduleMeeting
+                      channelId={conv.id}
+                      meId={me.id}
+                      people={conv.members.flatMap((m) => {
+                        const p = people.get(m.memberId);
+                        return p && p.kind === "staff" ? [{ id: p.id, name: p.name }] : [];
+                      })}
+                      defaultDate={new Date(Date.parse(today) + 86_400_000).toISOString().slice(0, 10)}
+                    />
+                  ) : null}
                   <IconButton
                     label={`Pinned messages (${pins})`}
                     className={cn(pane?.mode === "pins" && "on")}
@@ -813,9 +846,10 @@ export function ChatApp(props: Props) {
                   people={memberPeople}
                   onSend={(body, files) => void send(body, files)}
                   onTyping={sendTyping}
+                  voiceChannelId={conv.id}
                 />
               ) : (
-                <div className={s.readonly}>Only admins can post in {label}.</div>
+                <div className={s.readonly}>{archived ? `${label} is archived. Its history stays searchable.` : `Only admins can post in ${label}.`}</div>
               )}
             </ChatContext.Provider>
           ) : (
@@ -893,6 +927,7 @@ export function ChatApp(props: Props) {
           canAdmin={canModerate}
           onNotify={(n) => setConvs((cs) => cs.map((c) => (c.id === conv.id ? { ...c, notify: n } : c)))}
           onSaved={(topic, adminsOnly) => setConvs((cs) => cs.map((c) => (c.id === conv.id ? { ...c, topic: topic || null, adminsOnly } : c)))}
+          onExtras={(patch) => setConvs((cs) => cs.map((c) => (c.id === conv.id ? { ...c, ...patch } : c)))}
           onLeft={() => {
             setDialog(null);
             const left = conv.id;

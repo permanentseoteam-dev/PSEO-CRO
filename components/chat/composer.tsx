@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import { AtSign, Mic, Paperclip, X } from "lucide-react";
-import { Avatar, Button, IconButton, PhaseTwo, useToast } from "@/components/ui";
+import { AtSign, Paperclip, X } from "lucide-react";
+import { Avatar, Button, IconButton, useToast } from "@/components/ui";
+import { VoiceRecorder } from "@/features/chat-p2/components/voice-recorder";
 import { cn } from "@/lib/utils";
 import { fileProblem, formatSize, mentionMatches, mentionQuery, MAX_FILES } from "@/lib/modules/chat/logic";
 import type { Person } from "@/lib/modules/chat/types";
@@ -23,11 +24,13 @@ type Props = {
   bar?: ReactNode;
   submitLabel?: string;
   className?: string;
+  /** Conversation for voice notes; without it the default bar has no mic. */
+  voiceChannelId?: string;
 };
 
 const draftOf = (key: string | null) => (key && typeof window !== "undefined" ? localStorage.getItem("chat-draft:" + key) ?? "" : "");
 
-export function Composer({ ref, draftKey, placeholder, label, people, onSend, onTyping, bar, submitLabel = "Send", className }: Props) {
+export function Composer({ ref, draftKey, placeholder, label, people, onSend, onTyping, bar, submitLabel = "Send", className, voiceChannelId }: Props) {
   const toast = useToast();
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -220,10 +223,7 @@ export function Composer({ ref, draftKey, placeholder, label, people, onSend, on
             >
               <AtSign size={16} />
             </IconButton>
-            <IconButton label="Voice notes ship in phase 2" disabled>
-              <Mic size={16} />
-            </IconButton>
-            <PhaseTwo />
+            {voiceChannelId ? <VoiceRecorder channelId={voiceChannelId} /> : null}
           </div>
         )}
         <Button variant="primary" size="sm" onClick={submit}>

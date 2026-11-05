@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Button, ButtonLink, Checkbox, Dialog, EmptyState, Field, FormGrid, PhaseTwo, Table, Td, Th, useToast } from "@/components/ui";
+import { Button, ButtonLink, Checkbox, Dialog, EmptyState, Field, FormGrid, Table, Td, Th, useToast } from "@/components/ui";
 import { CURRENCIES, money, type Currency } from "@/lib/modules/finance/core/logic";
 import { FEE_BASIS_LABEL, firstName, type FeeBasis } from "@/lib/modules/finance/ops/logic";
 import type { BillingRow, ChannelPick } from "@/lib/modules/finance/ops/types";
@@ -14,6 +14,10 @@ type Props = {
   entities: { id: string; name: string; currency: Currency }[];
   channels: ChannelPick[];
   canEdit: boolean;
+  /** Phase 2: main client id -> sub-accounts billed under it. */
+  subCounts: Record<string, number>;
+  /** Phase 2: "Sub-accounts billed under this client" field per client, rendered on the server. */
+  subAccountsSlots: Record<string, ReactNode>;
 };
 
 const COUNTRIES = ["United Arab Emirates", "United States", "United Kingdom", "Pakistan", "Saudi Arabia"];
@@ -25,7 +29,7 @@ function mailto(r: BillingRow) {
   return `mailto:${r.billingEmail.replace(/\s+/g, "")}?${q.toString().replace(/\+/g, "%20")}`;
 }
 
-export function BillingTable({ rows, entities, channels, canEdit }: Props) {
+export function BillingTable({ rows, entities, channels, canEdit, subCounts, subAccountsSlots }: Props) {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<BillingRow | null>(null);
   const needle = q.trim().toLowerCase();
@@ -59,6 +63,11 @@ export function BillingTable({ rows, entities, channels, canEdit }: Props) {
                   <Td>
                     {r.clientName}
                     {r.legalName ? <div className="small muted">{r.legalName}</div> : null}
+                    {subCounts[r.clientId] ? (
+                      <div className="small muted">
+                        {subCounts[r.clientId]} {subCounts[r.clientId] === 1 ? "sub-account" : "sub-accounts"} billed here
+                      </div>
+                    ) : null}
                   </Td>
                   <Td>{r.entityShort ?? <span className="muted">Not set</span>}</Td>
                   <Td>
@@ -117,13 +126,25 @@ export function BillingTable({ rows, entities, channels, canEdit }: Props) {
           </>
         }
       >
-        {editing ? <BillingForm key={editing.clientId} row={editing} entities={entities} channels={channels} onDone={() => setEditing(null)} /> : null}
+        {editing ? <BillingForm key={editing.clientId} row={editing} entities={entities} channels={channels} subAccounts={subAccountsSlots[editing.clientId]} onDone={() => setEditing(null)} /> : null}
       </Dialog>
     </>
   );
 }
 
-function BillingForm({ row, entities, channels, onDone }: { row: BillingRow; entities: Props["entities"]; channels: ChannelPick[]; onDone: () => void }) {
+function BillingForm({
+  row,
+  entities,
+  channels,
+  subAccounts,
+  onDone,
+}: {
+  row: BillingRow;
+  entities: Props["entities"];
+  channels: ChannelPick[];
+  subAccounts: ReactNode;
+  onDone: () => void;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [f, setF] = useState({
@@ -252,16 +273,7 @@ function BillingForm({ row, entities, channels, onDone }: { row: BillingRow; ent
           checked={f.autoReminders}
           onChange={(e) => setF({ ...f, autoReminders: e.target.checked })}
         />
-        <Field
-          label={
-            <>
-              Sub-accounts billed under this client <PhaseTwo />
-            </>
-          }
-          full
-        >
-          <span className="muted small">No sub-accounts linked.</span>
-        </Field>
+        {subAccounts}
       </FormGrid>
       {error ? (
         <div className={`${s.note} ${s.noteDanger}`} role="alert">

@@ -2,7 +2,8 @@ export type ChannelKind = "public" | "private" | "client" | "dm" | "group";
 export type Notify = "all" | "mentions" | "mute";
 export type LiveState = "live" | "reconnecting" | "offline";
 
-export type FileRef = { path: string; name: string; mime: string; size: number };
+/** Voice notes (chat-p2) add duration in seconds and 0..1 waveform peaks. */
+export type FileRef = { path: string; name: string; mime: string; size: number; duration?: number; peaks?: number[] };
 export type Forward = { by: string; ch: string; text: string };
 
 export type Message = {
@@ -66,6 +67,8 @@ export type Conversation = {
   topic: string | null;
   clientId: string | null;
   adminsOnly: boolean;
+  /** Set when archived (0205): hidden from the sidebar, no new messages. */
+  archivedAt: string | null;
   lastMessageAt: string | null;
   createdBy: string | null;
   members: ConvMember[];

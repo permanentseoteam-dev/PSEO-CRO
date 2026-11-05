@@ -14,6 +14,8 @@ import {
   reportDueOn,
   reportLate,
   reportStatus,
+  reviewDefault,
+  reviewLogEntry,
   scoreTone,
   shortDate,
   upcomingMoments,
@@ -144,4 +146,18 @@ describe("delivery ratings", () => {
 it("splits text into trimmed lines", () => {
   expect(lines(" a \n\n b\n")).toEqual(["a", "b"]);
   expect(lines(null)).toEqual([]);
+});
+
+describe("status review", () => {
+  it("starts from the health band", () => {
+    expect(reviewDefault("at_risk")).toBe("at_risk");
+    expect(reviewDefault("watch")).toBe("watch");
+    expect(reviewDefault("healthy")).toBe("on_track");
+    expect(reviewDefault("no_data")).toBe("on_track");
+  });
+  it("writes one relationship log note with a matching mood", () => {
+    expect(reviewLogEntry("watch", "  Slow replies ")).toEqual({ kind: "note", mood: "neutral", note: "Status review: Watch. Slow replies" });
+    expect(reviewLogEntry("on_track", "")).toEqual({ kind: "note", mood: "happy", note: "Status review: On track" });
+    expect(reviewLogEntry("at_risk", "x").mood).toBe("unhappy");
+  });
 });

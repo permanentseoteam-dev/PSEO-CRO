@@ -37,6 +37,10 @@ export type InvoiceRow = {
   amount_refunded: number;
   written_off_amount: number;
   fx_rate_usd: number | null;
+  /** Phase 2 (0206): recorded after the fact, paid before the portal existed, and client credit applied. */
+  is_past?: boolean;
+  paid_before_portal?: number;
+  credit_applied?: number;
 };
 
 export type InvoiceLine = {

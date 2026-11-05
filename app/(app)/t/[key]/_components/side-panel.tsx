@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, Avatars, Button, Card, CardBody, Checkbox, Dialog, Field, FormGrid, Input, PhaseTwo, Textarea, useToast } from "@/components/ui";
+import { Avatar, Button, Card, CardBody, Checkbox, Dialog, Field, FormGrid, Input, Textarea, useToast } from "@/components/ui";
 import { logTime, startTimer, stopTimer, updateTicket } from "@/lib/modules/tickets/actions";
 import { fmtClock, fmtMinutes, parseDuration, parseTags, PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL } from "@/lib/modules/tickets/logic";
 import type { Person, ProjectOpt, TicketDetail, TicketStatus } from "@/lib/modules/tickets/types";
 import s from "./ticket.module.css";
 
-type Props = { t: TicketDetail; people: Person[]; projects: ProjectOpt[]; today: string };
+/** `peopleFields`: the Co-assignees and Watchers rows (server-rendered `<dt>/<dd>` pairs with pickers). */
+type Props = { t: TicketDetail; people: Person[]; projects: ProjectOpt[]; today: string; peopleFields: ReactNode };
 
-export function SidePanel({ t, people, projects, today }: Props) {
+export function SidePanel({ t, people, projects, today, peopleFields }: Props) {
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -93,11 +94,7 @@ export function SidePanel({ t, people, projects, today }: Props) {
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </dd>
-          <dt>Co-assignees</dt>
-          <dd className="row">
-            {t.coAssignees.length ? <Avatars>{t.coAssignees.map((n) => <Avatar key={n} name={n} size={22} />)}</Avatars> : <span className="muted">None</span>}
-            <PhaseTwo />
-          </dd>
+          {peopleFields}
           <dt>Due</dt>
           <dd>
             <input type="date" aria-label="Due" key={`due-${t.due}`} defaultValue={t.due ?? ""} disabled={dis} onChange={(e) => save({ due: e.target.value || null }, "Due date saved")} />
@@ -138,8 +135,6 @@ export function SidePanel({ t, people, projects, today }: Props) {
               <dd>{t.source}</dd>
             </>
           ) : null}
-          <dt>Watchers</dt>
-          <dd>{t.watchers.length ? <Avatars>{t.watchers.map((n) => <Avatar key={n} name={n} size={22} />)}</Avatars> : <span className="muted">None</span>}</dd>
           <dt>Time logged</dt>
           <dd>
             <b className="num">{fmtMinutes(t.loggedMin)}</b>

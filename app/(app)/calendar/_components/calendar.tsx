@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button, ButtonLink, Card, CardBody, PhaseTwo, Seg } from "@/components/ui";
+import { Button, ButtonLink, Card, CardBody, Seg } from "@/components/ui";
 import type { Scope } from "@/lib/auth/perms";
 import { VIEWS, calHref, stepCursor, viewTitle, type View } from "@/lib/modules/calendar/logic";
 import type { BusyBlock, CalEvent, ClientOption, Person } from "@/lib/modules/calendar/types";
@@ -25,6 +25,8 @@ type Props = {
   busy: BusyBlock[];
   people: Person[];
   clients: ClientOption[];
+  /** Server-rendered `<CalendarSyncBar />` (platform-p2), passed in from the page. */
+  syncBar?: ReactNode;
 };
 
 export function Calendar(p: Props) {
@@ -67,10 +69,7 @@ export function Calendar(p: Props) {
       </div>
 
       <div className="row between small">
-        <span className="muted">
-          Google Calendar sync
-          <PhaseTwo />
-        </span>
+        <div>{p.syncBar}</div>
         <div className={`${s.legend} muted`}>
           <span>
             <i className={`${s.sw} ${s.client}`} />

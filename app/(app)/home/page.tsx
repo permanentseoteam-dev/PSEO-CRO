@@ -40,6 +40,7 @@ import {
   upNext,
   WHY_TEXT,
 } from "@/lib/modules/home/logic";
+import { HomeRolePanels } from "@/features/platform-p2/components/server";
 import { DeptSelect, MarkAllRead, NewTicketButton } from "./_components/home-controls";
 
 export const metadata = { title: "Home" };
@@ -337,6 +338,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </CardBody>
         )}
       </Card>
+
+      <HomeRolePanels me={me} />
 
       {showFinance && finance ? (
         <Card>

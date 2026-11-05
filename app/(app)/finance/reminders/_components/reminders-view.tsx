@@ -209,7 +209,7 @@ export function RemindersView({ lists, settings, today, canSend }: Props) {
               >
                 Open in email app
               </a>
-              <Button variant="primary" disabled={pending} onClick={() => run(() => markSent({ ids: [sending.id] }), `Reminder for ${sending.number} marked as sent`, () => setSending(null))}>
+              <Button variant="primary" disabled={pending} onClick={() => run(() => markSent({ ids: [sending.id], mail: mail.to.trim() && mail.subject.trim() && mail.body.trim() ? mail : undefined }), `Reminder for ${sending.number} marked as sent`, () => setSending(null))}>
                 Mark as sent
               </Button>
             </>

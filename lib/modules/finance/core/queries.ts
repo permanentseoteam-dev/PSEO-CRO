@@ -36,6 +36,44 @@ function toRow(r: Raw): InvoiceRow {
   };
 }
 
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Phase 2 (0206) extras folded into invoice rows: past marker, paid before the portal, client credit applied.
+ * Reads fail soft (rows stay as they are) if 0206 isn't applied yet. `ids` narrows the read; omit for all.
+ */
+async function readExtras(supabase: Db, ids?: string[]) {
+  let ex = supabase.from("invoice_extras").select("invoice_id, is_past, paid_before_portal");
+  let cr = supabase.from("invoice_credit_applied").select("invoice_id, amount");
+  if (ids) {
+    ex = ex.in("invoice_id", ids);
+    cr = cr.in("invoice_id", ids);
+  }
+  const [extras, credit] = await Promise.all([ex, cr]);
+  const extra = new Map((extras.error ? [] : extras.data ?? []).map((x) => [x.invoice_id as string, x]));
+  const applied = new Map<string, number>();
+  for (const c of credit.error ? [] : credit.data ?? []) applied.set(c.invoice_id as string, (applied.get(c.invoice_id as string) ?? 0) + num(c.amount));
+  return { extra, applied };
+}
+
+async function withExtras<T extends InvoiceRow>(supabase: Db, list: T[], ids?: string[]): Promise<T[]> {
+  if (!list.length) return list;
+  const { extra, applied } = await readExtras(supabase, ids);
+  return list.map((r) => {
+    const x = extra.get(r.id);
+    return { ...r, is_past: x?.is_past === true, paid_before_portal: num(x?.paid_before_portal), credit_applied: applied.get(r.id) ?? 0 };
+  });
+}
+
+/** Per invoice: paid before the portal plus client credit applied (the `settled` part of Money). */
+export async function settledByInvoice(ids?: string[]): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const { extra, applied } = await readExtras(supabase, ids);
+  const out = new Map(applied);
+  for (const [id, x] of extra) out.set(id, (out.get(id) ?? 0) + num(x.paid_before_portal));
+  return out;
+}
+
 export async function getRefData() {
   const supabase = await createClient();
   const [ents, chans, clients, fx] = await Promise.all([
@@ -64,7 +102,10 @@ export async function listInvoices(): Promise<InvoiceRow[]> {
     .select(INVOICE_COLS)
     .order("issued_on", { ascending: false })
     .order("number", { ascending: false, nullsFirst: true });
-  return (data ?? []).map((r) => toRow(r as Raw));
+  return withExtras(
+    supabase,
+    (data ?? []).map((r) => toRow(r as Raw)),
+  );
 }
 
 export async function getInvoice(id: string): Promise<{ invoice: InvoiceDetail; events: InvoiceEvent[] } | null> {
@@ -80,9 +121,10 @@ export async function getInvoice(id: string): Promise<{ invoice: InvoiceDetail; 
     supabase.from("invoice_events").select("id, kind, note, amount, created_at, actor:members(name)").eq("invoice_id", id).order("created_at", { ascending: false }),
   ]);
   const raw = r as Raw;
+  const [row] = await withExtras(supabase, [toRow(raw)], [id]);
   return {
     invoice: {
-      ...toRow(raw),
+      ...row,
       po_ref: (raw.po_ref as string) ?? null,
       discount: num(raw.discount),
       subtotal: num(raw.subtotal),
@@ -156,11 +198,12 @@ export async function getBillingDefaults(clientId: string): Promise<{
 export async function getDashboardData() {
   const supabase = await createClient();
   const today = todayIso();
-  const [invoices, receipts, refunds, reminders] = await Promise.all([
+  const [invoices, receipts, refunds, reminders, givenBack] = await Promise.all([
     listInvoices(),
     supabase.from("receipts").select("*"),
     supabase.from("invoice_events").select("amount, meta, created_at, invoices(currency, fx_rate_usd)").eq("kind", "refund"),
     supabase.from("reminders").select("*"),
+    supabase.from("credit_movements").select("amount, currency, created_at").eq("kind", "given_back"),
   ]);
 
   const pick = (r: Raw, ...keys: string[]) => {
@@ -192,6 +235,11 @@ export async function getDashboardData() {
       rate: inv?.fx_rate_usd == null ? null : Number(inv.fx_rate_usd),
     };
   });
+
+  // Phase 2: client credit given back counts as refunded (fails soft before 0206).
+  for (const g of givenBack.error ? [] : givenBack.data ?? []) {
+    refundRows.push({ date: String(g.created_at).slice(0, 10), amount: num(g.amount), currency: (g.currency as Currency) ?? "USD", rate: null });
+  }
 
   let remindersToday: { total: number; auto: number } | null = null;
   if (!reminders.error) {

@@ -3,13 +3,11 @@ import { requireMe, can } from "@/lib/auth/can";
 import {
   Avatar,
   ButtonLink,
-  Button,
   Card,
   CardBody,
   CardHead,
   EmptyState,
   NoAccess,
-  PhaseTwo,
   StatCard,
   Stats,
   StatusDot,
@@ -47,12 +45,11 @@ import {
   getProfile,
   getReviews,
   getSessions,
-  listDepartments,
-  listStaff,
   nameOf,
 } from "@/lib/modules/personal/queries";
 import type { Profile } from "@/lib/modules/personal/types";
-import { EditHrDetails, EditMyDetails } from "./_components/details-dialogs";
+import { HrFormButtons, PayTab, PersonalTab, ProbationCard, ToolsTab } from "@/features/hr-p2";
+import { EditMyDetails } from "./_components/details-dialogs";
 import { ClockCard } from "./_components/clock-card";
 import { RequestButton } from "./_components/request-button";
 import { AckReview, CancelLeave, OpenDoc, UploadDoc } from "./_components/doc-controls";
@@ -68,12 +65,6 @@ const PRESENCE: Record<string, [string, Tone]> = {
   offline: ["Offline", "muted"],
 };
 const CONTRACT = { full_time: "Full time", part_time: "Part time", contractor: "Contractor" };
-const PROBATION: Record<Profile["probationStatus"], [string, Tone]> = {
-  on_probation: ["On probation", "warn"],
-  extended: ["Extended", "warn"],
-  confirmed: ["Confirmed", "ok"],
-  ended: ["Ended", "danger"],
-};
 const REVIEW: Record<string, [string, Tone]> = {
   self_review: ["Self-review due", "warn"],
   manager_review: ["With your manager", "blue"],
@@ -85,14 +76,13 @@ const CAREER = { joined: "Joined", promoted: "Promoted", transfer: "Transfer", t
 const TABS = [
   { value: "overview", label: "Overview" },
   { value: "job", label: "Job" },
-  { value: "pay", label: <>Pay<PhaseTwo /></> },
+  { value: "pay", label: "Pay" },
   { value: "perf", label: "Performance" },
   { value: "docs", label: "Documents" },
-  { value: "tools", label: <>Tools<PhaseTwo /></> },
+  { value: "tools", label: "Tools" },
   { value: "att", label: "Attendance" },
   { value: "leave", label: "Leave" },
-  { value: "personal", label: <>Personal<PhaseTwo /></> },
-  { value: "leaving", label: <>Leaving<PhaseTwo /></> },
+  { value: "personal", label: "Personal" },
 ];
 
 function Dl({ rows }: { rows: [string, ReactNode][] }) {
@@ -144,10 +134,7 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
               emergencyPhone: p.emergencyPhone ?? "",
             }}
           />
-          {canHr ? <HrButton p={p} /> : null}
-          <Button disabled>
-            Title change<PhaseTwo />
-          </Button>
+          <HrFormButtons memberId={me.id} />
         </div>
       </Card>
 
@@ -157,36 +144,14 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
 
       {tab === "overview" ? <Overview p={p} /> : null}
       {tab === "job" ? <Job p={p} /> : null}
+      {tab === "pay" ? <PayTab memberId={me.id} payslipBase="/me/payslips" /> : null}
       {tab === "perf" ? <Perf memberId={me.id} /> : null}
       {tab === "docs" ? <Docs memberId={me.id} canHr={canHr} today={t} /> : null}
+      {tab === "tools" ? <ToolsTab memberId={me.id} /> : null}
       {tab === "att" ? <Attendance memberId={me.id} month={sp.month} shiftEnd={shiftEnd} /> : null}
       {tab === "leave" ? <Leave memberId={me.id} managerId={p.managerId} today={t} /> : null}
-      {["pay", "tools", "personal", "leaving"].includes(tab) ? (
-        <Card>
-          <EmptyState title="Coming in phase 2">This tab arrives with the HR tools in phase 2.</EmptyState>
-        </Card>
-      ) : null}
+      {tab === "personal" ? <PersonalTab memberId={me.id} /> : null}
     </div>
-  );
-}
-
-async function HrButton({ p }: { p: Profile }) {
-  const [departments, people] = await Promise.all([listDepartments(), listStaff()]);
-  return (
-    <EditHrDetails
-      departments={departments}
-      people={people}
-      initial={{
-        memberId: p.id,
-        title: p.title ?? "",
-        departmentId: p.departmentId ?? "",
-        managerId: p.managerId ?? "",
-        shift: p.shift ?? "",
-        joinedOn: p.joinedOn ?? "",
-        contract: p.contract,
-        location: p.location ?? "",
-      }}
-    />
   );
 }
 
@@ -260,27 +225,14 @@ function Overview({ p }: { p: Profile }) {
   );
 }
 
-async function Job({ p }: { p: Profile }) {
-  const confirmedBy = await nameOf(p.probationConfirmedBy);
-  const [label, tone] = PROBATION[p.probationStatus];
+function Job({ p }: { p: Profile }) {
   return (
     <section className="grid-2">
-      <Card>
-        <CardHead title="Probation" actions={<StatusDot tone={tone}>{label}</StatusDot>} />
-        <CardBody>
-          <Dl
-            rows={[
-              ["Started", p.probationStart ? fmtDay(p.probationStart) : null],
-              [p.probationStatus === "on_probation" || p.probationStatus === "extended" ? "Ends" : "Ended", p.probationEnd ? fmtDay(p.probationEnd) : null],
-              ["Confirmed by", confirmedBy],
-              ["Contract", CONTRACT[p.contract]],
-            ]}
-          />
-        </CardBody>
-      </Card>
+      <ProbationCard memberId={p.id} />
       <Card>
         <CardHead title="Job description" />
         <CardBody className="stack">
+          <Dl rows={[["Contract", CONTRACT[p.contract]]]} />
           {p.jobSummary ? <p className="m-0">{p.jobSummary}</p> : <p className="muted m-0">HR hasn&apos;t added a job description yet.</p>}
           {p.jobDuties.length ? (
             <ul className="m-0 pl-5">

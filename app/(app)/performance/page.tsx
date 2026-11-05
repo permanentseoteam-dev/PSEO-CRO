@@ -1,5 +1,5 @@
 import { requireMe, can } from "@/lib/auth/can";
-import { Avatar, Card, CardBody, CardHead, EmptyState, NoAccess, PhaseTwo, StatCard, Stats, StatusDot, Table, Tabs, Td, Th } from "@/components/ui";
+import { Avatar, Card, CardBody, CardHead, EmptyState, NoAccess, StatCard, Stats, StatusDot, Table, Tabs, Td, Th } from "@/components/ui";
 import type { Tone } from "@/components/ui";
 import {
   band,
@@ -18,7 +18,8 @@ import {
   teamOf,
 } from "@/lib/modules/team/logic";
 import { getPerformance, listPeople } from "@/lib/modules/team/queries";
-import { CheckInButton, CycleToggle, NewObjectiveButton, QuarterSelect, SelfReviewButton, UpdateKpiButton } from "./_components/perf-forms";
+import { SetupTab, TrainingTab } from "@/features/hr-p2";
+import { CheckInButton, NewObjectiveButton, QuarterSelect, SelfReviewButton, UpdateKpiButton } from "./_components/perf-forms";
 
 export const metadata = { title: "Performance" };
 
@@ -46,8 +47,8 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   if (!quarters.includes(quarter)) quarters.push(quarter);
 
   const seeTeam = can(me, "performance.team.view", "team");
-  const manage = can(me, "performance.manage", "all");
-  const visible = TABS.filter((t) => (t === "team" ? seeTeam : t === "setup" ? manage : true));
+  const setup = can(me, "perf.setup.manage", "team");
+  const visible = TABS.filter((t) => (t === "team" ? seeTeam : t === "setup" ? setup : true));
   const tab: Tab = visible.includes(sp.tab as Tab) ? (sp.tab as Tab) : "growth";
 
   const [data, { people, departments }] = await Promise.all([getPerformance(me.id, quarter), listPeople()]);
@@ -69,12 +70,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
           value: t,
           href: href(t),
           label:
-            t === "growth" ? "My growth" : t === "team" ? "Team" : t === "okrs" ? "OKRs" : (
-              <>
-                {t === "training" ? "Training" : "Setup"}
-                <PhaseTwo />
-              </>
-            ),
+            t === "growth" ? "My growth" : t === "team" ? "Team" : t === "okrs" ? "OKRs" : t === "training" ? "Training" : "Setup",
         }))}
       />
 
@@ -124,12 +120,8 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
           )}
         </section>
       ) : null}
-      {tab === "training" ? (
-        <Card>
-          <EmptyState title="Training paths come in phase 2">Courses, videos and certifications per role, with progress for each person.</EmptyState>
-        </Card>
-      ) : null}
-      {tab === "setup" ? <Setup data={data} /> : null}
+      {tab === "training" ? <TrainingTab /> : null}
+      {tab === "setup" ? <SetupTab /> : null}
     </div>
   );
 }
@@ -248,66 +240,5 @@ function TeamTab({ data, people }: { data: Data; people: { id: string; name: str
         <EmptyState title="No one on your team yet" />
       )}
     </Card>
-  );
-}
-
-function Setup({ data }: { data: Data }) {
-  return (
-    <section className="stack">
-      <Card>
-        <CardHead title="KPIs" />
-        <Table>
-          <thead>
-            <tr>
-              <Th>KPI</Th>
-              <Th>Source</Th>
-              <Th right>Weight</Th>
-              <Th>Direction</Th>
-              <Th>Applies to</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.kpiDefs.map((k) => (
-              <tr key={k.id}>
-                <Td>{k.name}</Td>
-                <Td>{k.source === "portal" ? "Portal" : "Manual"}</Td>
-                <Td right num>
-                  {k.weight}%
-                </Td>
-                <Td>{k.direction === "higher" ? "Higher is better" : "Lower is better"}</Td>
-                <Td>{k.department ?? "Everyone"}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card>
-      <Card>
-        <CardHead title="Review cycles" />
-        <Table>
-          <thead>
-            <tr>
-              <Th>Cycle</Th>
-              <Th>Self-review due</Th>
-              <Th>Manager review due</Th>
-              <Th>Status</Th>
-              <Th />
-            </tr>
-          </thead>
-          <tbody>
-            {data.cycles.map((c) => (
-              <tr key={c.id}>
-                <Td>{c.quarter}</Td>
-                <Td>{fmtDay(c.selfDue, true)}</Td>
-                <Td>{fmtDay(c.managerDue, true)}</Td>
-                <Td>{c.status === "open" ? <StatusDot tone="ok">Open</StatusDot> : <StatusDot tone="muted">Closed</StatusDot>}</Td>
-                <Td right>
-                  <CycleToggle id={c.id} status={c.status} />
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card>
-    </section>
   );
 }

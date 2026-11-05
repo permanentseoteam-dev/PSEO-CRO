@@ -44,7 +44,7 @@ export async function loadConversation(raw: unknown) {
 export async function refreshConversations() {
   const s = await session();
   if (!s) return NO_ACCESS;
-  return { ok: true as const, conversations: await listConversations(s.me.id) };
+  return { ok: true as const, conversations: await listConversations(s.me.id, { withArchived: true }) };
 }
 
 /** Reconnect catch-up and the 12s poll: new messages after an id, plus fresh sidebar counts. */
@@ -53,7 +53,7 @@ export async function catchUp(raw: unknown) {
   if (!p.success) return BAD_INPUT;
   const s = await session();
   if (!s) return NO_ACCESS;
-  const [messages, conversations] = await Promise.all([messagesAfter(p.data), listConversations(s.me.id)]);
+  const [messages, conversations] = await Promise.all([messagesAfter(p.data), listConversations(s.me.id, { withArchived: true })]);
   return { ok: true as const, messages, conversations };
 }
 

@@ -67,9 +67,12 @@ export default async function PortalWork({ searchParams }: { searchParams: Promi
                   const st = clientStatus(t.status);
                   return (
                     <tr key={t.id}>
-                      <Td>{t.title}</Td>
                       <Td>
-                        <StatusDot tone={st.tone}>{st.label}</StatusDot>
+                        {t.title}
+                        {t.details ? <div className="small muted">{t.details}</div> : null}
+                      </Td>
+                      <Td>
+                        {t.needsApproval ? <StatusDot tone="warn">Needs your approval</StatusDot> : <StatusDot tone={st.tone}>{st.label}</StatusDot>}
                       </Td>
                       <Td num>{t.dueDate ? fmtDate(t.dueDate) : "–"}</Td>
                       <Td>

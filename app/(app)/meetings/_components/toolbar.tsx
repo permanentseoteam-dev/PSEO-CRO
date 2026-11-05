@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Button, Checkbox, Dialog, Field, FormGrid, Input, PhaseTwo, Select, Textarea, useToast } from "@/components/ui";
+import { Button, Checkbox, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
 import type { Option } from "@/lib/modules/clientops/types";
 import { logMeeting } from "../actions";
 
@@ -41,9 +41,6 @@ export function MeetingsToolbar({ mine, clients, today }: { mine: boolean; clien
   return (
     <div className="row">
       <Checkbox label="Only my clients" checked={mine} onChange={(e) => toggleMine(e.target.checked)} />
-      <Button disabled title="Fireflies import comes in phase 2">
-        Import from Fireflies <PhaseTwo />
-      </Button>
       <Button variant="primary" onClick={() => setOpen(true)} disabled={!clients.length}>
         Log meeting notes
       </Button>

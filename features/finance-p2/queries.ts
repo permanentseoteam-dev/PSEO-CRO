@@ -287,6 +287,16 @@ export async function getEmailStatus() {
 /** Sub-accounts of `clientId` and clients that could be linked. */
 export async function getSubAccounts(clientId: string) {
   const [links, clients] = await Promise.all([getSubLinks(), listClients()]);
+  return subAccountsOf(clientId, links, clients);
+}
+
+/** Same as getSubAccounts for many clients, with one read (Billing clients table). */
+export async function getSubAccountsFor(clientIds: string[]) {
+  const [links, clients] = await Promise.all([getSubLinks(), listClients()]);
+  return new Map(clientIds.map((id) => [id, subAccountsOf(id, links, clients)]));
+}
+
+function subAccountsOf(clientId: string, links: SubLink[], clients: Option[]) {
   const names = nameMap(clients);
   const subs = links.filter((l) => l.parentId === clientId).map((l) => ({ ...l, name: names.get(l.childId) ?? "Unknown client" }));
   const taken = new Set(links.map((l) => l.childId));

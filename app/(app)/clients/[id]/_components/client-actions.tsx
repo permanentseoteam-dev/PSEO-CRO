@@ -3,7 +3,7 @@
 import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button, Checkbox, Dialog, Field, FormGrid, Seg, useToast } from "@/components/ui";
 import { LOG_KINDS, SEVERITY, TEAM_ROLES } from "@/lib/modules/clients/logic";
-import type { Contact, Person, Terms } from "@/lib/modules/clients/types";
+import type { Contact, Person } from "@/lib/modules/clients/types";
 import {
   closeEscalation,
   deleteContact,
@@ -14,7 +14,6 @@ import {
   saveBranding,
   saveContact,
   saveMeetingNotes,
-  saveTerms,
   setPortalLogin,
   setTeamMember,
 } from "../../actions";
@@ -474,68 +473,6 @@ export function TeamEditor({ clientId, people, team }: { clientId: string; peopl
         </form>
       </Dialog>
     </>
-  );
-}
-
-// ---------------------------------------------------------------- terms
-export function TermsButton({ clientId, terms, currency }: { clientId: string; terms: Terms | null; currency: string }) {
-  const [open, setOpen] = useState(false);
-  const { pending, run } = useRun();
-  const t = terms;
-  return (
-    <FormDialog
-      label="Edit"
-      title="Edit terms"
-      submit="Save terms"
-      size="sm"
-      variant="ghost"
-      id="terms-form"
-      pending={pending}
-      open={open}
-      setOpen={setOpen}
-      onSubmit={(e) => {
-        const f = form(e);
-        const k = ["monthly_fee", "currency", "term_months", "term_start", "notice_days", "renewal_date", "hours_per_month", "in_scope", "out_of_scope", "agreement_name"];
-        run(() => saveTerms({ client_id: clientId, ...Object.fromEntries(k.map((x) => [x, f.str(x)])) }), "Terms saved", () => setOpen(false));
-      }}
-    >
-      <FormGrid>
-        <Field label="Monthly fee" htmlFor="t-fee">
-          <input id="t-fee" name="monthly_fee" type="number" min={0} step="0.01" defaultValue={t?.monthly_fee ?? ""} />
-        </Field>
-        <Field label="Currency" htmlFor="t-cur">
-          <select id="t-cur" name="currency" defaultValue={t?.currency ?? currency}>
-            {["AED", "USD", "PKR"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Term (months)" htmlFor="t-term">
-          <input id="t-term" name="term_months" type="number" min={1} defaultValue={t?.term_months ?? ""} />
-        </Field>
-        <Field label="Term start" htmlFor="t-start">
-          <input id="t-start" name="term_start" type="date" defaultValue={t?.term_start ?? ""} />
-        </Field>
-        <Field label="Notice period (days)" htmlFor="t-notice">
-          <input id="t-notice" name="notice_days" type="number" min={0} defaultValue={t?.notice_days ?? ""} />
-        </Field>
-        <Field label="Renewal date" htmlFor="t-renew">
-          <input id="t-renew" name="renewal_date" type="date" defaultValue={t?.renewal_date ?? ""} />
-        </Field>
-        <Field label="Hours per month" htmlFor="t-hours">
-          <input id="t-hours" name="hours_per_month" type="number" min={0} defaultValue={t?.hours_per_month ?? ""} />
-        </Field>
-        <Field label="Signed agreement file name" htmlFor="t-agr">
-          <input id="t-agr" name="agreement_name" defaultValue={t?.agreement_name ?? ""} />
-        </Field>
-        <Field label="In scope" htmlFor="t-in" full>
-          <textarea id="t-in" name="in_scope" rows={2} defaultValue={t?.in_scope ?? ""} />
-        </Field>
-        <Field label="Out of scope" htmlFor="t-out" full>
-          <textarea id="t-out" name="out_of_scope" rows={2} defaultValue={t?.out_of_scope ?? ""} />
-        </Field>
-      </FormGrid>
-    </FormDialog>
   );
 }
 

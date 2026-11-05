@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button, Card, CardBody, CardHead, Field, FormGrid, Input, PhaseTwo, StatusDot, Table, Td, Th, useToast } from "@/components/ui";
+import { PushToggle } from "@/features/chat-p2/components/push-toggle";
 import { createClient } from "@/lib/supabase/client";
 import { EMAIL_HINT } from "@/lib/modules/personal/logic";
 import type { NotifEvent } from "@/lib/modules/personal/types";
@@ -14,6 +15,9 @@ type Props = {
   name: string;
   isStaff: boolean;
   isAdmin: boolean;
+  /** Server-rendered platform-p2 sections; pass only when the user may see them. */
+  apiKeys?: ReactNode;
+  notifLog?: ReactNode;
   initial: {
     theme: "system" | "light" | "dark";
     density: "comfortable" | "compact";
@@ -40,10 +44,8 @@ const ADMIN: [string, string, string | null][] = [
   ["people", "People", "/admin/people"],
   ["audit", "Audit log", "/admin/audit"],
   ["portal", "Client portal design", null],
-  ["api", "API keys", null],
+  ["api-docs", "API docs", "/settings/api"],
 ];
-
-const noSubscribe = () => () => {};
 
 /** Segmented control with buttons (local, not URL-driven). */
 function SegButtons<T extends string>({ label, items, value, onChange }: { label: string; items: [T, string][]; value: T; onChange: (v: T) => void }) {
@@ -58,16 +60,16 @@ function SegButtons<T extends string>({ label, items, value, onChange }: { label
   );
 }
 
-function Section({ id, title, actions, children }: { id: string; title: ReactNode; actions?: ReactNode; children: ReactNode }) {
+function Section({ id, domId, title, actions, children }: { id: string; domId?: string; title: ReactNode; actions?: ReactNode; children: ReactNode }) {
   return (
-    <Card id={`pf-${id}`} data-sec={id} className="scroll-mt-4">
+    <Card id={domId ?? `pf-${id}`} data-sec={id} className="scroll-mt-4">
       <CardHead title={title} actions={actions} />
       <CardBody className="stack">{children}</CardBody>
     </Card>
   );
 }
 
-export function SettingsView({ email, name, isStaff, isAdmin, initial }: Props) {
+export function SettingsView({ email, name, isStaff, isAdmin, apiKeys, notifLog, initial }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [active, setActive] = useState("design");
@@ -89,7 +91,7 @@ export function SettingsView({ email, name, isStaff, isAdmin, initial }: Props) 
   }, []);
 
   const go = (id: string) => {
-    document.getElementById(`pf-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    root.current?.querySelector(`[data-sec="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     setActive(id);
   };
 
@@ -146,22 +148,6 @@ export function SettingsView({ email, name, isStaff, isAdmin, initial }: Props) 
     });
   }
 
-  // ---------------------------------------------------------------- phone alerts (browser permission)
-  type PushState = "unsupported" | "default" | "granted" | "denied";
-  const browserPush = useSyncExternalStore<PushState>(
-    noSubscribe,
-    () => (typeof Notification === "undefined" ? "unsupported" : Notification.permission),
-    () => "default",
-  );
-  const [asked, setPush] = useState<PushState | null>(null);
-  const push = asked ?? browserPush;
-  async function enablePush() {
-    if (typeof Notification === "undefined") return;
-    const p = await Notification.requestPermission();
-    setPush(p);
-    toast(p === "granted" ? "Push alerts on" : "Your browser blocked alerts. Allow them in the site settings.");
-  }
-
   // ---------------------------------------------------------------- security
   const [twoStep, setTwoStep] = useState<boolean | null>(null);
   useEffect(() => {
@@ -212,10 +198,12 @@ export function SettingsView({ email, name, isStaff, isAdmin, initial }: Props) 
     <div ref={root} className="grid items-start gap-6 min-[901px]:grid-cols-[200px_1fr]">
       <nav aria-label="Settings sections" className="flex gap-1 overflow-x-auto min-[901px]:sticky min-[901px]:top-3 min-[901px]:flex-col min-[901px]:gap-0.5">
         {SECTIONS.map(([id, l]) => navLink(id, l))}
+        {notifLog ? navLink("nlog", "Notifications log") : null}
         {isAdmin ? (
           <>
             <h4 className="mx-2.5 mb-1 mt-3.5 text-[13px] font-semibold text-ink-3 max-[900px]:hidden">Admin</h4>
             {navLink("admin", "Admin pages")}
+            {apiKeys ? navLink("api", "API keys") : null}
           </>
         ) : null}
       </nav>
@@ -303,21 +291,8 @@ export function SettingsView({ email, name, isStaff, isAdmin, initial }: Props) 
           </form>
         </Section>
 
-        <Section id="push" title="Phone alerts">
-          <div className="row between">
-            {push === "granted" ? (
-              <StatusDot tone="ok">On for this browser</StatusDot>
-            ) : push === "denied" ? (
-              <StatusDot tone="danger">Blocked in this browser</StatusDot>
-            ) : push === "unsupported" ? (
-              <StatusDot tone="muted">This browser can&apos;t show alerts</StatusDot>
-            ) : (
-              <StatusDot tone="muted">Not on for this browser</StatusDot>
-            )}
-            <Button variant="primary" disabled={push !== "default"} onClick={enablePush}>
-              {push === "granted" ? "Push is on" : "Enable push"}
-            </Button>
-          </div>
+        <Section id="push" domId="push" title="Phone alerts">
+          <PushToggle />
         </Section>
 
         <Section id="security" title="Sign-in & security">
@@ -354,6 +329,12 @@ export function SettingsView({ email, name, isStaff, isAdmin, initial }: Props) 
           </div>
         </Section>
 
+        {notifLog ? (
+          <div data-sec="nlog" className="scroll-mt-4">
+            {notifLog}
+          </div>
+        ) : null}
+
         {isAdmin ? (
           <Section id="admin" title="Admin">
             <div className="list">
@@ -372,6 +353,12 @@ export function SettingsView({ email, name, isStaff, isAdmin, initial }: Props) 
               ))}
             </div>
           </Section>
+        ) : null}
+
+        {isAdmin && apiKeys ? (
+          <div data-sec="api" className="scroll-mt-4">
+            {apiKeys}
+          </div>
         ) : null}
       </div>
     </div>

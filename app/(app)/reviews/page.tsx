@@ -2,13 +2,14 @@ import Link from "next/link";
 import { ClipboardCheck } from "lucide-react";
 import { requireMe, can } from "@/lib/auth/can";
 import {
-  Avatar, ButtonLink, Card, CardBody, CardHead, EmptyState, NoAccess, PhaseTwo, Seg, StatCard, Stats, Table, Tabs, Td, Th,
+  Avatar, ButtonLink, Card, CardBody, CardHead, EmptyState, NoAccess, Seg, StatCard, Stats, Table, Tabs, Td, Th,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { todayIn } from "@/lib/modules/tickets/logic";
 import { hoursBetween, hrs, oneDp, pct, qualityBy, qualityStats, RANGES, rangeStart, reasonCounts, type Range } from "@/lib/modules/work/logic";
 import { listClients, listDepartments, listQaChecklists, listStaff, reviewFacts, reviewQueue } from "@/lib/modules/work/queries";
 import type { QualityRow, QueueRow } from "@/lib/modules/work/types";
+import { FailedChecksPanel, QUALITY_EXTRA_TABS, QualityMostRevisedTab, QualityServicesTab } from "@/features/work-p2";
 import { QaChecklistsButton } from "./_components/qa-checklists";
 
 export const metadata = { title: "Reviews" };
@@ -17,6 +18,8 @@ type SP = Promise<Record<string, string | string[] | undefined>>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const BY = ["people", "dept", "clients", "svc", "most"] as const;
 type By = (typeof BY)[number];
+/** Phase 1 range values to the work-p2 quality extras' keys. */
+const P2_RANGE: Record<Range, string> = { "30d": "d30", "90d": "d90", year: "y" };
 
 export default async function ReviewsPage({ searchParams }: { searchParams: SP }) {
   const me = await requireMe();
@@ -166,12 +169,7 @@ async function Report({ range, by, href }: { range: Range; by: By; href: (p: Rec
             )}
           </CardBody>
         </Card>
-        <Card>
-          <CardHead title={<>QA checks failed most <PhaseTwo /></>} />
-          <CardBody>
-            <p className="muted m-0">Failed checks from QA checklists show here in phase 2.</p>
-          </CardBody>
-        </Card>
+        <FailedChecksPanel range={P2_RANGE[range]} />
       </div>
 
       <Card>
@@ -183,13 +181,14 @@ async function Report({ range, by, href }: { range: Range; by: By; href: (p: Rec
               { value: "people", label: "People", href: href({ by: "people" }) },
               { value: "dept", label: "Departments", href: href({ by: "dept" }) },
               { value: "clients", label: "Clients", href: href({ by: "clients" }) },
-              { value: "svc", label: <>Services <PhaseTwo /></>, href: href({ by: "svc" }) },
-              { value: "most", label: <>Most revised <PhaseTwo /></>, href: href({ by: "most" }) },
+              ...QUALITY_EXTRA_TABS.map((x) => ({ value: x.value, label: x.label, href: href({ by: x.value }) })),
             ]}
           />
-          {!t ? (
-            <p className="muted m-0">This view comes in phase 2.</p>
-          ) : t.rows.length === 0 ? (
+          {by === "svc" ? (
+            <QualityServicesTab range={P2_RANGE[range]} />
+          ) : by === "most" ? (
+            <QualityMostRevisedTab range={P2_RANGE[range]} />
+          ) : !t ? null : t.rows.length === 0 ? (
             <p className="muted m-0">No reviews were finished in this range.</p>
           ) : (
             <Table>

@@ -148,7 +148,7 @@ export function nameMatches(typed: string, name: string) {
  */
 export function deleteCheck(h: ClientHistory): { allowed: boolean; blockers: string[]; removes: string[] } {
   const n = (count: number, one: string) => `${count} ${one}${count === 1 ? "" : "s"}`;
-  const blockers = h.invoices > 0 ? [`${n(h.invoices, "invoice")} in Finance. End the client instead.`] : [];
+  const blockers = h.invoices > 0 ? [`${n(h.invoices, "invoice")} in Finance, so it is archived instead and its records are kept.`] : [];
   const removes = [
     h.tickets ? n(h.tickets, "ticket") : null,
     h.files ? n(h.files, "file") : null,

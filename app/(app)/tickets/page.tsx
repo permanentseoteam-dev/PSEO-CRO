@@ -1,5 +1,6 @@
 import { requireMe, can } from "@/lib/auth/can";
-import { NoAccess, Seg, Tabs } from "@/components/ui";
+import { ButtonLink, NoAccess, Seg, Tabs } from "@/components/ui";
+import { WorkloadView } from "@/features/work-p2";
 import {
   byStatusTab, filterTickets, groupTickets, parseFilters, shiftMonth, sortTickets, STATUSES, STATUS_LABEL, statusCounts, toQuery, todayIn,
 } from "@/lib/modules/tickets/logic";
@@ -19,7 +20,11 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
   if (me.kind !== "staff" || !can(me, "tickets.view")) return <NoAccess />;
 
   const today = todayIn();
-  const f = parseFilters(await searchParams, today);
+  const sp = await searchParams;
+  const f = parseFilters(sp, today);
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined;
+  const canWorkload = can(me, "work.workload.view");
+  const workload = canWorkload && one(sp.view) === "workload";
   const [all, people, projects, teamIds, views, templates] = await Promise.all([
     listTickets(f.view === "board"),
     listPeople(),
@@ -45,26 +50,32 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
       <div className={s.headRow}>
         <Seg
           label="View"
-          value={f.view}
+          value={workload ? "workload" : f.view}
           items={[
             { value: "list", label: "List", href: href({ view: "list" }) },
             { value: "board", label: "Board", href: href({ view: "board" }) },
             { value: "cal", label: "Calendar", href: href({ view: "cal" }) },
+            ...(canWorkload ? [{ value: "workload", label: "Workload", href: "/tickets?view=workload" }] : []),
           ]}
         />
-        {canEdit ? (
-          <NewTicketButton
-            meId={me.id}
-            people={people}
-            projects={projects}
-            templates={templates}
-            today={today}
-            defaultProject={f.proj || undefined}
-          />
-        ) : null}
+        <div className="row">
+          <ButtonLink href="/tickets/recurring">Recurring</ButtonLink>
+          {canEdit ? (
+            <NewTicketButton
+              meId={me.id}
+              people={people}
+              projects={projects}
+              templates={templates}
+              today={today}
+              defaultProject={f.proj || undefined}
+            />
+          ) : null}
+        </div>
       </div>
 
-      {f.view !== "board" ? (
+      {workload ? <WorkloadView week={one(sp.week)} dept={one(sp.dept)} basePath="/tickets?view=workload" /> : null}
+
+      {!workload && f.view !== "board" ? (
         <Tabs
           label="Status"
           value={f.st}
@@ -72,9 +83,9 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         />
       ) : null}
 
-      <TicketFilters filters={f} people={people} projects={projects} tags={tags} views={views} canShare={!!me.departmentId} />
+      {!workload ? <TicketFilters filters={f} people={people} projects={projects} tags={tags} views={views} canShare={!!me.departmentId} /> : null}
 
-      {f.view === "list" ? (
+      {!workload && f.view === "list" ? (
         <TicketList
           groups={groupTickets(inTab, f.group, { people: names, projects: projectNames, today })}
           names={names}
@@ -85,8 +96,8 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
           clearHref="/tickets"
         />
       ) : null}
-      {f.view === "board" ? <TicketBoard rows={sortTickets(filtered, f.sort)} names={names} today={today} canEdit={canEdit} /> : null}
-      {f.view === "cal" ? (
+      {!workload && f.view === "board" ? <TicketBoard rows={sortTickets(filtered, f.sort)} names={names} today={today} canEdit={canEdit} /> : null}
+      {!workload && f.view === "cal" ? (
         <TicketCalendar
           rows={inTab.filter((t) => t.due)}
           month={f.month}

@@ -12,7 +12,16 @@ import type { ChannelP2 } from "../types";
  * Admin rows for the Phase 1 "Conversation settings" dialog: only admins can post, and archive.
  * Each saves at once. Non-admins see nothing.
  */
-export function ChannelSettingsP2({ channel, isAdmin }: { channel: ChannelP2; isAdmin: boolean }) {
+export function ChannelSettingsP2({
+  channel,
+  isAdmin,
+  onChange,
+}: {
+  channel: ChannelP2;
+  isAdmin: boolean;
+  /** Tells a client-side chat screen what was saved, so it can update without a reload. */
+  onChange?: (patch: { adminsOnly?: boolean; archivedAt?: string | null }) => void;
+}) {
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -20,7 +29,7 @@ export function ChannelSettingsP2({ channel, isAdmin }: { channel: ChannelP2; is
   if (!isAdmin) return null;
   const archived = Boolean(channel.archivedAt);
 
-  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, done: string, undo?: () => void) =>
+  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, done: string, undo?: () => void, saved?: () => void) =>
     start(async () => {
       const r = await fn();
       if (!r.ok) {
@@ -29,7 +38,8 @@ export function ChannelSettingsP2({ channel, isAdmin }: { channel: ChannelP2; is
         return;
       }
       toast(done);
-      router.refresh();
+      saved?.();
+      if (!onChange) router.refresh();
     });
 
   return (
@@ -42,7 +52,12 @@ export function ChannelSettingsP2({ channel, isAdmin }: { channel: ChannelP2; is
           onChange={(e) => {
             const v = e.target.checked;
             setOnly(v);
-            run(() => setAdminsOnly({ channelId: channel.id, adminsOnly: v }), v ? "Only admins can post now" : "Everyone can post now", () => setOnly(!v));
+            run(
+              () => setAdminsOnly({ channelId: channel.id, adminsOnly: v }),
+              v ? "Only admins can post now" : "Everyone can post now",
+              () => setOnly(!v),
+              () => onChange?.({ adminsOnly: v }),
+            );
           }}
         />
       ) : null}
@@ -56,7 +71,14 @@ export function ChannelSettingsP2({ channel, isAdmin }: { channel: ChannelP2; is
             size="sm"
             variant={archived ? "default" : "danger"}
             disabled={pending}
-            onClick={() => run(() => setArchived({ channelId: channel.id, archived: !archived }), archived ? "Conversation restored" : "Conversation archived")}
+            onClick={() =>
+              run(
+                () => setArchived({ channelId: channel.id, archived: !archived }),
+                archived ? "Conversation restored" : "Conversation archived",
+                undefined,
+                () => onChange?.({ archivedAt: archived ? null : new Date().toISOString() }),
+              )
+            }
           >
             {archived ? <ArchiveRestore size={14} /> : <Archive size={14} />} {archived ? "Restore" : "Archive"}
           </Button>

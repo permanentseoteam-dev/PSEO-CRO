@@ -1,20 +1,21 @@
 import Link from "next/link";
+import { ClientActivityLinesCard, ClientHealthCard, ClientTermsCard, ClientVaultCard } from "@/features/client-admin/sections";
+import { FirefliesCallsCard } from "@/features/platform-p2/components/server";
 import { Avatar, Avatars, ButtonLink, Card, CardBody, CardHead, EmptyState, PhaseTwo, StatCard, Stats, StatusDot, Table, Td, Th, TicketStatusDot, type TicketStatus } from "@/components/ui";
-import { fmtDay, fmtMeeting, LOG_KINDS, money, SEVERITY, TEAM_ROLES, windowStatus } from "@/lib/modules/clients/logic";
+import { fmtDay, fmtMeeting, LOG_KINDS, SEVERITY, TEAM_ROLES, windowStatus } from "@/lib/modules/clients/logic";
 import type { ClientPage, Person } from "@/lib/modules/clients/types";
 import { BandDot, HealthRing } from "../../_components/health-ring";
 import s from "../../_components/clients.module.css";
-import { CloseEscalationButton, BrandingForm, ContactButton, EscalateButton, LoginRole, NotesButton, QuickLog, RecalcButton, TeamEditor, TermsButton } from "./client-actions";
+import { CloseEscalationButton, BrandingForm, ContactButton, EscalateButton, LoginRole, NotesButton, QuickLog, RecalcButton, TeamEditor } from "./client-actions";
 
 type P = { page: ClientPage; now: Date; year: string };
 const yes = (b: boolean) => (b ? "Yes" : "No");
 const kindLabel = (k: string) => (LOG_KINDS as Record<string, string>)[k] ?? (k === "meeting_notes" ? "Meeting notes" : k === "escalation" ? "Escalation" : k);
 
 // ---------------------------------------------------------------- Overview
-export function Overview({ page, now, year, canManage, showTerms, canEditTerms }: P & { canManage: boolean; showTerms: boolean; canEditTerms: boolean }) {
-  const { client, terms, team, escalations } = page;
+export function Overview({ page, now, year, canManage, showTerms }: P & { canManage: boolean; showTerms: boolean }) {
+  const { client, team, escalations } = page;
   const openEsc = escalations.filter((e) => e.status === "open");
-  const hoursPct = terms?.hours_per_month ? Math.round((page.hoursThisMonth / terms.hours_per_month) * 100) : null;
   const factors = client.health_factors ?? [];
   return (
     <div className="grid-2">
@@ -41,73 +42,7 @@ export function Overview({ page, now, year, canManage, showTerms, canEditTerms }
         </CardBody>
       </Card>
 
-      {showTerms ? (
-        <Card>
-          <CardHead title="Terms" actions={canEditTerms ? <TermsButton clientId={client.id} terms={terms} currency={client.currency} /> : null} />
-          <CardBody>
-            {terms ? (
-              <div className="stack">
-                {terms.monthly_fee != null ? (
-                  <div className="between">
-                    <span className="muted">Monthly fee</span>
-                    <strong className="num">{money(Number(terms.monthly_fee), terms.currency)}</strong>
-                  </div>
-                ) : null}
-                {terms.term_months ? (
-                  <div className="between">
-                    <span className="muted">Term</span>
-                    <span>
-                      {terms.term_months} months{terms.term_start ? `, from ${fmtDay(terms.term_start, "")}` : ""}
-                    </span>
-                  </div>
-                ) : null}
-                {terms.notice_days != null ? (
-                  <div className="between">
-                    <span className="muted">Notice period</span>
-                    <span>{terms.notice_days} days</span>
-                  </div>
-                ) : null}
-                {terms.renewal_date ? (
-                  <div className="between">
-                    <span className="muted">Renewal</span>
-                    <span>{fmtDay(terms.renewal_date, "")}</span>
-                  </div>
-                ) : null}
-                {terms.hours_per_month ? (
-                  <div className="stack" style={{ gap: 4 }}>
-                    <div className="between small">
-                      <span>Hours this month</span>
-                      <span className="num">
-                        {page.hoursThisMonth} of {terms.hours_per_month}
-                      </span>
-                    </div>
-                    <div className={`bar ${hoursPct! >= 100 ? "t-danger" : hoursPct! >= 80 ? "t-warn" : ""}`}>
-                      <i style={{ width: `${Math.min(hoursPct!, 100)}%` }} />
-                    </div>
-                  </div>
-                ) : null}
-                {terms.in_scope ? (
-                  <div className="small">
-                    <strong>In scope:</strong> {terms.in_scope}
-                  </div>
-                ) : null}
-                {terms.out_of_scope ? (
-                  <div className="small">
-                    <strong>Out of scope:</strong> {terms.out_of_scope}
-                  </div>
-                ) : null}
-                {terms.agreement_name ? (
-                  <Link className="small" href={`/files?client=${client.id}`}>
-                    {terms.agreement_name}
-                  </Link>
-                ) : null}
-              </div>
-            ) : (
-              <p className="muted small">No terms recorded yet.</p>
-            )}
-          </CardBody>
-        </Card>
-      ) : null}
+      {showTerms ? <ClientTermsCard clientId={client.id} /> : null}
 
       <Card>
         <CardHead title="Health" actions={canManage ? <RecalcButton clientId={client.id} /> : null} />
@@ -135,6 +70,8 @@ export function Overview({ page, now, year, canManage, showTerms, canEditTerms }
           ) : null}
         </CardBody>
       </Card>
+
+      <ClientHealthCard clientId={client.id} />
 
       <Card>
         <CardHead title="Upcoming meetings" actions={<ButtonLink size="sm" href="/calendar">Schedule</ButtonLink>} />
@@ -327,18 +264,7 @@ export function MeetingsNotes({ page, year }: { page: ClientPage; year: string }
             <Meetings page={page} />
           </CardBody>
         </Card>
-        <Card>
-          <CardHead
-            title={
-              <>
-                Fireflies calls <PhaseTwo />
-              </>
-            }
-          />
-          <CardBody>
-            <p className="muted small">Recorded calls appear here once Fireflies is connected.</p>
-          </CardBody>
-        </Card>
+        <FirefliesCallsCard clientId={page.client.id} />
       </div>
       <Card>
         <CardHead title="Meeting notes" actions={<NotesButton clientId={page.client.id} />} />
@@ -579,6 +505,8 @@ export function Portal({ page, canManage, canAdmin }: { page: ClientPage; canMan
           </div>
         </CardBody>
       </Card>
+      <ClientVaultCard clientId={c.id} />
+      <ClientActivityLinesCard clientId={c.id} />
     </div>
   );
 }

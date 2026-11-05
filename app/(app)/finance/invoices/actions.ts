@@ -4,7 +4,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
-import { getBillingDefaults } from "@/lib/modules/finance/core/queries";
+import { getBillingDefaults, settledByInvoice } from "@/lib/modules/finance/core/queries";
+import { sendLoggedEmail } from "@/features/finance-p2/send";
 import { addDays, balance, computeTotals, daysBetween, money, round2, statusFromAmounts, type InvoiceStatus } from "@/lib/modules/finance/core/logic";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -272,7 +273,8 @@ export async function writeOffInvoice(raw: unknown): Promise<Result> {
   if (!me) return NO_ACCESS;
   const { supabase, inv } = await loadInvoice(p.data.id);
   if (!inv) return { ok: false, error: "Invoice not found." };
-  const bal = balance(inv);
+  const settled = (await settledByInvoice([inv.id])).get(inv.id) ?? 0;
+  const bal = balance({ ...inv, settled });
   if (bal <= 0) return { ok: false, error: "There is no open balance to write off." };
   const { error } = await supabase
     .from("invoices")
@@ -364,7 +366,7 @@ export async function refundInvoice(raw: unknown): Promise<Result> {
   return { ok: true };
 }
 
-// ---------------------------------------------------------------- email (records intent; sending is off until a provider is set)
+// ---------------------------------------------------------------- email (sends once a provider is set in Finance settings; until then records intent)
 const EmailInput = z.object({
   id,
   kind: z.enum(["invoice", "reminder", "receipt"]),
@@ -382,14 +384,21 @@ export async function requestEmail(raw: unknown): Promise<Result> {
   const { supabase, inv } = await loadInvoice(p.data.id);
   if (!inv) return { ok: false, error: "Invoice not found." };
   if (inv.status === "draft") return { ok: false, error: "Issue the invoice before emailing it." };
+  const sent = await sendLoggedEmail({ kind: p.data.kind, to: p.data.to, cc: p.data.cc, subject: p.data.subject, text: p.data.body, invoiceId: inv.id, createdBy: me.id });
+  const what = `${p.data.kind === "invoice" ? "Invoice" : p.data.kind === "reminder" ? "Reminder" : "Receipt"} email to ${p.data.to}${p.data.cc ? `, cc ${p.data.cc}` : ""}`;
   const { error } = await supabase.from("invoice_events").insert({
     invoice_id: inv.id,
     kind: "email_requested",
     actor_id: me.id,
-    note: `${p.data.kind === "invoice" ? "Invoice" : p.data.kind === "reminder" ? "Reminder" : "Receipt"} email to ${p.data.to}${p.data.cc ? `, cc ${p.data.cc}` : ""} saved. Not sent: email sending is off until a provider is set up`,
-    meta: { ...p.data, sent: false },
+    note: sent.ok
+      ? `${what} sent`
+      : "notConfigured" in sent
+        ? `${what} saved. Not sent: email sending is off until a provider is set up`
+        : `${what} failed: ${sent.error}`,
+    meta: { ...p.data, sent: sent.ok },
   });
   if (error) return { ok: false, error: error.message };
   refresh(inv.id);
+  if (!sent.ok && !("notConfigured" in sent)) return { ok: false, error: sent.error };
   return { ok: true };
 }

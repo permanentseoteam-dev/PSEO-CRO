@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
 import { CONFIDENCE, MAX_KEY_RESULTS } from "@/lib/modules/team/logic";
 import type { Confidence } from "@/lib/modules/team/types";
-import { checkIn, createObjective, setCycleStatus, submitSelfReview, updateKpiValue } from "../actions";
+import { checkIn, createObjective, submitSelfReview, updateKpiValue } from "../actions";
 
 type Res = { ok: true } | { ok: false; error: string };
 type Opt = { id: string; name: string };
@@ -302,31 +302,6 @@ export function CheckInButton({ krs }: { krs: { id: string; title: string; progr
         </Field>
       </FormDialog>
     </>
-  );
-}
-
-// ---------------------------------------------------------------- setup
-
-export function CycleToggle({ id, status }: { id: string; status: "open" | "closed" }) {
-  const router = useRouter();
-  const toast = useToast();
-  const [pending, start] = useTransition();
-  const next = status === "open" ? "closed" : "open";
-  return (
-    <Button
-      size="sm"
-      disabled={pending}
-      onClick={() =>
-        start(async () => {
-          const res = await setCycleStatus({ id, status: next });
-          if (!res.ok) return toast(res.error);
-          toast(next === "closed" ? "Review cycle closed" : "Review cycle opened");
-          router.refresh();
-        })
-      }
-    >
-      {status === "open" ? "Close cycle" : "Reopen cycle"}
-    </Button>
   );
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button, Checkbox, Dialog, Field, FormGrid, useToast } from "@/components/ui";
 import { CHANNELS, COUNTRIES, CURRENCIES, END_REASONS, isEnded, SERVICES } from "@/lib/modules/clients/logic";
 import type { ClientRow, Person } from "@/lib/modules/clients/types";
@@ -14,6 +14,9 @@ type Props = {
   showFee: boolean;
   label: string;
   variant?: "primary" | "default";
+  /** Edit only: server-rendered extras shown below the form (sub-accounts, delete). */
+  subAccountsSlot?: ReactNode;
+  deleteSlot?: ReactNode;
 };
 
 const STATUS_OPTS = [
@@ -25,7 +28,7 @@ const STATUS_OPTS = [
 ] as const;
 
 /** Add client (no `client`) or Edit client. Ending a client needs an end date and a reason. */
-export function ClientFormButton({ people, client, fee, showFee, label, variant = "default" }: Props) {
+export function ClientFormButton({ people, client, fee, showFee, label, variant = "default", subAccountsSlot, deleteSlot }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [status, setStatus] = useState(client?.status === "terminated" ? "churned" : (client?.status ?? "onboarding"));
@@ -200,6 +203,8 @@ export function ClientFormButton({ people, client, fee, showFee, label, variant 
             )}
           </FormGrid>
         </form>
+        {client && subAccountsSlot ? <div className="mt-3">{subAccountsSlot}</div> : null}
+        {client && deleteSlot ? <div className="mt-3">{deleteSlot}</div> : null}
       </Dialog>
     </>
   );

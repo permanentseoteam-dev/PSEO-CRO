@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { getMailer } from "./email";
-import { canMoveReport, lines, monthLabel, nextQbrStatus, reportDueOn } from "./logic";
+import { canMoveReport, lines, monthLabel, nextQbrStatus, reportDueOn, reviewLogEntry } from "./logic";
 import {
   CADENCES,
   COMMITMENT_KINDS,
@@ -13,6 +13,7 @@ import {
   LOG_KINDS,
   MOODS,
   OPPORTUNITY_STAGES,
+  REVIEW_STATUSES,
   TIERS,
   type QbrStatus,
   type ReportStatus,
@@ -424,4 +425,25 @@ export async function requestRating(raw: unknown): Promise<Result> {
     subject: `How did we do in ${monthLabel(p.data.month)}?`,
     text: "Please rate our quality, timeliness and communication from 1 to 5 in your client portal.",
   });
+}
+
+// ---------------------------------------------------------------- status review (portfolio)
+const ReviewInput = z.object({
+  rows: z.array(z.object({ clientId: id, status: z.enum(REVIEW_STATUSES), note: text(500) })).min(1).max(500),
+});
+
+/** One relationship log note per client. Rows the caller can't write (RLS) are counted, not fatal. */
+export async function saveStatusReview(raw: unknown): Promise<Result> {
+  const p = ReviewInput.safeParse(raw);
+  if (!p.success) return { ok: false, error: FORM_ERROR };
+  const me = await staff();
+  if (!me) return { ok: false, error: NO_ACCESS };
+  const supabase = await createClient();
+  const results = await Promise.all(
+    p.data.rows.map((r) => supabase.from("relationship_log").insert({ client_id: r.clientId, by_id: me.id, ...reviewLogEntry(r.status, r.note) })),
+  );
+  const failed = results.filter((r) => r.error).length;
+  revalidatePath("/(app)/clients/[id]", "page");
+  if (failed === p.data.rows.length) return { ok: false, error: results[0].error?.message ?? NO_ACCESS };
+  return failed ? { ok: false, error: `Saved ${p.data.rows.length - failed} of ${p.data.rows.length}. You can't log notes on the rest.` } : { ok: true };
 }

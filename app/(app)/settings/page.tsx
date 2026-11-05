@@ -1,3 +1,4 @@
+import { ApiKeysSection, NotificationsLogSection } from "@/features/platform-p2/components/server";
 import { requireMe, can } from "@/lib/auth/can";
 import { notifMatrix } from "@/lib/modules/personal/logic";
 import { getSettings } from "@/lib/modules/personal/queries";
@@ -8,13 +9,16 @@ export const metadata = { title: "Settings" };
 export default async function SettingsPage() {
   const me = await requireMe();
   const s = await getSettings(me.id);
+  const isAdmin = can(me, "admin.access.manage", "all");
   return (
     <div className="page">
       <SettingsView
         email={me.email}
         name={me.name}
         isStaff={me.kind === "staff"}
-        isAdmin={can(me, "admin.access.manage", "all")}
+        isAdmin={isAdmin}
+        apiKeys={isAdmin ? <ApiKeysSection /> : undefined}
+        notifLog={me.kind === "staff" ? <NotificationsLogSection /> : undefined}
         initial={{
           theme: s.theme,
           density: s.density,

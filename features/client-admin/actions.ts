@@ -3,10 +3,12 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getMe, can } from "@/lib/auth/can";
+import { END_REASONS } from "@/lib/modules/clients/logic";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailDrafter } from "./ai";
-import { buildEmailPrompt, deleteCheck, nameMatches } from "./logic";
+import { buildEmailPrompt, deleteCheck, isEnded, nameMatches } from "./logic";
+import { todayIso } from "./queries";
 import {
   CHURN_OUTCOMES,
   CHURN_TRIGGERS,
@@ -368,4 +370,24 @@ export async function deleteClient(raw: unknown): Promise<Result> {
   await admin.from("client_deletions").insert({ client_id: client.id, client_name: client.name, history: h, deleted_by: me.id });
   revalidatePath("/clients");
   return { ok: true };
+}
+
+/** A client with invoices is never deleted: it is ended (status churned) so Finance keeps its history. */
+export async function archiveClient(raw: unknown): Promise<Result> {
+  const p = z.object({ clientId: id, typedName: z.string().max(200), reason: z.enum(END_REASONS) }).safeParse(raw);
+  if (!p.success) return { ok: false, error: "Choose a reason and type the client's name." };
+  const me = await staff("clients.delete");
+  if (!me || !can(me, "clients.delete", "all")) return { ok: false, error: NO_ACCESS };
+  const admin = createAdminClient();
+  const { data: client } = await admin.from("clients").select("id, name, status").eq("id", p.data.clientId).maybeSingle();
+  if (!client) return { ok: false, error: "This client no longer exists." };
+  if (!nameMatches(p.data.typedName, client.name as string)) return { ok: false, error: "The name doesn't match." };
+  if (isEnded(client.status as string)) return { ok: false, error: "This client is already archived." };
+  const { error } = await admin
+    .from("clients")
+    .update({ status: "churned", end_date: todayIso(), end_reason: p.data.reason })
+    .eq("id", client.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/clients");
+  return done(client.id);
 }

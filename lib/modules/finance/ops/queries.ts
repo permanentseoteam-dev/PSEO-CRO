@@ -1,8 +1,8 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { balance, fmtDay, isOverdue, type Currency, type Rates } from "../core/logic";
-import { listInvoices } from "../core/queries";
+import { balance, fmtDay, isOverdue, settledOutside, type Currency, type Rates } from "../core/logic";
+import { listInvoices, settledByInvoice } from "../core/queries";
 import { computeProfitability, monthRange, monthlyAgreedFee, type FeeBasis, type ProfClient, type Stage } from "./logic";
 import type {
   BillingRow,
@@ -40,7 +40,7 @@ async function latestRates(): Promise<Rates> {
 
 export async function getPaymentsData() {
   const supabase = await createClient();
-  const [rc, cr, refunds, clients, chans, profiles, invoices, rates] = await Promise.all([
+  const [rc, cr, refunds, clients, chans, profiles, invoices, rates, moves] = await Promise.all([
     supabase
       .from("receipts")
       .select(
@@ -59,7 +59,10 @@ export async function getPaymentsData() {
     supabase.from("billing_profiles").select("client_id, currency, channel_id"),
     listInvoices(),
     latestRates(),
+    supabase.from("credit_movements").select("client_id, kind, amount, currency, reason, created_at, clients(name)").order("created_at", { ascending: false }),
   ]);
+  // Phase 2 (0206): credit applied to invoices or given back. Fails soft before 0206 is applied.
+  const movements = (moves.error ? [] : moves.data ?? []) as Raw[];
 
   const creditByReceipt = new Map<string, number>();
   for (const c of (cr.data ?? []) as Raw[]) if (c.receipt_id) creditByReceipt.set(c.receipt_id as string, num(c.amount));
@@ -108,6 +111,11 @@ export async function getPaymentsData() {
     row.amount += num(c.amount);
     creditMap.set(key, row);
   }
+  // Credit left = client_credit − credit_movements (applied and given back).
+  for (const m of movements) {
+    const row = creditMap.get(`${m.client_id}|${m.currency}`);
+    if (row) row.amount -= num(m.amount);
+  }
   const credits = [...creditMap.values()].filter((c) => c.amount > 0.004);
 
   const refundRows: RefundRow[] = ((refunds.data ?? []) as Raw[]).map((e) => {
@@ -125,6 +133,21 @@ export async function getPaymentsData() {
       rate: inv?.fx_rate_usd == null ? null : Number(inv.fx_rate_usd),
     };
   });
+
+  // Credit given back to a client counts as refunded money; it has no invoice.
+  for (const m of movements.filter((x) => x.kind === "given_back")) {
+    refundRows.push({
+      date: String(m.created_at).slice(0, 10),
+      clientName: one<{ name: string }>(m.clients)?.name ?? "Unknown client",
+      invoiceId: "",
+      number: "Credit given back",
+      currency: (m.currency as Currency) ?? "USD",
+      amount: num(m.amount),
+      reason: str(m.reason),
+      rate: null,
+    });
+  }
+  refundRows.sort((a, b) => b.date.localeCompare(a.date));
 
   const profileBy = new Map(((profiles.data ?? []) as Raw[]).map((p) => [p.client_id as string, p]));
   const clientPicks: ClientPick[] = ((clients.data ?? []) as Raw[]).map((c) => {
@@ -144,7 +167,7 @@ export async function getPaymentsData() {
 export function openInvoicesFrom(invoices: Awaited<ReturnType<typeof listInvoices>>, today: string): OpenInvoiceRow[] {
   return invoices
     .map((i) => {
-      const money = { status: i.status, total: i.total, paid: i.amount_paid, due: i.due_on };
+      const money = { status: i.status, total: i.total, paid: i.amount_paid, settled: settledOutside(i), due: i.due_on };
       return {
         id: i.id,
         number: i.number ?? "Draft",
@@ -165,16 +188,17 @@ export function openInvoicesFrom(invoices: Awaited<ReturnType<typeof listInvoice
 
 export async function getBillingRows(): Promise<{ rows: BillingRow[]; entities: { id: string; name: string; currency: Currency }[]; channels: ChannelPick[] }> {
   const supabase = await createClient();
-  const [clients, profiles, ents, chans, invoices] = await Promise.all([
+  const [clients, profiles, ents, chans, invoices, settled] = await Promise.all([
     supabase.from("clients").select("id, name, currency, country").neq("status", "internal").order("name"),
     supabase.from("billing_profiles").select("*, entities(short_name), channels_pay(name)"),
     supabase.from("entities").select("id, name, currency").eq("active", true).order("code"),
     supabase.from("channels_pay").select("id, name, account").eq("active", true).order("name"),
-    supabase.from("invoices").select("client_id, status, total, amount_paid, currency").in("status", ["issued", "partly_paid", "disputed"]),
+    supabase.from("invoices").select("id, client_id, status, total, amount_paid, currency").in("status", ["issued", "partly_paid", "disputed"]),
+    settledByInvoice(),
   ]);
   const owed = new Map<string, number>();
   for (const i of (invoices.data ?? []) as Raw[]) {
-    const b = Math.max(num(i.total) - num(i.amount_paid), 0);
+    const b = Math.max(num(i.total) - num(i.amount_paid) - (settled.get(i.id as string) ?? 0), 0);
     owed.set(i.client_id as string, (owed.get(i.client_id as string) ?? 0) + b);
   }
   const byClient = new Map(((profiles.data ?? []) as Raw[]).map((p) => [p.client_id as string, p]));
@@ -230,6 +254,7 @@ export async function getReminderRows(): Promise<ReminderRow[]> {
     ? await supabase.from("billing_profiles").select("client_id, billing_email, cc, contact, channels_pay(name)").in("client_id", clientIds)
     : { data: [] };
   const prof = new Map(((profiles ?? []) as Raw[]).map((p) => [p.client_id as string, p]));
+  const settled = rows.length ? await settledByInvoice(rows.map((r) => r.invoice_id as string)) : new Map<string, number>();
 
   return rows.map((r) => {
     const inv = one<Raw>(r.invoices) ?? {};
@@ -243,7 +268,7 @@ export async function getReminderRows(): Promise<ReminderRow[]> {
       clientId: inv.client_id as string,
       clientName: str(client.name) || "Unknown client",
       currency: (inv.currency as Currency) ?? "USD",
-      balance: Math.max(num(inv.total) - num(inv.amount_paid), 0),
+      balance: Math.max(num(inv.total) - num(inv.amount_paid) - (settled.get(r.invoice_id as string) ?? 0), 0),
       due: str(inv.due_on),
       stage: r.stage as Stage,
       sendOn: r.send_on as string,

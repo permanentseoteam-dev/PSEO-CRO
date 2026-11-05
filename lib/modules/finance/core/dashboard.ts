@@ -10,6 +10,7 @@ import {
   lateDays,
   periodRange,
   round2,
+  settledOutside,
   type Currency,
   type Money,
   type PeriodKey,
@@ -30,7 +31,7 @@ export type DashboardInput = {
   refunds: Refund[];
 };
 
-const money = (i: InvoiceRow): Money => ({ status: i.status, total: i.total, paid: i.amount_paid, refunded: i.amount_refunded, due: i.due_on });
+const money = (i: InvoiceRow): Money => ({ status: i.status, total: i.total, paid: i.amount_paid, refunded: i.amount_refunded, settled: settledOutside(i), due: i.due_on });
 
 export function buildDashboard(d: DashboardInput) {
   const range = periodRange(d.period, d.today);

@@ -85,7 +85,7 @@ describe("delete client", () => {
     expect(nameMatches("Alba", "Alba Motors")).toBe(false);
     expect(nameMatches("", "")).toBe(false);
   });
-  it("invoices block a delete; the rest is listed", () => {
+  it("invoices turn a delete into an archive; the rest is listed", () => {
     expect(deleteCheck({ tickets: 3, files: 1, logins: 0, invoices: 0 })).toEqual({
       allowed: true,
       blockers: [],
@@ -94,6 +94,7 @@ describe("delete client", () => {
     const blocked = deleteCheck({ tickets: 0, files: 0, logins: 2, invoices: 1 });
     expect(blocked.allowed).toBe(false);
     expect(blocked.blockers[0]).toMatch(/^1 invoice in Finance/);
+    expect(blocked.blockers[0]).toMatch(/archived instead/);
   });
 });
 

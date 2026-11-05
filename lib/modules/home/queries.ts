@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { balance } from "@/lib/modules/finance/core/logic";
+import { settledByInvoice } from "@/lib/modules/finance/core/queries";
 import type { PriorityLevel, TicketStatus } from "@/components/ui";
 import { dayDiff, localDate, reportStatus, whyFor } from "./logic";
 import type { ClientRow, DeptPanel, FinanceRow, MyEvent, MyTicket, Update } from "./types";
@@ -15,7 +17,7 @@ import type { ClientRow, DeptPanel, FinanceRow, MyEvent, MyTicket, Update } from
 //   event_attendees  (0104_calendar): event_id, member_id
 //   clients          (0108_clients): id, name, services text[], health_score, health_band, owner_id, manager_id
 //   client_team      (0108_clients): client_id, member_id
-//   invoices         (0110_finance_core): status, currency, total, amount_paid, due_date
+//   invoices         (0110_finance_core): status, currency, total, amount_paid, due_on
 //   notifications    (0101_shell)
 // No embeds across modules (their FKs may not exist yet): each table is read on its own and joined here.
 // A missing table (module not applied yet) reads as empty, so every panel still renders.
@@ -26,7 +28,7 @@ type Row = Record<string, any>;
 
 const rows = (res: { data: unknown; error: unknown }): Row[] => (res.error || !res.data ? [] : (res.data as Row[]));
 const none = Promise.resolve({ data: [] as Row[], error: null });
-const OPEN_INVOICE = ["sent", "partly_paid", "overdue"];
+const OPEN_INVOICE = ["issued", "partly_paid", "disputed"];
 /** Weekly capacity in open tickets per person, until Team adds a per-person value. */
 export const DEFAULT_CAPACITY = 12;
 
@@ -250,14 +252,15 @@ export async function getMyClients(meId: string, today: string, now: Date): Prom
 /** Outstanding and overdue invoice balances per currency. */
 export async function getFinanceSnapshot(today: string): Promise<FinanceRow[] | null> {
   const db = await createClient();
-  const res = await db.from("invoices").select("currency, total, amount_paid, due_date").in("status", OPEN_INVOICE);
+  const res = await db.from("invoices").select("id, status, currency, total, amount_paid, due_on").in("status", OPEN_INVOICE);
   if (res.error) return null;
+  const settled = await settledByInvoice(rows(res).map((i) => i.id as string));
   const by = new Map<string, FinanceRow>();
   for (const i of rows(res)) {
     const r = by.get(i.currency) ?? { currency: i.currency, outstanding: 0, overdue: 0 };
-    const bal = Number(i.total ?? 0) - Number(i.amount_paid ?? 0);
+    const bal = balance({ status: i.status, total: Number(i.total ?? 0), paid: Number(i.amount_paid ?? 0), settled: settled.get(i.id) ?? 0, due: i.due_on });
     r.outstanding += bal;
-    if (i.due_date && dayDiff(i.due_date, today) < 0) r.overdue += bal;
+    if (i.due_on && dayDiff(i.due_on, today) < 0) r.overdue += bal;
     by.set(i.currency, r);
   }
   return [...by.values()].sort((a, b) => a.currency.localeCompare(b.currency));

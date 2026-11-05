@@ -16,6 +16,7 @@ import {
   invoicesExport,
   paymentsExport,
   pastInvoiceStatus,
+  round2,
   toCsv,
   upworkFee,
 } from "./logic";
@@ -75,9 +76,21 @@ export async function createMonthlyDrafts(raw: unknown): Promise<Result<{ create
       .select("id")
       .single();
     if (claim.error) continue;
+    // Phase 1 totals (subtotal, tax_total, line amount) so the draft opens in the invoice editor as saved.
     const inv = await supabase
       .from("invoices")
-      .insert({ client_id: p.clientId, entity_id: p.entityId, currency: p.currency, status: "draft", title: p.title, issued_on: p.issuedOn, due_on: p.dueOn, total: p.total })
+      .insert({
+        client_id: p.clientId,
+        entity_id: p.entityId,
+        currency: p.currency,
+        status: "draft",
+        title: p.title,
+        issued_on: p.issuedOn,
+        due_on: p.dueOn,
+        subtotal: p.subtotal,
+        tax_total: p.tax,
+        total: p.total,
+      })
       .select("id")
       .single();
     if (inv.error || !inv.data) {
@@ -85,7 +98,7 @@ export async function createMonthlyDrafts(raw: unknown): Promise<Result<{ create
       return { ok: false, error: created ? `${created} drafts made, then: ${inv.error?.message}` : inv.error?.message ?? FORM_ERROR };
     }
     await supabase.from("invoice_lines").insert(
-      p.lines.map((l, i) => ({ invoice_id: inv.data.id, position: i, description: l.description, qty: l.qty, rate: l.rate, tax_pct: l.taxPct })),
+      p.lines.map((l, i) => ({ invoice_id: inv.data.id, position: i, description: l.description, qty: l.qty, rate: l.rate, tax_pct: l.taxPct, amount: round2(l.qty * l.rate) })),
     );
     await supabase.from("monthly_drafts").update({ invoice_id: inv.data.id }).eq("id", claim.data.id);
     created++;

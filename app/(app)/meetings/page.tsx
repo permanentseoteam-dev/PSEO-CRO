@@ -2,6 +2,7 @@ import { requireMe, can } from "@/lib/auth/can";
 import { NoAccess, StatCard, Stats, Table, Tabs, Td, Th } from "@/components/ui";
 import { actionSummary, shortDate, zoneDate } from "@/lib/modules/clientops/logic";
 import { getMeetings, listClients } from "@/lib/modules/clientops/queries";
+import { FirefliesCallsCard } from "@/features/platform-p2/components/server";
 import { MeetingsToolbar } from "./_components/toolbar";
 import { ReviewCard } from "./_components/review-card";
 import { NoClientRow } from "./_components/no-client-row";
@@ -76,6 +77,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         )
       ) : null}
 
+      {tab === "recent" ? <FirefliesCallsCard /> : null}
+
       {tab === "recent" ? (
         <Table>
           <thead>
@@ -108,6 +111,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           </tbody>
         </Table>
       ) : null}
+
+      {tab === "noclient" ? <FirefliesCallsCard noClient /> : null}
 
       {tab === "noclient" ? (
         <div className="card">

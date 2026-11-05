@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { STAGES, STAGE_LABEL, type Stage } from "@/lib/modules/finance/ops/logic";
+import { sendLoggedEmail } from "@/features/finance-p2/send";
 
 type Result = { ok: true } | { ok: false; error: string };
 const NO_ACCESS: Result = { ok: false, error: "You don't have access to do that." };
@@ -22,12 +23,15 @@ function refresh() {
 
 const iso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+const Mail = z.object({ to: z.string().trim().min(3).max(500), cc: z.string().trim().max(500).default(""), subject: z.string().trim().min(1).max(300), body: z.string().trim().min(1).max(10000) });
+
 /**
- * Email sending isn't connected yet, so "send" records that the reminder went out (sent by hand from the
- * reviewed text). Earlier stages of the same invoice that were never sent are marked missed.
+ * Records that the reminder went out. With `mail` (one reminder, reviewed text) and an email provider set in
+ * Finance settings, it is emailed first and logged; otherwise it was sent by hand. Earlier stages of the same
+ * invoice that were never sent are marked missed.
  */
 export async function markSent(raw: unknown): Promise<Result> {
-  const p = z.object({ ids: z.array(z.string().uuid()).min(1).max(200) }).safeParse(raw);
+  const p = z.object({ ids: z.array(z.string().uuid()).min(1).max(200), mail: Mail.optional() }).safeParse(raw);
   if (!p.success) return BAD_INPUT;
   const me = await sender();
   if (!me) return NO_ACCESS;
@@ -38,10 +42,17 @@ export async function markSent(raw: unknown): Promise<Result> {
     .in("id", p.data.ids)
     .eq("status", "pending");
   if (error) return { ok: false, error: error.message };
+  let result = "Marked as sent";
+  const mail = p.data.mail;
+  if (mail && rows?.length === 1) {
+    const sent = await sendLoggedEmail({ kind: "reminder", to: mail.to, cc: mail.cc, subject: mail.subject, text: mail.body, invoiceId: rows[0].invoice_id, createdBy: me.id });
+    if (!sent.ok && !("notConfigured" in sent)) return { ok: false, error: sent.error };
+    if (sent.ok) result = "Emailed";
+  }
   for (const r of rows ?? []) {
     const { error: e1 } = await supabase
       .from("reminders")
-      .update({ status: "sent", sent_at: new Date().toISOString(), sent_by: me.id, result: "Marked as sent" })
+      .update({ status: "sent", sent_at: new Date().toISOString(), sent_by: me.id, result })
       .eq("id", r.id);
     if (e1) return { ok: false, error: e1.message };
     await supabase

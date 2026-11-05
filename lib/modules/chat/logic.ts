@@ -240,3 +240,10 @@ export const escapeLike = (q: string) => q.replace(/[\\%_]/g, (c) => "\\" + c);
 export function slugChannel(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 }
+
+/** #general post for a career_steps title change (0207 post_congrats). */
+export function congratsMessage(name: string, kind: string, title: string) {
+  if (kind === "promoted") return `Congratulations to ${name} on the promotion to ${title}!`;
+  if (kind === "transfer") return `${name} has moved to a new role as ${title}. Congratulations!`;
+  return `${name} is now ${title}. Congratulations!`;
+}

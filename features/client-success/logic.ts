@@ -3,11 +3,13 @@ import type { Tone } from "@/components/ui";
 import type {
   CommitmentStatus,
   DeliveryRating,
+  Mood,
   OpportunityStage,
   QbrStatus,
   RelDate,
   RelPerson,
   ReportStatus,
+  ReviewStatus,
   SuccessProfile,
 } from "./types";
 
@@ -177,3 +179,19 @@ export const scoreTone = (v: number | null): Tone | undefined => (v == null ? un
 
 /** One line per text block, blank lines dropped. */
 export const lines = (s: string | null | undefined) => (s ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+
+// ---------------------------------------------------------------- status review (portfolio)
+export const REVIEW_STATUS: Record<ReviewStatus, { label: string; mood: Mood }> = {
+  on_track: { label: "On track", mood: "happy" },
+  watch: { label: "Watch", mood: "neutral" },
+  at_risk: { label: "At risk", mood: "unhappy" },
+};
+
+/** Starting value in the review dialog, from the client's health band. */
+export const reviewDefault = (band: string): ReviewStatus => (band === "at_risk" ? "at_risk" : band === "watch" ? "watch" : "on_track");
+
+/** The relationship log row a status review writes. */
+export function reviewLogEntry(status: ReviewStatus, note: string) {
+  const n = note.trim();
+  return { kind: "note" as const, mood: REVIEW_STATUS[status].mood, note: `Status review: ${REVIEW_STATUS[status].label}${n ? `. ${n}` : ""}` };
+}

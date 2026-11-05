@@ -48,11 +48,16 @@ export function computeTotals(lines: LineInput[], discount: number): Totals {
 }
 
 // ---------------------------------------------------------------- balances and status
-export type Money = { status: InvoiceStatus; total: number; paid: number; refunded?: number; due: string };
+/** `settled` = money that cleared the invoice outside receipts: paid before the portal plus client credit applied. */
+export type Money = { status: InvoiceStatus; total: number; paid: number; refunded?: number; settled?: number; due: string };
 
 const OPEN: InvoiceStatus[] = ["issued", "partly_paid", "disputed"];
 
-export const balance = (i: Money) => (OPEN.includes(i.status) ? round2(Math.max(i.total - i.paid, 0)) : 0);
+/** balance = total − payments − paid before portal − credit applied (Phase 2 maths). */
+export const balance = (i: Money) => (OPEN.includes(i.status) ? round2(Math.max(i.total - i.paid - (i.settled ?? 0), 0)) : 0);
+
+/** The `settled` part of Money for an invoice row. */
+export const settledOutside = (i: { paid_before_portal?: number; credit_applied?: number }) => round2((i.paid_before_portal ?? 0) + (i.credit_applied ?? 0));
 export const isOpen = (i: Money) => balance(i) > 0;
 
 /** Whole days between two ISO dates (b − a). */

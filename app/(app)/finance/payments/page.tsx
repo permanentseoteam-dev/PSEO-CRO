@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireMe, can } from "@/lib/auth/can";
-import { Button, ButtonLink, Card, CardBody, CardHead, EmptyState, NoAccess, PhaseTwo, Seg, StatCard, Stats, Table, Tabs, Td, Th } from "@/components/ui";
+import { ButtonLink, Card, CardBody, CardHead, EmptyState, NoAccess, Seg, StatCard, Stats, Table, Tabs, Td, Th } from "@/components/ui";
 import {
   AGING_LABELS,
   PERIOD_LABELS,
@@ -15,6 +15,7 @@ import {
   type PeriodKey,
 } from "@/lib/modules/finance/core/logic";
 import { getPaymentsData, openInvoicesFrom, todayIso } from "@/lib/modules/finance/ops/queries";
+import { ApplyCreditSection, ClientCreditSection } from "@/features/finance-p2/sections";
 import { RecordPaymentButton } from "./_components/record-payment";
 import { ReceiptsTable } from "./_components/receipts-table";
 import { UrlSelect } from "./_components/url-select";
@@ -96,9 +97,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
       <div className="row between">
         <h1>Payments</h1>
         <div className="row">
-          <Button disabled title="Coming in phase 2">
-            Apply credit <PhaseTwo />
-          </Button>
+          <ApplyCreditSection />
           {canRecord ? <RecordPaymentButton {...recordProps} /> : null}
         </div>
       </div>
@@ -166,7 +165,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                       <Td num>{fmtDay(r.date)}</Td>
                       <Td>{r.clientName}</Td>
                       <Td num>
-                        <Link href={`/finance/invoices/${r.invoiceId}`}>{r.number}</Link>
+                        {r.invoiceId ? <Link href={`/finance/invoices/${r.invoiceId}`}>{r.number}</Link> : r.number}
                       </Td>
                       <Td right num>
                         {money(r.amount, r.currency)}
@@ -270,43 +269,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
             </Card>
           </div>
 
-          <Card>
-            <CardHead
-              title={
-                <>
-                  Client credit <PhaseTwo />
-                </>
-              }
-            />
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Client</Th>
-                  <Th right>Credit</Th>
-                  <Th>From</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.credits.length ? (
-                  d.credits.map((c) => (
-                    <tr key={`${c.clientId}|${c.currency}`}>
-                      <Td>{c.clientName}</Td>
-                      <Td right num>
-                        {money(c.amount, c.currency)}
-                      </Td>
-                      <Td>{c.from}</Td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <Td colSpan={3} className="muted">
-                      No client holds credit.
-                    </Td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </Card>
+          <ClientCreditSection />
         </>
       )}
     </div>
