@@ -16,6 +16,7 @@
   --accent: #0d9488;
   --accent-ink: #0f766e;
   --accent-soft: #e0f4f1;
+  --accent-contrast: #fff;
   --danger: #dc2626;
   --danger-soft: #fdecec;
   --warn: #b45309;
@@ -53,6 +54,7 @@
     --accent: #2dd4bf;
     --accent-ink: #5eead4;
     --accent-soft: color-mix(in srgb, #2dd4bf 16%, transparent);
+    --accent-contrast: #04201c;
     --danger: #f87171;
     --danger-soft: color-mix(in srgb, #f87171 15%, transparent);
     --warn: #fbbf24;
@@ -83,6 +85,7 @@
   --accent: #2dd4bf;
   --accent-ink: #5eead4;
   --accent-soft: color-mix(in srgb, #2dd4bf 16%, transparent);
+  --accent-contrast: #04201c;
   --danger: #f87171;
   --danger-soft: color-mix(in srgb, #f87171 15%, transparent);
   --warn: #fbbf24;
@@ -393,9 +396,7 @@ table.tbl tfoot td { font-weight: 600; background: var(--surface-2); }
 }
 .btn:hover { background: var(--surface-2); text-decoration: none; }
 .btn svg { width: 16px; height: 16px; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-:root[data-theme="dark"] .btn.primary { color: #04201c; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #04201c; } }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
 .btn.primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
 .btn.ghost:hover { background: var(--surface-2); color: var(--ink); }

@@ -66,15 +66,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const today = localDate(now);
   const sp = await searchParams;
 
-  const [tickets, events, departments] = await Promise.all([getMyTickets(me.id), getMyEvents(me.id, now), getDepartments()]);
-  const deptId = departments.find((d) => d.id === sp.dept)?.id ?? me.departmentId ?? departments[0]?.id ?? null;
   const showFinance = can(me, "finance.dashboard.view");
-  const [updates, dept, clients, finance] = await Promise.all([
-    getUpdates(me.id, tickets),
-    deptId ? getDeptPanel(deptId, today) : null,
+  const [tickets, events, departments, clients, finance] = await Promise.all([
+    getMyTickets(me.id),
+    getMyEvents(me.id, now),
+    getDepartments(),
     getMyClients(me.id, today, now),
     showFinance ? getFinanceSnapshot(today) : null,
   ]);
+  const deptId = departments.find((d) => d.id === sp.dept)?.id ?? me.departmentId ?? departments[0]?.id ?? null;
+  const [updates, dept] = await Promise.all([getUpdates(me.id, tickets), deptId ? getDeptPanel(deptId, today) : null]);
 
   const mine = tickets.filter((t) => t.assigneeId === me.id);
   const s = homeStats(mine, today);

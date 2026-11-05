@@ -42,18 +42,14 @@ export async function getShellData(memberId: string, opts: { staff: boolean }): 
           .order("clock_in")
       : Promise.resolve({ data: null, error: null }),
     opts.staff
-      ? supabase.from("timers").select("id, ticket_id, started_at").eq("member_id", memberId).limit(1).maybeSingle()
+      ? supabase.from("timers").select("id, started_at, ticket:tickets(key)").eq("member_id", memberId).limit(1).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
   ]);
 
   let running: RunningTimer | null = null;
   if (!timer.error && timer.data) {
-    const t = timer.data as { id: string; ticket_id: string | null; started_at: string };
-    let ticketKey: string | null = null;
-    if (t.ticket_id) {
-      const { data } = await supabase.from("tickets").select("key").eq("id", t.ticket_id).maybeSingle();
-      ticketKey = (data as { key: string } | null)?.key ?? null;
-    }
+    const t = timer.data as unknown as { id: string; started_at: string; ticket: { key: string } | { key: string }[] | null };
+    const ticketKey = (Array.isArray(t.ticket) ? t.ticket[0]?.key : t.ticket?.key) ?? null;
     running = { id: t.id, ticketKey, startedAt: t.started_at };
   }
 

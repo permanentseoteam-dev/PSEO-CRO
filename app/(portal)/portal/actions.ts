@@ -1,16 +1,21 @@
 "use server";
 
 import { z } from "zod";
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
-import { PREVIEW_COOKIE } from "@/lib/modules/portal/queries";
+import { previewActive } from "@/lib/modules/portal/viewer";
+import { READ_ONLY } from "@/lib/modules/portal/preview";
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
 const NO_ACCESS = "You don't have access to do that.";
 const CHECK = "Check the form and try again.";
+
+/** Every write below starts here: a staff "See as client" preview is read-only. */
+async function readOnly(): Promise<Result | null> {
+  return (await previewActive()) ? { ok: false, error: READ_ONLY } : null;
+}
 
 async function clientMe() {
   const me = await getMe();
@@ -25,6 +30,8 @@ const Decide = z.object({
 
 /** Approve, or ask for changes with a note. */
 export async function decideApproval(raw: unknown): Promise<Result> {
+  const ro = await readOnly();
+  if (ro) return ro;
   const p = Decide.safeParse(raw);
   if (!p.success) return { ok: false, error: CHECK };
   if (p.data.decision === "changes" && !p.data.note) return { ok: false, error: "Say what we should change." };
@@ -58,6 +65,8 @@ async function sendRequest(what: string, due: string | undefined): Promise<Resul
 
 /** Request new work: opens a ticket for the team and starts the reply clock. */
 export async function requestWork(raw: unknown): Promise<Result<{ key: string }>> {
+  const ro = await readOnly();
+  if (ro) return ro;
   const p = Request.safeParse(raw);
   if (!p.success) return { ok: false, error: p.error.issues[0]?.message ?? CHECK };
   return sendRequest(p.data.what, p.data.due);
@@ -73,6 +82,8 @@ const Book = z.object({
 
 /** Book a meeting: sent to the team as a request, so it gets a reply clock like any other request. */
 export async function bookMeeting(raw: unknown): Promise<Result<{ key: string }>> {
+  const ro = await readOnly();
+  if (ro) return ro;
   const p = Book.safeParse(raw);
   if (!p.success) return { ok: false, error: p.error.issues[0]?.message ?? CHECK };
   const { topic, day, time, attendees, note } = p.data;
@@ -91,6 +102,8 @@ const Todo = z.object({ id: z.string().uuid(), done: z.boolean() });
 
 /** Tick a meeting to-do done or not done. */
 export async function setTodo(raw: unknown): Promise<Result> {
+  const ro = await readOnly();
+  if (ro) return ro;
   const p = Todo.safeParse(raw);
   if (!p.success) return { ok: false, error: CHECK };
   const me = await clientMe();
@@ -117,6 +130,8 @@ const Uploaded = z.object({
 
 /** Register a file the client just uploaded to Storage: it lands in their "From the client" folder. */
 export async function addUploadedFile(raw: unknown): Promise<Result> {
+  const ro = await readOnly();
+  if (ro) return ro;
   const p = Uploaded.safeParse(raw);
   if (!p.success) return { ok: false, error: CHECK };
   const me = await clientMe();
@@ -153,17 +168,6 @@ export async function addUploadedFile(raw: unknown): Promise<Result> {
   if (vErr) return { ok: false, error: vErr.message };
 
   await supabase.rpc("portal_file_added", { p_file: file.id });
-  revalidatePath("/portal", "layout");
-  return { ok: true };
-}
-
-/** Staff only: pick which client the portal preview shows. */
-export async function setPreviewClient(raw: unknown): Promise<Result> {
-  const p = z.string().uuid().safeParse(raw);
-  if (!p.success) return { ok: false, error: CHECK };
-  const me = await getMe();
-  if (!me || me.kind !== "staff" || !can(me, "clients.view")) return { ok: false, error: NO_ACCESS };
-  (await cookies()).set(PREVIEW_COOKIE, p.data, { path: "/portal", httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 30 });
   revalidatePath("/portal", "layout");
   return { ok: true };
 }

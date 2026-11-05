@@ -46,6 +46,8 @@ export type PortfolioCard = {
   status: string;
   band: Band;
   score: number | null;
+  /** Score change over the last 7 days (client_health_history), null when unknown. */
+  change7: number | null;
   ownerName: string;
   services: string[];
   contactDays: number | null;

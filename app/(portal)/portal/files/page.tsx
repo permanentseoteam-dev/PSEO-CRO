@@ -10,7 +10,7 @@ import s from "../portal.module.css";
 export const metadata = { title: "Files" };
 
 export default async function PortalFiles({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const { me, client } = await portalContext();
+  const { me, client, preview } = await portalContext();
   if (!client) return <NoClient />;
 
   const sp = await searchParams;
@@ -90,7 +90,7 @@ export default async function PortalFiles({ searchParams }: { searchParams: Prom
         )}
       </Card>
 
-      {me.kind === "client" && uploadFolder ? <Upload clientId={client.id} folderName={uploadFolder.name} /> : null}
+      {me.kind === "client" && uploadFolder ? <Upload clientId={client.id} folderName={uploadFolder.name} readOnly={!!preview} /> : null}
 
       {kit ? (
         <Card>

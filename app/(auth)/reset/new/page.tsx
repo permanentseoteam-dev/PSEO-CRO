@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import { getAal, needsVerify, verifyPath } from "@/lib/auth/mfa";
 import { NewPasswordForm } from "./_components/new-password-form";
 
 export const metadata = { title: "Set a new password" };
@@ -20,5 +22,7 @@ export default async function NewPasswordPage() {
       </div>
     );
   }
+  // With 2-step on, the reset link only gives a first-step session; ask for the app code before the new password.
+  if (needsVerify(await getAal())) redirect(verifyPath("/reset/new"));
   return <NewPasswordForm email={data.user.email ?? ""} />;
 }

@@ -14,8 +14,8 @@ const STATE = {
   changes: { label: "Changes asked", tone: "warn" },
 } as const;
 
-/** Approval cards with Approve and Ask for changes. */
-export function Approvals({ items, canDecide }: { items: Approval[]; canDecide: boolean }) {
+/** Approval cards with Approve and Ask for changes (shown but disabled in a read-only preview). */
+export function Approvals({ items, canDecide, readOnly = false }: { items: Approval[]; canDecide: boolean; readOnly?: boolean }) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [target, setTarget] = useState<Approval | null>(null);
@@ -62,10 +62,10 @@ export function Approvals({ items, canDecide }: { items: Approval[]; canDecide: 
               {a.status === "waiting" ? (
                 canDecide ? (
                   <div className="row">
-                    <Button variant="primary" disabled={pending} onClick={() => decide(a, "approved")}>
+                    <Button variant="primary" disabled={pending || readOnly} onClick={() => decide(a, "approved")}>
                       Approve
                     </Button>
-                    <Button disabled={pending} onClick={() => setTarget(a)}>
+                    <Button disabled={pending || readOnly} onClick={() => setTarget(a)}>
                       Ask for changes
                     </Button>
                   </div>

@@ -1,6 +1,7 @@
 // Server entry points for the Phase 1 client pages. Each does its own guard and reads and renders nothing
 // when the signed-in person may not see it. See WIRING.md for where each one mounts.
 import { can, requireMe } from "@/lib/auth/can";
+import { addDays, healthChange, scoreOnOrBefore } from "@/lib/modules/clients/logic";
 import { getEmailDrafter } from "./ai";
 import { ActivityLinesCard } from "./components/activity-lines-card";
 import { DeleteClientButton } from "./components/delete-client";
@@ -15,6 +16,7 @@ import {
   getAgreement,
   getClientBasics,
   getHealth,
+  getHealthHistory,
   getHoursThisMonth,
   getVault,
   listEndedClients,
@@ -38,12 +40,21 @@ export async function ClientTermsCard({ clientId }: { clientId: string }) {
 export async function ClientHealthCard({ clientId }: { clientId: string }) {
   const me = await staffWith("clients.view");
   if (!me) return null;
-  const [client, { sentiments, alerts }] = await Promise.all([getClientBasics(clientId), getHealth(clientId)]);
+  const today = todayIso();
+  const from = addDays(today, -29);
+  const [client, { sentiments, alerts }, history] = await Promise.all([
+    getClientBasics(clientId),
+    getHealth(clientId),
+    getHealthHistory(clientId, from),
+  ]);
   const healthScore = client?.health_score ?? null;
-  const suggestions = suggestChurnTriggers({ healthScore, prevHealthScore: null, sentiments, alerts });
+  const prevHealthScore = scoreOnOrBefore(history, addDays(today, -7));
+  const suggestions = suggestChurnTriggers({ healthScore, prevHealthScore, sentiments, alerts });
   return (
     <HealthCard
       clientId={clientId}
+      trend={history.filter((h) => h.day >= from)}
+      change7={healthChange(healthScore, history, today)}
       sentiments={sentiments}
       alerts={alerts}
       suggestions={suggestions}

@@ -1,8 +1,6 @@
 import "server-only";
-import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
-import { requireMe } from "@/lib/auth/can";
 import type { Me } from "@/lib/auth/perms";
+import { getPortalView, inPreview, portalDb } from "./viewer";
 import type {
   Activity,
   Approval,
@@ -21,7 +19,9 @@ import type {
 } from "./types";
 import type { TicketStatus } from "./logic";
 
-// Reads other modules' tables under RLS (a client login only gets its own client's rows):
+// Reads other modules' tables. A client login reads under RLS (only its own client's rows). A staff preview
+// reads with the service client (see portalDb): every query below filters by client_id and by the same
+// "shared / client-visible" rules the client policies apply, and checks the owner's perms where RLS would.
 //   clients, client_team (0108) · tickets, projects (0106/0107) · events, event_attendees (0104)
 //   meetings, meeting_actions, client_folders, client_files, file_versions, brand_kits (0109)
 //   invoices, invoice_lines, channels_pay (0110) · receipts, receipt_allocations (0111)
@@ -33,38 +33,20 @@ const rows = (res: { data: unknown; error: unknown }): Row[] => (res.error || !r
 const one = <T>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
 const num = (v: unknown) => Number(v ?? 0);
 
-/** Cookie a staff member uses to pick which client the portal preview shows. */
-export const PREVIEW_COOKIE = "portal_client";
-
-/** The client this portal view is for: a client login's own client; for staff, the picked or first client they can see. */
-export async function getPortalClient(me: Me): Promise<PortalClient | null> {
-  const supabase = await createClient();
-  const map = (r: Row | null): PortalClient | null => (r ? { id: r.id, name: r.name, welcome: r.portal_welcome ?? null } : null);
-  if (me.kind === "client") {
-    if (!me.clientId) return null;
-    const { data } = await supabase.from("clients").select("id, name, portal_welcome").eq("id", me.clientId).maybeSingle();
-    return map(data);
-  }
-  const picked = (await cookies()).get(PREVIEW_COOKIE)?.value;
-  if (picked && /^[0-9a-f-]{36}$/i.test(picked)) {
-    const { data } = await supabase.from("clients").select("id, name, portal_welcome").eq("id", picked).maybeSingle();
-    if (data) return map(data);
-  }
-  const { data } = await supabase.from("clients").select("id, name, portal_welcome").neq("status", "internal").order("name").limit(1);
-  return map(one(data as Row[] | null));
-}
-
-/** Clients a staff member can preview. */
-export async function listPreviewClients(): Promise<{ id: string; name: string }[]> {
-  const supabase = await createClient();
-  const res = await supabase.from("clients").select("id, name").neq("status", "internal").order("name");
-  return rows(res).map((r) => ({ id: r.id, name: r.name }));
+/** The portal's client by id (the caller resolved it from the login or the preview). */
+export async function getPortalClient(clientId: string | null): Promise<PortalClient | null> {
+  if (!clientId) return null;
+  const supabase = await portalDb(clientId);
+  const { data } = await supabase!.from("clients").select("id, name, portal_welcome").eq("id", clientId).maybeSingle();
+  const r = data as Row | null;
+  return r ? { id: r.id, name: r.name, welcome: r.portal_welcome ?? null } : null;
 }
 
 // ---------------------------------------------------------------- approvals and work
 
 export async function listApprovals(clientId: string, opts: { decidedWithinDays?: number } = {}): Promise<Approval[]> {
-  const supabase = await createClient();
+  const supabase = await portalDb(clientId, "portal.approve");
+  if (!supabase) return [];
   let q = supabase
     .from("approvals")
     .select(
@@ -91,7 +73,8 @@ export async function listApprovals(clientId: string, opts: { decidedWithinDays?
 }
 
 export async function countWaitingApprovals(clientId: string): Promise<number> {
-  const supabase = await createClient();
+  const supabase = await portalDb(clientId, "portal.approve");
+  if (!supabase) return 0;
   const { count, error } = await supabase
     .from("approvals")
     .select("id", { count: "exact", head: true })
@@ -102,7 +85,8 @@ export async function countWaitingApprovals(clientId: string): Promise<number> {
 
 /** Client-visible tickets. `done` picks finished ones (newest first), else open ones by due date. */
 export async function listClientTickets(clientId: string, done: boolean, limit = 50): Promise<ClientTicket[]> {
-  const supabase = await createClient();
+  const supabase = await portalDb(clientId, "tickets.view");
+  if (!supabase) return [];
   let q = supabase
     .from("tickets")
     .select("id, title, client_title, client_details, client_needs_approval, status, due_date, completed_at, assignee:members!tickets_assignee_id_fkey(name)")
@@ -128,7 +112,7 @@ export async function listClientTickets(clientId: string, done: boolean, limit =
 // ---------------------------------------------------------------- home
 
 export async function listActivity(clientId: string, limit = 5): Promise<Activity[]> {
-  const supabase = await createClient();
+  const supabase = (await portalDb(clientId))!;
   const res = await supabase
     .from("shared_activity")
     .select("id, actor_name, action, href, happened_at")
@@ -148,7 +132,7 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 export async function listTeam(clientId: string): Promise<TeamMember[]> {
-  const supabase = await createClient();
+  const supabase = (await portalDb(clientId))!;
   const res = await supabase.from("client_team").select("role, member:members(id, name, title)").eq("client_id", clientId);
   return rows(res)
     .filter((r) => one<Row>(r.member))
@@ -168,7 +152,7 @@ export async function latestReport(clientId: string): Promise<PortalFile | null>
 // ---------------------------------------------------------------- meetings
 
 export async function listUpcomingMeetings(clientId: string, fromIso: string, limit = 5): Promise<UpcomingMeeting[]> {
-  const supabase = await createClient();
+  const supabase = (await portalDb(clientId))!;
   const res = await supabase
     .from("events")
     .select("id, title, starts_at, minutes, meet_link")
@@ -193,7 +177,7 @@ export async function listUpcomingMeetings(clientId: string, fromIso: string, li
 }
 
 export async function listPastMeetings(clientId: string, limit = 10): Promise<PastMeeting[]> {
-  const supabase = await createClient();
+  const supabase = (await portalDb(clientId))!;
   const ms = rows(
     await supabase
       .from("meetings")
@@ -230,7 +214,7 @@ export async function listPastMeetings(clientId: string, limit = 10): Promise<Pa
 // ---------------------------------------------------------------- files
 
 export async function listFolders(clientId: string): Promise<Folder[]> {
-  const supabase = await createClient();
+  const supabase = (await portalDb(clientId))!;
   const [folders, files] = await Promise.all([
     supabase.from("client_folders").select("id, name, kind, position").eq("client_id", clientId).eq("client_visible", true).order("position").order("name"),
     supabase.from("client_files").select("folder_id").eq("client_id", clientId).eq("shared", true),
@@ -241,7 +225,7 @@ export async function listFolders(clientId: string): Promise<Folder[]> {
 }
 
 export async function listFiles(clientId: string, opts: { folderId?: string; nameLike?: string; limit?: number } = {}): Promise<PortalFile[]> {
-  const supabase = await createClient();
+  const supabase = (await portalDb(clientId))!;
   let q = supabase
     .from("client_files")
     .select("id, name, folder_id, updated_at, folder:client_folders(name, client_visible)")
@@ -278,7 +262,7 @@ export async function listFiles(clientId: string, opts: { folderId?: string; nam
 }
 
 export async function getBrandKit(clientId: string): Promise<BrandKit | null> {
-  const supabase = await createClient();
+  const supabase = (await portalDb(clientId))!;
   const { data, error } = await supabase.from("brand_kits").select("colours, fonts, tone, dos, donts").eq("client_id", clientId).maybeSingle();
   if (error || !data) return null;
   const r = data as Row;
@@ -294,8 +278,9 @@ export async function getBrandKit(clientId: string): Promise<BrandKit | null> {
 // ---------------------------------------------------------------- invoices
 
 export async function listInvoices(clientId: string): Promise<{ invoices: PortalInvoice[]; channels: PayChannel[]; receipts: PortalReceipt[] }> {
-  const supabase = await createClient();
-  const inv = rows(
+  const supabase = await portalDb(clientId, "finance.invoices.view");
+  if (!supabase) return { invoices: [], channels: [], receipts: [] };
+  let inv = rows(
     await supabase
       .from("invoices")
       .select("id, number, title, status, currency, issued_on, due_on, subtotal, discount, tax_total, total, amount_paid, written_off_amount, pay_link, channel_id")
@@ -303,6 +288,13 @@ export async function listInvoices(clientId: string): Promise<{ invoices: Portal
       .neq("status", "draft")
       .order("issued_on", { ascending: false }),
   );
+  if (inv.length && (await inPreview())) {
+    // RLS hides invoices marked hidden from the portal (0206 invoices_portal_visibility); do the same here.
+    const hidden = new Set(
+      rows(await supabase.from("invoice_extras").select("invoice_id").in("invoice_id", inv.map((i) => i.id)).eq("portal_visible", false)).map((x) => x.invoice_id),
+    );
+    inv = inv.filter((i) => !hidden.has(i.id));
+  }
   const ids = inv.map((i) => i.id as string);
   const chIds = [...new Set(inv.map((i) => i.channel_id).filter(Boolean))] as string[];
   const [lines, channels, receipts] = await Promise.all([
@@ -351,8 +343,55 @@ export async function listInvoices(clientId: string): Promise<{ invoices: Portal
   };
 }
 
-/** Signed-in member and the client this portal page shows (null when there is none). */
-export async function portalContext(): Promise<{ me: Me; client: PortalClient | null }> {
-  const me = await requireMe();
-  return { me, client: await getPortalClient(me) };
+// ---------------------------------------------------------------- messages (preview only)
+
+/**
+ * Preview of the client's chat: the newest client channel the owner login belongs to (any of the client's
+ * channels when there is no owner login) and its latest channel messages. Live chat stays with the Chat module.
+ */
+export async function listPreviewMessages(
+  clientId: string,
+  ownerId: string,
+): Promise<{ channel: string; messages: { id: number; author: string; body: string; at: string }[] } | null> {
+  const supabase = await portalDb(clientId, "chat.use");
+  if (!supabase) return null;
+  const chans = rows(
+    await supabase
+      .from("channels")
+      .select("id, name, last_message_at, channel_members(member_id)")
+      .eq("client_id", clientId)
+      .eq("kind", "client")
+      .is("archived_at", null)
+      .order("last_message_at", { ascending: false, nullsFirst: false }),
+  );
+  const mine = chans.filter((c) => ((c.channel_members ?? []) as Row[]).some((m) => m.member_id === ownerId));
+  const ch = (mine.length ? mine : chans)[0];
+  if (!ch) return null;
+  const msgs = rows(
+    await supabase
+      .from("messages")
+      .select("id, body, created_at, author:members!messages_author_id_fkey(name)")
+      .eq("channel_id", ch.id)
+      .is("deleted_at", null)
+      .or("parent_id.is.null,also_in_channel.eq.true")
+      .order("id", { ascending: false })
+      .limit(50),
+  );
+  return {
+    channel: ch.name ?? "",
+    messages: msgs.reverse().map((m) => ({ id: m.id, author: one<Row>(m.author)?.name ?? "Someone", body: m.body, at: m.created_at })),
+  };
+}
+
+/**
+ * The viewer (the client login, or the client's owner login during a staff preview), the client this
+ * portal page shows (null when there is none) and the preview, if any (pages turn writes off with it).
+ */
+export async function portalContext(): Promise<{ me: Me; client: PortalClient | null; preview: { clientId: string; exp: number } | null }> {
+  const { viewer, scope } = await getPortalView();
+  return {
+    me: viewer,
+    client: await getPortalClient(scope.clientId),
+    preview: scope.mode === "preview" ? { clientId: scope.clientId, exp: scope.exp } : null,
+  };
 }

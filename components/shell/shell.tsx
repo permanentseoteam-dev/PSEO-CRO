@@ -21,6 +21,8 @@ export type ShellProps = {
   me: { id: string; name: string; title: string | null; presence: string; kind: "staff" | "client"; perms: Record<string, Scope> };
   /** Portal brand (the client's name). Ignored for staff. */
   org?: string;
+  /** Portal logo URL, shown in place of the initials mark. Ignored for staff. */
+  logo?: string | null;
   /** Show the Team view / Client view switch. */
   viewSwitch: boolean;
   theme: Theme;
@@ -40,7 +42,7 @@ const SHORTCUTS: [string, string[]][] = [
 const initialsOf = (s: string) =>
   s.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-export function Shell({ variant, me, org, viewSwitch, theme: initialTheme, data, children }: ShellProps) {
+export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme, data, children }: ShellProps) {
   const portal = variant === "portal";
   const pathname = usePathname();
   const router = useRouter();
@@ -72,8 +74,8 @@ export function Shell({ variant, me, org, viewSwitch, theme: initialTheme, data,
   const page = pageFor(pathname);
   const pinned = data.pins.some((p) => p.href === pathname);
   const brand = portal
-    ? { name: org ?? "Client portal", sub: "Client portal", mark: initialsOf(org ?? "Client") || "C" }
-    : { name: "Permanent SEO", sub: "Agency portal", mark: "PS" };
+    ? { name: org ?? "Client portal", sub: "Client portal", mark: initialsOf(org ?? "Client") || "C", logo: logo ?? null }
+    : { name: "Permanent SEO", sub: "Agency portal", mark: "PS", logo: null };
 
   const persistSidebar = (c: boolean, f: string[]) => start(async () => void (await saveSidebar({ collapsed: c, folded: f })));
   const toggleCollapse = () => {

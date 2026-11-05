@@ -17,6 +17,7 @@ import {
   setPortalLogin,
   setTeamMember,
 } from "../../actions";
+import { startClientPreview } from "../../preview-actions";
 
 type Res = { ok: true; warning?: string } | { ok: false; error: string };
 
@@ -513,6 +514,27 @@ export function BrandingForm({ clientId, color, welcome, logo }: { clientId: str
         </Button>
       </div>
     </form>
+  );
+}
+
+/** "See as client": opens this client's portal as their owner login sees it, read-only for 30 minutes. */
+export function SeeAsClientButton({ clientId }: { clientId: string }) {
+  const toast = useToast();
+  const [pending, start] = useTransition();
+  return (
+    <Button
+      size="sm"
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          // On success the action redirects to /portal/home; it only returns on an error.
+          const r = await startClientPreview(clientId);
+          if (r && !r.ok) toast(r.error);
+        })
+      }
+    >
+      See as client
+    </Button>
   );
 }
 

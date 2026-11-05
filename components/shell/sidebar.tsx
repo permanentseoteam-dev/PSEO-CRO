@@ -14,7 +14,7 @@ import { useNowSeconds } from "./use-now";
 
 type Props = {
   portal: boolean;
-  brand: { name: string; sub: string; mark: string };
+  brand: { name: string; sub: string; mark: string; logo: string | null };
   groups: NavGroup[];
   pins: Pin[];
   active: string | null;
@@ -98,13 +98,18 @@ export function Sidebar(p: Props) {
   return (
     <aside id="sidebar" className={cn("sidebar", p.open && "open")} aria-label="Main navigation">
       <div className="brand">
-        <span
-          className="brand-mark grid place-items-center rounded-lg font-display text-[13px] font-extrabold text-white"
-          style={{ background: p.portal ? "var(--blue)" : "var(--accent)" }}
-          aria-hidden="true"
-        >
-          {p.brand.mark}
-        </span>
+        {p.brand.logo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- remote client logo of unknown size
+          <img className="brand-mark rounded-lg object-contain" src={p.brand.logo} alt="" aria-hidden="true" />
+        ) : (
+          <span
+            className="brand-mark grid place-items-center rounded-lg font-display text-[13px] font-extrabold text-white"
+            style={{ background: p.portal ? "var(--blue)" : "var(--accent)" }}
+            aria-hidden="true"
+          >
+            {p.brand.mark}
+          </span>
+        )}
         <span className="brand-name">
           {p.brand.name}
           <span className="brand-sub">{p.brand.sub}</span>

@@ -78,13 +78,28 @@ export const CHURN_OUTCOME: Record<ChurnOutcome, { label: string; tone: Tone }> 
   lost: { label: "Lost", tone: "danger" },
 };
 
+/** A fall of this many points against the score 7 days ago is a "drop". */
+export const DROP_POINTS = 15;
+
+/** True when the client already has an open alert of this kind (so another would be a duplicate). */
+export const hasOpenAlert = (alerts: Pick<ChurnAlert, "trigger_kind" | "outcome">[], kind: ChurnTrigger) =>
+  alerts.some((a) => a.trigger_kind === kind && a.outcome === "open");
+
+/** SVG polyline points for a 0–100 score series in a width x height box (oldest first). */
+export function sparkPoints(scores: number[], width: number, height: number, pad = 2): string {
+  if (!scores.length) return "";
+  const step = scores.length > 1 ? (width - pad * 2) / (scores.length - 1) : 0;
+  const y = (v: number) => pad + (1 - Math.max(0, Math.min(100, v)) / 100) * (height - pad * 2);
+  return scores.map((v, i) => `${(pad + i * step).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+}
+
 /** NPS 0–6 is a detractor. */
 export const isDetractor = (score: number) => score <= 6;
 
 /**
  * Churn triggers the data suggests that have no open alert yet:
  *  - risk: health score under 50
- *  - drop: health fell 15+ points from the previous score (when known)
+ *  - drop: health fell DROP_POINTS+ from the score 7 days ago (when known)
  *  - sentiment: latest sentiment is negative or lower than the one before
  * "not_renewing" and "nps" come from people, so they are raised by hand.
  */
@@ -94,15 +109,14 @@ export function suggestChurnTriggers(input: {
   sentiments: Pick<SentimentRow, "sentiment">[];
   alerts: Pick<ChurnAlert, "trigger_kind" | "outcome">[];
 }): ChurnTrigger[] {
-  const open = new Set(input.alerts.filter((a) => a.outcome === "open").map((a) => a.trigger_kind));
   const out: ChurnTrigger[] = [];
   const { healthScore: score, prevHealthScore: prev } = input;
   if (score != null && score < 50) out.push("risk");
-  if (score != null && prev != null && prev - score >= 15) out.push("drop");
+  if (score != null && prev != null && prev - score >= DROP_POINTS) out.push("drop");
   const [now, before] = input.sentiments;
   if (now && (now.sentiment === "negative" || (before && SENTIMENT_RANK[now.sentiment] < SENTIMENT_RANK[before.sentiment])))
     out.push("sentiment");
-  return out.filter((t) => !open.has(t));
+  return out.filter((t) => !hasOpenAlert(input.alerts, t));
 }
 
 // ---------------------------------------------------------------- vault and activity lines

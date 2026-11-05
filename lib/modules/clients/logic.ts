@@ -82,6 +82,37 @@ export function healthScore(i: HealthInput): Health {
   return { score, band: bandFor(score), factors };
 }
 
+// ---------------------------------------------------------------- health history (client_health_history, 0211)
+export type HealthPoint = { day: string; score: number }; // day yyyy-mm-dd
+
+/** Points the "Falling" filter needs: a 7-day change of this or worse. */
+export const FALLING_POINTS = -10;
+
+/** yyyy-mm-dd plus n days (n may be negative). */
+export const addDays = (day: string, n: number) => new Date(Date.parse(`${day}T00:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10);
+
+/** Score on `day`, or on the nearest earlier day with a snapshot. Null when no snapshot is that old. */
+export function scoreOnOrBefore(points: HealthPoint[], day: string): number | null {
+  let best: HealthPoint | null = null;
+  for (const p of points) if (p.day <= day && (!best || p.day > best.day)) best = p;
+  return best ? best.score : null;
+}
+
+/** Current score minus the score `days` ago (nearest earlier snapshot). Null when either is unknown. */
+export function healthChange(current: number | null, points: HealthPoint[], today: string, days = 7): number | null {
+  const prev = scoreOnOrBefore(points, addDays(today, -days));
+  return current == null || prev == null ? null : current - prev;
+}
+
+export const isFalling = (change: number | null | undefined) => change != null && change <= FALLING_POINTS;
+
+/** "−12 in 7 days", "+4 in 7 days", "No change in 7 days". Tone: danger when down, ok otherwise. */
+export function changeLabel(change: number | null, days = 7): { text: string; tone: Tone } {
+  if (change == null) return { text: `No score from ${days} days ago yet`, tone: "muted" };
+  if (change === 0) return { text: `No change in ${days} days`, tone: "ok" };
+  return { text: `${change < 0 ? "−" : "+"}${Math.abs(change)} in ${days} days`, tone: change < 0 ? "danger" : "ok" };
+}
+
 // ---------------------------------------------------------------- escalations
 export const SEVERITY: Record<Severity, { label: string; hours: number; tone: Tone }> = {
   critical: { label: "Critical", hours: 2, tone: "danger" },
@@ -138,14 +169,16 @@ export type CardClient = {
   band: Band;
   ownerName: string;
   services: string[];
+  /** Score change over the last 7 days, when known. */
+  change7?: number | null;
 };
 export type PortfolioFilter = { band: string; owner: string; service: string; status: string; q: string };
 export const NO_FILTER: PortfolioFilter = { band: "all", owner: "", service: "", status: "", q: "" };
 
-/** Status filter uses the shown label (Ended covers churned and terminated). */
+/** Status filter uses the shown label (Ended covers churned and terminated). Health "falling" = 7-day change of −10 or worse. */
 export function matches(c: CardClient, f: PortfolioFilter): boolean {
   return (
-    (f.band === "all" || c.band === f.band) &&
+    (f.band === "all" || (f.band === "falling" ? isFalling(c.change7) : c.band === f.band)) &&
     (!f.owner || c.ownerName === f.owner) &&
     (!f.service || c.services.includes(f.service)) &&
     (!f.status || statusLabel(c.status) === f.status) &&

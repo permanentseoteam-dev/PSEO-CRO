@@ -235,11 +235,6 @@ export async function getBillingRows(): Promise<{ rows: BillingRow[]; entities: 
 
 // ---------------------------------------------------------------- reminders
 
-export async function syncReminders() {
-  const supabase = await createClient();
-  await supabase.rpc("sync_payment_reminders");
-}
-
 export async function getReminderRows(): Promise<ReminderRow[]> {
   const supabase = await createClient();
   const { data } = await supabase

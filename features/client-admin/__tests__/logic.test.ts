@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   buildEmailPrompt,
   deleteCheck,
+  DROP_POINTS,
   endedLine,
+  hasOpenAlert,
   hoursUsage,
   isEnded,
   nameMatches,
   renewalDate,
   renewalReminder,
   sentimentLine,
+  sparkPoints,
   suggestChurnTriggers,
   termLabel,
 } from "../logic";
@@ -113,5 +116,36 @@ describe("AI email prompt", () => {
     expect(p.user).toContain("Client: Alba Motors");
     expect(p.user).toContain("To: Rania Youssef");
     expect(p.user.endsWith("142 leads, up 18%.")).toBe(true);
+  });
+});
+
+describe("health drop alerts", () => {
+  const base = { sentiments: [], alerts: [] as { trigger_kind: "risk" | "drop" | "sentiment" | "not_renewing" | "nps"; outcome: "open" | "saved" | "reduced_scope" | "lost" }[] };
+
+  it("drop fires at 15 points, not 14", () => {
+    expect(suggestChurnTriggers({ ...base, healthScore: 60, prevHealthScore: 75 })).toContain("drop");
+    expect(suggestChurnTriggers({ ...base, healthScore: 61, prevHealthScore: 75 })).not.toContain("drop");
+    expect(DROP_POINTS).toBe(15);
+  });
+
+  it("no drop without a previous score or when the score rose", () => {
+    expect(suggestChurnTriggers({ ...base, healthScore: 60, prevHealthScore: null })).toEqual([]);
+    expect(suggestChurnTriggers({ ...base, healthScore: 90, prevHealthScore: 60 })).toEqual([]);
+  });
+
+  it("suppresses a drop when an open drop alert exists, not when it is closed", () => {
+    const open = [{ trigger_kind: "drop" as const, outcome: "open" as const }];
+    const closed = [{ trigger_kind: "drop" as const, outcome: "saved" as const }];
+    expect(suggestChurnTriggers({ ...base, healthScore: 55, prevHealthScore: 80, alerts: open })).toEqual([]);
+    expect(suggestChurnTriggers({ ...base, healthScore: 55, prevHealthScore: 80, alerts: closed })).toEqual(["drop"]);
+    expect(hasOpenAlert(open, "drop")).toBe(true);
+    expect(hasOpenAlert(open, "risk")).toBe(false);
+    expect(hasOpenAlert(closed, "drop")).toBe(false);
+  });
+
+  it("sparkline maps 0-100 to the box, oldest on the left", () => {
+    expect(sparkPoints([], 100, 40)).toBe("");
+    expect(sparkPoints([100, 0], 100, 40, 0)).toBe("0.0,0.0 100.0,40.0");
+    expect(sparkPoints([50], 100, 40, 0)).toBe("0.0,20.0");
   });
 });

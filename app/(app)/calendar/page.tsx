@@ -15,11 +15,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const { view, cursor, showCol } = parseParams(await searchParams, now.date);
   const { from, to } = viewRange(view, cursor);
 
-  const [clients, people] = await Promise.all([listClients(), listPeople()]);
-  const [events, busy] = await Promise.all([
-    listMyEvents(me.id, from, to, clients),
-    showCol ? listBusy(from, to) : Promise.resolve([]),
-  ]);
+  const [clients, people, busy] = await Promise.all([listClients(), listPeople(), showCol ? listBusy(from, to) : Promise.resolve([])]);
+  const events = await listMyEvents(me.id, from, to, clients);
 
   return (
     <Calendar

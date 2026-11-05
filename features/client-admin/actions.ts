@@ -7,7 +7,7 @@ import { END_REASONS } from "@/lib/modules/clients/logic";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailDrafter } from "./ai";
-import { buildEmailPrompt, deleteCheck, isEnded, nameMatches } from "./logic";
+import { buildEmailPrompt, deleteCheck, hasOpenAlert, isEnded, nameMatches } from "./logic";
 import { todayIso } from "./queries";
 import {
   CHURN_OUTCOMES,
@@ -17,6 +17,7 @@ import {
   TONES,
   VISIBILITIES,
   WINBACK_STATUSES,
+  type ChurnAlert,
   type ClientHistory,
   type Result,
 } from "./types";
@@ -143,6 +144,9 @@ export async function raiseChurnAlert(raw: unknown): Promise<Result> {
   if (!me) return { ok: false, error: NO_ACCESS };
   const { clientId, ...fields } = p.data;
   const supabase = await createClient();
+  const existing = await supabase.from("churn_alerts").select("trigger_kind, outcome").eq("client_id", clientId).eq("trigger_kind", fields.trigger_kind).eq("outcome", "open");
+  if (hasOpenAlert((existing.data ?? []) as Pick<ChurnAlert, "trigger_kind" | "outcome">[], fields.trigger_kind))
+    return { ok: false, error: "There is already an open alert of this kind. Update that one instead." };
   const { error } = await supabase.from("churn_alerts").insert({ client_id: clientId, ...fields, raised_by: me.id });
   return error ? { ok: false, error: error.message } : done(clientId);
 }

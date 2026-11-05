@@ -22,7 +22,7 @@ import { ClientTermsCard, ClientHealthCard } from "@/features/client-admin/secti
 <ClientHealthCard clientId={id} />
 ```
 - `ClientHealthCard` shows `clients.health_score`, the sentiment line ("Sentiment: neutral, trending down") and churn alerts with an outcome select. Keep Phase 1's health ring and score breakdown. Either place them above this card or drop the Phase 1 health card and keep this one.
-- The churn trigger "drop" only fires when a previous score is known. `sections.tsx` passes `prevHealthScore: null`. If Phase 1 stores health history, pass last month's score there.
+- Health history (0211 `client_health_history`): the card shows a 30-day sparkline and the 7-day change. `sections.tsx` passes the score 7 days ago (or the nearest earlier snapshot) as `prevHealthScore`, so the "drop" trigger (15+ points) fires. `snapshot_client_health()` (pg_cron, 02:00 Dubai) also raises a `drop` alert itself unless one is already open.
 
 ## 2. Client page header actions (clients module)
 Beside "Edit client" / "Log a call":

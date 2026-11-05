@@ -7,14 +7,14 @@ import { bookMeeting } from "../../actions";
 const TIMES = ["10:00", "11:00", "14:00", "16:00"];
 
 /** "Book a meeting": goes to the team as a request with a reply clock. */
-export function BookMeeting({ team, today }: { team: string[]; today: string }) {
+export function BookMeeting({ team, today, readOnly = false }: { team: string[]; today: string; readOnly?: boolean }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
 
   return (
     <>
-      <Button variant="primary" onClick={() => setOpen(true)}>
+      <Button variant="primary" disabled={readOnly} onClick={() => setOpen(true)}>
         Book a meeting
       </Button>
       <Dialog

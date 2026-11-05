@@ -65,7 +65,7 @@ export async function getPortfolio(now: Date): Promise<{ data: Portfolio; people
   const weekFrom = new Date(`${weekStart(today)}T00:00:00+04:00`);
   const weekTo = new Date(weekFrom.getTime() + 7 * 86_400_000);
 
-  const [terms, escs, contacts, events, reports] = await Promise.all([
+  const [terms, escs, contacts, events, reports, prevHealth] = await Promise.all([
     ids.length ? db.from("client_terms").select("client_id, monthly_fee, currency").in("client_id", ids) : none,
     ids.length ? db.from("escalations").select("client_id, due_at").eq("status", "open").in("client_id", ids) : none,
     ids.length ? db.from("client_timeline").select("client_id, happened_on").in("kind", CONTACT_KINDS).in("client_id", ids).order("happened_on", { ascending: false }).limit(5000) : none,
@@ -73,7 +73,10 @@ export async function getPortfolio(now: Date): Promise<{ data: Portfolio; people
       ? db.from("events").select("client_id, starts_at").eq("kind", "client_meeting").in("client_id", ids).gte("starts_at", weekFrom.toISOString()).order("starts_at").limit(500)
       : none,
     ids.length ? db.from("tickets").select("client_id, status, due_date").contains("tags", ["report"]).gte("due_date", monthStart).in("client_id", ids) : none,
+    // Score 7 days ago or the nearest earlier snapshot (0211). Missing function reads as empty.
+    ids.length ? db.rpc("client_health_prev", { p_days: 7 }) : none,
   ]);
+  const prev7 = new Map(rows(prevHealth).map((h) => [h.client_id as string, Number(h.score)]));
 
   const fee = new Map(rows(terms).map((t) => [t.client_id as string, t]));
   const last = lastContacts(rows(contacts));
@@ -105,6 +108,7 @@ export async function getPortfolio(now: Date): Promise<{ data: Portfolio; people
       status: c.status,
       band: c.health_band as Band,
       score: c.health_score,
+      change7: c.health_score != null && prev7.has(c.id) ? c.health_score - prev7.get(c.id)! : null,
       ownerName: ownerName(c),
       services: c.services ?? [],
       contactDays: lc ? Math.max(0, daysBetween(lc, today)) : null,

@@ -2,7 +2,8 @@
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { getMe } from "@/lib/auth/can";
+import { can, getMe } from "@/lib/auth/can";
+import { LOGO_BUCKET, accentProblem } from "@/lib/modules/portal-design/logic";
 import { createClient } from "@/lib/supabase/server";
 import type { Result } from "@/lib/modules/personal/types";
 
@@ -92,6 +93,70 @@ export async function saveProfile(raw: unknown): Promise<Result> {
     const b = await db.from("member_details").upsert({ member_id: me.id, slack_user_id: p.data.slackUserId || null }, { onConflict: "member_id" });
     if (b.error) return fail(b.error);
   }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- admin: 2-step policy and client portal design
+
+const isAdmin = (me: Awaited<ReturnType<typeof getMe>>) => can(me, "admin.access.manage", "all");
+
+/** Staff roles that must use 2-step sign-in. Unknown or client roles are rejected. */
+export async function saveTwoStepPolicy(raw: unknown): Promise<Result> {
+  const p = z.array(z.string().min(1).max(60)).max(100).safeParse(raw);
+  if (!p.success) return BAD;
+  const me = await getMe();
+  if (!isAdmin(me)) return NO;
+  const db = await createClient();
+  const roles = [...new Set(p.data)];
+  if (roles.length) {
+    const { data, error } = await db.from("roles").select("key").eq("kind", "staff").in("key", roles);
+    if (error) return fail(error);
+    if ((data ?? []).length !== roles.length) return BAD;
+  }
+  const { error } = await db.from("security_settings").upsert({ id: true, mfa_required_roles: roles, updated_by: me!.id }, { onConflict: "id" });
+  if (error) return fail(error);
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+const PortalDesign = z.object({
+  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  theme: z.enum(["system", "light", "dark"]),
+  density: z.enum(["comfortable", "compact"]),
+});
+
+/** Company defaults for client portals. The accent must reach 4.5:1 on white. */
+export async function savePortalDesign(raw: unknown): Promise<Result> {
+  const p = PortalDesign.safeParse(raw);
+  if (!p.success) return BAD;
+  const problem = accentProblem(p.data.accent);
+  if (problem) return { ok: false, error: problem };
+  const me = await getMe();
+  if (!isAdmin(me)) return NO;
+  const db = await createClient();
+  const { error } = await db
+    .from("portal_design_settings")
+    .upsert({ id: true, accent: p.data.accent.toLowerCase(), theme: p.data.theme, density: p.data.density, updated_by: me!.id }, { onConflict: "id" });
+  if (error) return fail(error);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Records the default logo after the browser uploaded it to "portal-branding" (RLS and the bucket's
+ * type/size limits check the file). Pass null to remove it. The old file is deleted.
+ */
+export async function savePortalLogo(raw: unknown): Promise<Result> {
+  const p = z.union([z.string().regex(/^defaults\/logo-\d+\.(png|jpg|webp)$/), z.null()]).safeParse(raw);
+  if (!p.success) return BAD;
+  const me = await getMe();
+  if (!isAdmin(me)) return NO;
+  const db = await createClient();
+  const { data: cur } = await db.from("portal_design_settings").select("logo_path").maybeSingle();
+  const { error } = await db.from("portal_design_settings").upsert({ id: true, logo_path: p.data, updated_by: me!.id }, { onConflict: "id" });
+  if (error) return fail(error);
+  if (cur?.logo_path && cur.logo_path !== p.data) await db.storage.from(LOGO_BUCKET).remove([cur.logo_path]);
   revalidatePath("/", "layout");
   return { ok: true };
 }

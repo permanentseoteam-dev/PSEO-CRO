@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Avatar, Button, Card, Seg } from "@/components/ui";
-import { BAND_LABEL, daysAgo, fmtMeeting, matches, NO_FILTER, SERVICES, statusLabel, type Band, type PortfolioFilter } from "@/lib/modules/clients/logic";
+import { Avatar, Button, Card, Seg, StatusDot } from "@/components/ui";
+import { BAND_LABEL, changeLabel, daysAgo, fmtMeeting, matches, NO_FILTER, SERVICES, statusLabel, type Band, type PortfolioFilter } from "@/lib/modules/clients/logic";
 import type { PortfolioCard } from "@/lib/modules/clients/types";
 import { BandDot, HealthRing } from "./health-ring";
 import s from "./clients.module.css";
@@ -22,7 +22,7 @@ export function PortfolioGrid({ cards, owners, reportMonth }: { cards: Portfolio
           label="Health"
           value={f.band}
           onChange={(band) => set({ band })}
-          items={[{ value: "all", label: "All" }, ...BANDS.map((b) => ({ value: b, label: BAND_LABEL[b] }))]}
+          items={[{ value: "all", label: "All" }, ...BANDS.map((b) => ({ value: b, label: BAND_LABEL[b] })), { value: "falling", label: "Falling" }]}
         />
         <select aria-label="Owner" value={f.owner} onChange={(e) => set({ owner: e.target.value })}>
           <option value="">All owners</option>
@@ -67,6 +67,12 @@ export function PortfolioGrid({ cards, owners, reportMonth }: { cards: Portfolio
                   </div>
                 ) : null}
                 <div className="muted">{c.services.join(" · ") || "No services yet"}</div>
+                {c.change7 != null ? (
+                  <div className="between">
+                    <span className="muted">Health</span>
+                    <StatusDot tone={changeLabel(c.change7).tone}>{changeLabel(c.change7).text}</StatusDot>
+                  </div>
+                ) : null}
                 <div className="between">
                   <span className="muted">Last contact</span>
                   <span className={c.contactDays == null || c.contactDays > 10 ? s.late : undefined}>{daysAgo(c.contactDays)}</span>

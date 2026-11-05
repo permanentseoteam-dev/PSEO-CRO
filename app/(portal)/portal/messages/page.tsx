@@ -1,25 +1,58 @@
 import { can } from "@/lib/auth/can";
-import { ButtonLink, EmptyState, NoAccess } from "@/components/ui";
+import { Avatar, Button, Card, CardBody, CardHead, EmptyState, NoAccess, Textarea } from "@/components/ui";
 import { ChatApp } from "@/components/chat/chat-app";
 import { dubai } from "@/lib/modules/chat/logic";
 import { getMessages, latestMessageId, listConversations, listPeople } from "@/lib/modules/chat/queries";
-import { portalContext } from "@/lib/modules/portal/queries";
+import { listPreviewMessages, portalContext } from "@/lib/modules/portal/queries";
+import { fmtDayTime } from "@/lib/modules/portal/logic";
 import { NoClient } from "../../_components/page-head";
 
 export const metadata = { title: "Messages" };
 
 // The client's chat channel(s), live through the Chat module's components and actions.
 export default async function PortalMessages() {
-  const { me, client } = await portalContext();
+  const { me, client, preview } = await portalContext();
   if (!can(me, "chat.use")) return <NoAccess />;
   if (!client) return <NoClient />;
 
-  if (me.kind === "staff") {
+  if (preview) {
+    // Staff preview: the client's channel as they see it, without the live composer.
+    const chat = await listPreviewMessages(client.id, me.id);
+    if (!chat) {
+      return (
+        <div className="page">
+          <EmptyState title="No conversation yet">Your team will open a channel with you soon.</EmptyState>
+        </div>
+      );
+    }
     return (
       <div className="page">
-        <EmptyState title="Client messages live in Chat" action={<ButtonLink href="/chat">Open Chat</ButtonLink>}>
-          The client sees their channel here. Reply to them from Chat.
-        </EmptyState>
+        <Card>
+          <CardHead title={chat.channel ? `#${chat.channel}` : "Messages"} />
+          <CardBody>
+            {chat.messages.length ? (
+              <div className="list">
+                {chat.messages.map((m) => (
+                  <div key={m.id} className="item row" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}>
+                    <Avatar name={m.author} size={28} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <b>{m.author}</b> <span className="muted small">{fmtDayTime(m.at)}</span>
+                      <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{m.body}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted" style={{ margin: 0 }}>No messages yet.</p>
+            )}
+          </CardBody>
+          <CardBody className="row" style={{ flexWrap: "nowrap" }}>
+            <Textarea aria-label="Message" rows={1} disabled placeholder="Sending is off in this read-only preview" style={{ flex: 1 }} />
+            <Button variant="primary" disabled>
+              Send
+            </Button>
+          </CardBody>
+        </Card>
       </div>
     );
   }

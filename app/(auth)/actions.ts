@@ -7,16 +7,24 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { authErrorMessage, homeFor, inviteState, safeNext } from "@/lib/modules/access/logic";
 import { getInviteByToken } from "@/lib/modules/access/queries";
 import { siteOrigin } from "@/lib/modules/access/site";
+import { needsVerify, verifyPath } from "@/lib/auth/mfa-logic";
 
 type Result = { ok: true } | { ok: false; error: string };
 
 const Email = z.string().trim().toLowerCase().email();
 const Password = z.string().min(8, "Use at least 8 characters.").max(200);
 
-/** After a successful sign-in: active members go to `next` (or their home), everyone else to /no-access. */
+/**
+ * After a successful sign-in: people with 2-step on go to /login/verify first; then active members
+ * go to `next` (or their home), everyone else to /no-access.
+ */
 async function land(next?: string): Promise<never> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
+  if (auth.user) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (needsVerify(aal)) redirect(verifyPath(next));
+  }
   const { data: m } = auth.user
     ? await supabase.from("members").select("kind, status").eq("id", auth.user.id).maybeSingle()
     : { data: null };
@@ -52,6 +60,22 @@ export async function verifyLoginCode(raw: unknown): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({ email: input.data.email, token: input.data.code, type: "email" });
   if (error) return { ok: false, error: authErrorMessage(error.message) };
+  return land(input.data.next);
+}
+
+const TwoStepIn = z.object({ code: z.string().trim().regex(/^\d{6}$/), next: z.string().optional() });
+
+/** Second step of sign-in: check the authenticator code, which lifts the session to aal2. */
+export async function verifyTwoStep(raw: unknown): Promise<Result> {
+  const input = TwoStepIn.safeParse(raw);
+  if (!input.success) return { ok: false, error: "Enter the 6-digit code from your authenticator app." };
+  const supabase = await createClient();
+  const { data: factors, error: listErr } = await supabase.auth.mfa.listFactors();
+  if (listErr) return { ok: false, error: "Your session has ended. Sign in again." };
+  const factor = factors.totp[0];
+  if (!factor) return land(input.data.next);
+  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: input.data.code });
+  if (error) return { ok: false, error: /invalid|expired/i.test(error.message) ? "That code isn't right. Check your app and try again." : authErrorMessage(error.message) };
   return land(input.data.next);
 }
 

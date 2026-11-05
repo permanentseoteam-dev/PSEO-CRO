@@ -18,7 +18,7 @@ import s from "../portal.module.css";
 export const metadata = { title: "Home" };
 
 export default async function PortalHome() {
-  const { me, client } = await portalContext();
+  const { me, client, preview } = await portalContext();
   if (!client) return <NoClient />;
 
   const now = new Date();
@@ -33,7 +33,7 @@ export default async function PortalHome() {
     listActivity(client.id, 5),
     listTeam(client.id),
   ]);
-  if (me.kind === "client") await (await createClient()).rpc("portal_touch");
+  if (me.kind === "client" && !preview) await (await createClient()).rpc("portal_touch");
 
   const commitments = [...open.filter((t) => t.dueDate), ...done].slice(0, 5);
   const next = meetings[0];

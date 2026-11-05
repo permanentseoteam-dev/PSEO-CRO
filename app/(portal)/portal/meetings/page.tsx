@@ -9,7 +9,7 @@ import s from "../portal.module.css";
 export const metadata = { title: "Meetings" };
 
 export default async function PortalMeetings() {
-  const { me, client } = await portalContext();
+  const { me, client, preview } = await portalContext();
   if (!client) return <NoClient />;
   const isClient = me.kind === "client";
 
@@ -24,7 +24,7 @@ export default async function PortalMeetings() {
       <PageHead
         title="Meetings"
         sub="Upcoming calls and what we agreed in past ones."
-        actions={isClient ? <BookMeeting team={team.map((t) => t.name)} today={dubaiToday(new Date())} /> : null}
+        actions={isClient ? <BookMeeting team={team.map((t) => t.name)} today={dubaiToday(new Date())} readOnly={!!preview} /> : null}
       />
 
       <Card>
@@ -86,7 +86,7 @@ export default async function PortalMeetings() {
                   <div className="stack">
                     <b>Your to-dos</b>
                     {m.todos.map((t) => (
-                      <TodoCheck key={t.id} id={t.id} title={t.title} done={t.done} disabled={!isClient} />
+                      <TodoCheck key={t.id} id={t.id} title={t.title} done={t.done} disabled={!isClient || !!preview} />
                     ))}
                   </div>
                 ) : null}

@@ -9,7 +9,7 @@ import { RequestWork } from "./_components/request-work";
 export const metadata = { title: "Work and approvals" };
 
 export default async function PortalWork({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const { me, client } = await portalContext();
+  const { me, client, preview } = await portalContext();
   if (!client) return <NoClient />;
 
   const isClient = me.kind === "client";
@@ -30,7 +30,7 @@ export default async function PortalWork({ searchParams }: { searchParams: Promi
       <PageHead
         title="Work and approvals"
         sub="Approve what we send and see what we are working on."
-        actions={isClient ? <RequestWork today={today} /> : null}
+        actions={isClient ? <RequestWork today={today} readOnly={!!preview} /> : null}
       />
       <Tabs
         label="Work"
@@ -44,7 +44,7 @@ export default async function PortalWork({ searchParams }: { searchParams: Promi
 
       {tab === "wait" ? (
         approvals.length ? (
-          <Approvals items={approvals} canDecide={isClient && can(me, "portal.approve")} />
+          <Approvals items={approvals} canDecide={isClient && can(me, "portal.approve")} readOnly={!!preview} />
         ) : (
           <EmptyState title="Nothing waiting for you">When we send work for your approval, it shows here.</EmptyState>
         )

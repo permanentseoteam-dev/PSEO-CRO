@@ -1,6 +1,7 @@
 import "server-only";
 import { addMonths, format, parseISO, startOfMonth } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
+import type { HealthPoint } from "@/lib/modules/clients/logic";
 import type { ActivityLine, Agreement, ChurnAlert, Currency, EndedClient, SentimentRow, VaultItem, Winback } from "./types";
 
 // Reads run as the signed-in user, so RLS decides what comes back. Errors read as empty.
@@ -15,6 +16,21 @@ export async function getClientBasics(clientId: string) {
   const supabase = await createClient();
   const { data } = await supabase.from("clients").select("id, name, status, health_score").eq("id", clientId).maybeSingle();
   return (data ?? null) as { id: string; name: string; status: string; health_score: number | null } | null;
+}
+
+// ---------------------------------------------------------------- health history (0211)
+
+/**
+ * Daily snapshots from `from` (yyyy-mm-dd) on, oldest first, plus the newest one before `from`
+ * so a "score N days ago" lookup still finds the nearest earlier row.
+ */
+export async function getHealthHistory(clientId: string, from: string): Promise<HealthPoint[]> {
+  const supabase = await createClient();
+  const [recent, before] = await Promise.all([
+    supabase.from("client_health_history").select("day, score").eq("client_id", clientId).gte("day", from).order("day"),
+    supabase.from("client_health_history").select("day, score").eq("client_id", clientId).lt("day", from).order("day", { ascending: false }).limit(1),
+  ]);
+  return [...rows<HealthPoint>(before), ...rows<HealthPoint>(recent)];
 }
 
 // ---------------------------------------------------------------- terms

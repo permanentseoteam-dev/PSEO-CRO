@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { addWorkingHours, byOwner, healthScore, matches, NO_FILTER, weekStart, windowStatus, type HealthInput } from "../logic";
+import {
+  addDays,
+  addWorkingHours,
+  byOwner,
+  changeLabel,
+  healthChange,
+  healthScore,
+  isFalling,
+  matches,
+  NO_FILTER,
+  scoreOnOrBefore,
+  weekStart,
+  windowStatus,
+  type HealthInput,
+  type HealthPoint,
+} from "../logic";
 
 const base: HealthInput = {
   status: "active",
@@ -113,5 +128,52 @@ describe("formats", () => {
     expect(fmtDay("2025-12-14", "2026")).toBe("14 Dec 2025");
     expect(fmtMeeting("2026-11-05T10:30:00Z")).toBe("Thu 5 Nov, 14:30");
     expect(fmtMonth("2025-02-01")).toBe("Feb 2025");
+  });
+});
+
+describe("health history", () => {
+  const pts: HealthPoint[] = [
+    { day: "2026-10-20", score: 80 },
+    { day: "2026-10-26", score: 74 },
+    { day: "2026-10-28", score: 70 },
+    { day: "2026-11-03", score: 60 },
+  ];
+
+  it("addDays crosses months", () => {
+    expect(addDays("2026-11-04", -7)).toBe("2026-10-28");
+    expect(addDays("2026-02-28", 1)).toBe("2026-03-01");
+  });
+
+  it("finds the score on the day, else the nearest earlier one", () => {
+    expect(scoreOnOrBefore(pts, "2026-10-28")).toBe(70);
+    expect(scoreOnOrBefore(pts, "2026-10-27")).toBe(74);
+    expect(scoreOnOrBefore([...pts].reverse(), "2026-10-27")).toBe(74);
+    expect(scoreOnOrBefore(pts, "2026-10-19")).toBeNull();
+    expect(scoreOnOrBefore([], "2026-11-04")).toBeNull();
+  });
+
+  it("7-day change is current minus the score 7 days ago (or nearest earlier)", () => {
+    expect(healthChange(58, pts, "2026-11-04")).toBe(-12); // vs 2026-10-28
+    expect(healthChange(58, pts, "2026-11-03")).toBe(-16); // 2026-10-27 has no row, uses 2026-10-26
+    expect(healthChange(null, pts, "2026-11-04")).toBeNull();
+    expect(healthChange(58, pts, "2026-10-25")).toBeNull();
+  });
+
+  it("change label and tone", () => {
+    expect(changeLabel(-12)).toEqual({ text: "−12 in 7 days", tone: "danger" });
+    expect(changeLabel(4)).toEqual({ text: "+4 in 7 days", tone: "ok" });
+    expect(changeLabel(0).tone).toBe("ok");
+    expect(changeLabel(null).tone).toBe("muted");
+  });
+
+  it("falling is a 7-day change of -10 or worse", () => {
+    expect(isFalling(-10)).toBe(true);
+    expect(isFalling(-9)).toBe(false);
+    expect(isFalling(null)).toBe(false);
+    const c = { id: "1", name: "A", status: "active", band: "watch" as const, ownerName: "", services: [] };
+    expect(matches({ ...c, change7: -12 }, { ...NO_FILTER, band: "falling" })).toBe(true);
+    expect(matches({ ...c, change7: -3 }, { ...NO_FILTER, band: "falling" })).toBe(false);
+    expect(matches({ ...c, change7: null }, { ...NO_FILTER, band: "falling" })).toBe(false);
+    expect(matches({ ...c, change7: -12 }, { ...NO_FILTER, band: "watch" })).toBe(true);
   });
 });

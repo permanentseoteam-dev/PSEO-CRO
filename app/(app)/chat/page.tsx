@@ -11,9 +11,9 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   const me = await requireMe();
   if (!can(me, "chat.use")) return <NoAccess />;
 
-  const sp = await searchParams;
-  await postCareerCongrats();
-  const [conversations, people, clients, maxId] = await Promise.all([
+  const [sp, , conversations, people, clients, maxId] = await Promise.all([
+    searchParams,
+    postCareerCongrats(),
     listConversations(me.id, { withArchived: true }),
     listPeople(),
     me.kind === "staff" ? listClients() : Promise.resolve([]),

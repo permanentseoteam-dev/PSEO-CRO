@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { Button, Card, CardBody, CardHead, Field, FormGrid, Input, PhaseTwo, StatusDot, Table, Td, Th, useToast } from "@/components/ui";
+import { Button, Card, CardBody, CardHead, Field, FormGrid, Input, Table, Td, Th, useToast } from "@/components/ui";
 import { PushToggle } from "@/features/chat-p2/components/push-toggle";
 import { createClient } from "@/lib/supabase/client";
 import { EMAIL_HINT } from "@/lib/modules/personal/logic";
 import type { NotifEvent } from "@/lib/modules/personal/types";
 import { saveDesign, saveEmail, saveNotif, saveProfile, saveQuiet } from "../actions";
+import { TwoStep } from "./two-step";
 
 type Notif = { event: NotifEvent; label: string; inApp: boolean; email: boolean; phone: boolean };
 type Props = {
@@ -15,9 +16,13 @@ type Props = {
   name: string;
   isStaff: boolean;
   isAdmin: boolean;
+  /** The admin requires 2-step sign-in for one of my roles, so I can't turn it off. */
+  twoStepRequired: boolean;
   /** Server-rendered platform-p2 sections; pass only when the user may see them. */
   apiKeys?: ReactNode;
   notifLog?: ReactNode;
+  /** Extra admin-only sections, listed under "Admin" in the nav. Pass only when the user may see them. */
+  adminSections?: { id: string; label: string; node: ReactNode }[];
   initial: {
     theme: "system" | "light" | "dark";
     density: "comfortable" | "compact";
@@ -38,12 +43,11 @@ const SECTIONS: [string, string][] = [
   ["push", "Phone alerts"],
   ["security", "Sign-in & security"],
 ];
-const ADMIN: [string, string, string | null][] = [
+const ADMIN: [string, string, string][] = [
   ["roles", "Roles & permissions", "/admin/roles"],
   ["invites", "Invites", "/admin/invites"],
   ["people", "People", "/admin/people"],
   ["audit", "Audit log", "/admin/audit"],
-  ["portal", "Client portal design", null],
   ["api-docs", "API docs", "/settings/api"],
 ];
 
@@ -69,7 +73,7 @@ function Section({ id, domId, title, actions, children }: { id: string; domId?: 
   );
 }
 
-export function SettingsView({ email, name, isStaff, isAdmin, apiKeys, notifLog, initial }: Props) {
+export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, apiKeys, notifLog, adminSections, initial }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [active, setActive] = useState("design");
@@ -149,23 +153,25 @@ export function SettingsView({ email, name, isStaff, isAdmin, apiKeys, notifLog,
   }
 
   // ---------------------------------------------------------------- security
-  const [twoStep, setTwoStep] = useState<boolean | null>(null);
-  useEffect(() => {
-    createClient()
-      .auth.mfa.listFactors()
-      .then(({ data }) => setTwoStep(!!data?.totp?.some((f) => f.status === "verified")))
-      .catch(() => setTwoStep(false));
-  }, []);
+  const [twoStep, setTwoStep] = useState(false);
 
   function password(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const f = Object.fromEntries(new FormData(form)) as Record<string, string>;
     if ((f.next ?? "").length < 10) return toast("Use at least 10 characters for the new password.");
+    const code = (f.code ?? "").trim();
+    if (twoStep && !/^\d{6}$/.test(code)) return toast("Enter the 6-digit code from your authenticator app.");
     start(async () => {
       const sb = createClient();
       const check = await sb.auth.signInWithPassword({ email, password: f.current ?? "" });
       if (check.error) return toast("Your current password isn't right.");
+      // Signing in again drops the session to the first step; the app code lifts it back before the change.
+      if (twoStep) {
+        const factor = (await sb.auth.mfa.listFactors()).data?.totp[0];
+        const v = factor ? await sb.auth.mfa.challengeAndVerify({ factorId: factor.id, code }) : null;
+        if (v?.error) return toast("That code isn't right. Check your app and try again.");
+      }
       const { error } = await sb.auth.updateUser({ password: f.next });
       if (error) return toast(error.message);
       form.reset();
@@ -203,6 +209,7 @@ export function SettingsView({ email, name, isStaff, isAdmin, apiKeys, notifLog,
           <>
             <h4 className="mx-2.5 mb-1 mt-3.5 text-[13px] font-semibold text-ink-3 max-[900px]:hidden">Admin</h4>
             {navLink("admin", "Admin pages")}
+            {adminSections?.map((s) => navLink(s.id, s.label))}
             {apiKeys ? navLink("api", "API keys") : null}
           </>
         ) : null}
@@ -304,6 +311,11 @@ export function SettingsView({ email, name, isStaff, isAdmin, apiKeys, notifLog,
               <Field label="New password" htmlFor="pf-new" hint="At least 10 characters">
                 <Input id="pf-new" name="next" type="password" autoComplete="new-password" minLength={10} required />
               </Field>
+              {twoStep ? (
+                <Field label="6-digit code from your authenticator app" htmlFor="pf-code">
+                  <Input id="pf-code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />
+                </Field>
+              ) : null}
             </FormGrid>
             <div className="row">
               <Button type="submit" disabled={pending}>Change password</Button>
@@ -315,18 +327,7 @@ export function SettingsView({ email, name, isStaff, isAdmin, apiKeys, notifLog,
             <Button size="sm" variant="ghost" disabled={pending} onClick={signOutOthers}>Sign out everywhere else</Button>
           </div>
           <h4 className="mt-3">2-step sign-in</h4>
-          <div className="row between">
-            {twoStep === null ? (
-              <span className="muted">Checking…</span>
-            ) : twoStep ? (
-              <StatusDot tone="ok">On with authenticator app</StatusDot>
-            ) : (
-              <StatusDot tone="warn">Off</StatusDot>
-            )}
-            <Button disabled>
-              Turn on 2-step<PhaseTwo />
-            </Button>
-          </div>
+          <TwoStep required={twoStepRequired} onChange={setTwoStep} />
         </Section>
 
         {notifLog ? (
@@ -340,20 +341,23 @@ export function SettingsView({ email, name, isStaff, isAdmin, apiKeys, notifLog,
             <div className="list">
               {ADMIN.map(([id, label, href]) => (
                 <div key={id} className="item between">
-                  <span>
-                    {label}
-                    {href ? null : <PhaseTwo />}
-                  </span>
-                  {href ? (
-                    <Link className="btn sm ghost" href={href}>
-                      Open
-                    </Link>
-                  ) : null}
+                  <span>{label}</span>
+                  <Link className="btn sm ghost" href={href}>
+                    Open
+                  </Link>
                 </div>
               ))}
             </div>
           </Section>
         ) : null}
+
+        {isAdmin
+          ? adminSections?.map((s) => (
+              <Section key={s.id} id={s.id} title={s.label}>
+                {s.node}
+              </Section>
+            ))
+          : null}
 
         {isAdmin && apiKeys ? (
           <div data-sec="api" className="scroll-mt-4">

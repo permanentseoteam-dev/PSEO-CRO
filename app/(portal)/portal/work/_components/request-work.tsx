@@ -5,14 +5,14 @@ import { Button, Dialog, Field, FormGrid, Input, Textarea, useToast } from "@/co
 import { requestWork } from "../../actions";
 
 /** "Request new work" button and form. Sending it opens a ticket and starts the team's reply clock. */
-export function RequestWork({ today }: { today: string }) {
+export function RequestWork({ today, readOnly = false }: { today: string; readOnly?: boolean }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
 
   return (
     <>
-      <Button variant="primary" onClick={() => setOpen(true)}>
+      <Button variant="primary" disabled={readOnly} onClick={() => setOpen(true)}>
         Request new work
       </Button>
       <Dialog

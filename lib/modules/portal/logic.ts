@@ -188,3 +188,19 @@ export function invoiceTotals(
   const paidYear = receipts.filter((r) => r.currency === currency && r.receivedOn.startsWith(year)).reduce((a, r) => a + r.amount, 0);
   return { currency, open: round2(open), openCount, overdue: round2(overdue), oldest, paidYear: round2(paidYear) };
 }
+
+/**
+ * CSS that applies a portal accent (#rgb / #rrggbb) over the theme's accent, or null for anything else.
+ * `:root:root:root` outranks the light and dark theme rules in globals.css; the text tint mixes in
+ * --ink so it stays readable in both themes.
+ */
+export function portalAccentCss(accent: string | null | undefined): string | null {
+  if (!accent || !/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(accent)) return null;
+  return `:root:root:root{--accent:${accent};--accent-ink:color-mix(in srgb,${accent} 75%,var(--ink));--accent-soft:color-mix(in srgb,${accent} 14%,transparent);--accent-contrast:#fff}`;
+}
+
+/** Countdown text: 29:05. Never negative. */
+export function mmss(ms: number): string {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}

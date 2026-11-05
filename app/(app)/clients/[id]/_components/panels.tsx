@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { ClientActivityLinesCard, ClientHealthCard, ClientTermsCard, ClientVaultCard } from "@/features/client-admin/sections";
 import { FirefliesCallsCard } from "@/features/platform-p2/components/server";
-import { Avatar, Avatars, ButtonLink, Card, CardBody, CardHead, EmptyState, PhaseTwo, StatCard, Stats, StatusDot, Table, Td, Th, TicketStatusDot, type TicketStatus } from "@/components/ui";
+import { Avatar, Avatars, ButtonLink, Card, CardBody, CardHead, EmptyState, StatCard, Stats, StatusDot, Table, Td, Th, TicketStatusDot, type TicketStatus } from "@/components/ui";
 import { fmtDay, fmtMeeting, LOG_KINDS, SEVERITY, TEAM_ROLES, windowStatus } from "@/lib/modules/clients/logic";
 import type { ClientPage, Person } from "@/lib/modules/clients/types";
 import { BandDot, HealthRing } from "../../_components/health-ring";
 import s from "../../_components/clients.module.css";
-import { CloseEscalationButton, BrandingForm, ContactButton, EscalateButton, LoginRole, NotesButton, QuickLog, RecalcButton, TeamEditor } from "./client-actions";
+import { CloseEscalationButton, BrandingForm, ContactButton, EscalateButton, LoginRole, NotesButton, QuickLog, RecalcButton, SeeAsClientButton, TeamEditor } from "./client-actions";
 
 type P = { page: ClientPage; now: Date; year: string };
 const yes = (b: boolean) => (b ? "Yes" : "No");
@@ -499,9 +499,7 @@ export function Portal({ page, canManage, canAdmin }: { page: ClientPage; canMan
             </div>
           )}
           <div className="row" style={{ marginTop: 12 }}>
-            <span className="small muted">
-              See as client <PhaseTwo />
-            </span>
+            <SeeAsClientButton clientId={c.id} />
           </div>
         </CardBody>
       </Card>

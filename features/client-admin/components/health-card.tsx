@@ -3,11 +3,16 @@
 import { useRef, useState, useTransition } from "react";
 import { Button, Card, CardBody, CardHead, Dialog, Field, FormGrid, Input, Select, StatusDot, Textarea, useToast } from "@/components/ui";
 import { addSentiment, raiseChurnAlert, setChurnOutcome } from "../actions";
-import { CHURN_OUTCOME, CHURN_TRIGGER, fmtDate, sentimentLine } from "../logic";
+import { changeLabel, type HealthPoint } from "@/lib/modules/clients/logic";
+import { CHURN_OUTCOME, CHURN_TRIGGER, fmtDate, sentimentLine, sparkPoints } from "../logic";
 import { CHURN_OUTCOMES, CHURN_TRIGGERS, SENTIMENTS, type ChurnAlert, type ChurnTrigger, type SentimentRow } from "../types";
 
 type Props = {
   clientId: string;
+  /** Daily health snapshots for the last 30 days, oldest first. */
+  trend: HealthPoint[];
+  /** Score change against 7 days ago (nearest earlier snapshot), null when unknown. */
+  change7: number | null;
   sentiments: SentimentRow[];
   alerts: ChurnAlert[];
   /** Triggers the data points to that have no open alert yet. */
@@ -16,7 +21,7 @@ type Props = {
 };
 
 /** Sits under the Phase 1 Health card (score ring and factors): sentiment with trend, churn alerts and their outcomes. */
-export function HealthCard({ clientId, sentiments, alerts, suggestions, canManage }: Props) {
+export function HealthCard({ clientId, trend, change7, sentiments, alerts, suggestions, canManage }: Props) {
   const [dialog, setDialog] = useState<null | "sentiment" | ChurnTrigger>(null);
   const [busy, start] = useTransition();
   const toast = useToast();
@@ -43,6 +48,7 @@ export function HealthCard({ clientId, sentiments, alerts, suggestions, canManag
         }
       />
       <CardBody className="stack">
+        <HealthTrend trend={trend} change7={change7} />
         <span className="small muted">{sentimentLine(sentiments)}</span>
         {sentiments[0]?.note ? <p className="small" style={{ margin: 0 }}>{sentiments[0].note}</p> : null}
 
@@ -106,6 +112,44 @@ export function HealthCard({ clientId, sentiments, alerts, suggestions, canManag
         <AlertDialog clientId={clientId} initial={dialog} onClose={() => setDialog(null)} />
       ) : null}
     </Card>
+  );
+}
+
+const SPARK_W = 240;
+const SPARK_H = 40;
+
+/** 30-day sparkline of the daily health score and the 7-day change. */
+function HealthTrend({ trend, change7 }: { trend: HealthPoint[]; change7: number | null }) {
+  const change = changeLabel(change7);
+  const scores = trend.map((p) => p.score);
+  const tone = change.tone === "danger" ? "--danger" : change.tone === "ok" ? "--ok" : "--ink-3";
+  return (
+    <div className="stack" style={{ gap: 6 }}>
+      {scores.length > 1 ? (
+        <svg
+          width="100%"
+          height={SPARK_H}
+          viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={`Health over the last 30 days, from ${scores[0]} to ${scores[scores.length - 1]}`}
+        >
+          <line x1="0" x2={SPARK_W} y1={SPARK_H / 2} y2={SPARK_H / 2} stroke="var(--line)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          <polyline
+            points={sparkPoints(scores, SPARK_W, SPARK_H)}
+            fill="none"
+            stroke={`var(${tone})`}
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      ) : (
+        <span className="small muted">Daily health history starts with the next snapshot.</span>
+      )}
+      <StatusDot tone={change.tone}>{change.text}</StatusDot>
+    </div>
   );
 }
 

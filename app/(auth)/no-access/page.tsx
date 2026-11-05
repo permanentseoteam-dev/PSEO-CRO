@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui";
 import { getMe } from "@/lib/auth/can";
+import { getAal, needsVerify } from "@/lib/auth/mfa";
 import { createClient } from "@/lib/supabase/server";
 import { homeFor } from "@/lib/modules/access/logic";
 
@@ -10,6 +11,7 @@ export const metadata = { title: "No access" };
 export default async function NoAccessPage() {
   const me = await getMe();
   if (me) redirect(homeFor(me.kind));
+  if (needsVerify(await getAal())) redirect("/login/verify");
   const { data } = await (await createClient()).auth.getUser();
   if (!data.user) redirect("/login");
 
