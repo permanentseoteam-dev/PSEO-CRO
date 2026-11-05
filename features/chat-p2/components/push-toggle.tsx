@@ -9,6 +9,31 @@ import { urlBase64ToBytes } from "../logic";
 export const PUSH_SW_URL = "/push-sw.js";
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
+/** True when a VAPID public key is set, so this device can subscribe to push. */
+export const pushConfigured = VAPID !== "";
+
+/** Register the service worker, subscribe this device to push and save the subscription. */
+export async function subscribeThisDevice(): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const reg = await navigator.serviceWorker.register(PUSH_SW_URL);
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToBytes(VAPID) });
+    const json = sub.toJSON();
+    const r = await savePushSubscription({
+      endpoint: sub.endpoint,
+      p256dh: json.keys?.p256dh,
+      auth: json.keys?.auth,
+      userAgent: navigator.userAgent.slice(0, 300),
+    });
+    if (!r.ok) {
+      await sub.unsubscribe();
+      return { ok: false, error: r.error };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Couldn't turn on notifications" };
+  }
+}
+
 type State = "loading" | "unsupported" | "not_configured" | "denied" | "off" | "on";
 
 async function detect(): Promise<State> {
@@ -38,25 +63,13 @@ export function PushToggle() {
 
   function turnOn() {
     start(async () => {
-      try {
-        const reg = await navigator.serviceWorker.register(PUSH_SW_URL);
-        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToBytes(VAPID) });
-        const json = sub.toJSON();
-        const r = await savePushSubscription({
-          endpoint: sub.endpoint,
-          p256dh: json.keys?.p256dh,
-          auth: json.keys?.auth,
-          userAgent: navigator.userAgent.slice(0, 300),
-        });
-        if (!r.ok) {
-          await sub.unsubscribe();
-          return toast(r.error);
-        }
+      const r = await subscribeThisDevice();
+      if (r.ok) {
         setState("on");
         toast("Notifications on for this device");
-      } catch {
+      } else {
         setState(Notification.permission === "denied" ? "denied" : "off");
-        toast("Couldn't turn on notifications");
+        toast(r.error);
       }
     });
   }

@@ -502,7 +502,7 @@ export function BrandingForm({ clientId, color, welcome, logo }: { clientId: str
           <input id="b-logo" name="logo" type="url" placeholder="https://…/logo.png" defaultValue={logo ?? ""} />
         </Field>
         <Field label="Brand colour" htmlFor="b-color">
-          <input id="b-color" name="color" type="color" defaultValue={color ?? "#0f766e"} />
+          <input id="b-color" name="color" type="color" defaultValue={color ?? "#0a74d1"} />
         </Field>
         <Field label="Portal welcome line" htmlFor="b-welcome" full>
           <input id="b-welcome" name="welcome" maxLength={200} defaultValue={welcome ?? ""} />

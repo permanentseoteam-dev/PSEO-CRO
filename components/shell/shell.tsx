@@ -10,11 +10,13 @@ import { cn } from "@/lib/utils";
 import { activeHref, nextTheme, pageFor, visibleNav } from "@/lib/modules/shell/logic";
 import { newTicketOptions, paletteData, saveSidebar, setTheme, togglePin } from "@/lib/modules/shell/actions";
 import type { PaletteItem, ShellData, Theme, TicketOptions } from "@/lib/modules/shell/types";
+import type { SidebarProjects } from "@/lib/modules/work/space-types";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { Palette } from "./palette";
 import { NewTicketDialog } from "./new-ticket";
 import { PageTitleContext } from "./page-title";
+import { PushPrompt } from "@/features/platform-p2/components/push-prompt";
 
 export type ShellProps = {
   /** "staff" = agency app, "portal" = client portal (client sidebar, no clock or timer). */
@@ -28,6 +30,8 @@ export type ShellProps = {
   viewSwitch: boolean;
   theme: Theme;
   data: ShellData;
+  /** Staff only: sidebar Projects list and whether the "+" menu shows. */
+  projects?: { list: SidebarProjects; canManage: boolean };
   children: ReactNode;
 };
 
@@ -43,7 +47,7 @@ const SHORTCUTS: [string, string[]][] = [
 const initialsOf = (s: string) =>
   s.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme, data, children }: ShellProps) {
+export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme, data, projects, children }: ShellProps) {
   const portal = variant === "portal";
   const pathname = usePathname();
   const router = useRouter();
@@ -207,6 +211,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
         viewSwitch={viewSwitch}
         menuOpen={menu === "me"}
         onMenu={() => setMenu(menu === "me" ? null : "me")}
+        projects={portal ? undefined : projects}
       />
       <div className={cn("backdrop", drawer && "open")} aria-hidden="true" onClick={() => setDrawer(false)} />
       <div className="main-col">
@@ -233,6 +238,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
         </main>
       </div>
 
+      <PushPrompt />
       <Palette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={[...pages, ...extra]} />
       {!portal ? <NewTicketDialog open={newOpen} onClose={() => setNewOpen(false)} options={options} meId={me.id} /> : null}
       <Dialog

@@ -6,7 +6,7 @@ import { Check, CheckCheck, Clock, FileText, Forward, Image as ImageIcon, Link2,
 import { Avatar, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { dubai, formatSize, reactionSummary, threadInfo, tokenize } from "@/lib/modules/chat/logic";
+import { dubai, formatSize, mentionPending, reactionSummary, threadInfo, tokenize } from "@/lib/modules/chat/logic";
 import type { FileRef, Message } from "@/lib/modules/chat/types";
 import { VoiceNote } from "@/features/chat-p2/components/voice-note";
 import { useChat } from "./context";
@@ -224,7 +224,7 @@ export function MessageItem({ m, grouped, inPane, status, flash }: Props) {
   const author = m.authorId ? c.people.get(m.authorId) : undefined;
   const name = author?.name ?? "Someone";
   const time = dubai(m.createdAt).time;
-  const mentioned = m.authorId !== c.me.id && m.mentions.includes(c.me.id);
+  const mentioned = mentionPending(m, c.messages, c.reactions, c.me.id);
   const editing = c.editingId === m.id;
   const menuOpen = c.menuId === m.id;
   const thread = !inPane && m.parentId == null && !m.deletedAt ? threadInfo(c.messages, m.id) : null;

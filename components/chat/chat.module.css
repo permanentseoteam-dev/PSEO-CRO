@@ -62,7 +62,7 @@
 .msg { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 6px 16px; }
 .msg.grp { padding-top: 1px; padding-bottom: 3px; }
 .msg:hover, .msg.menuOpen { background: var(--surface-2); }
-.msg.mentioned { background: var(--warn-soft); box-shadow: inset 3px 0 0 var(--warn); }
+.msg.mentioned { background: var(--danger-soft); box-shadow: inset 3px 0 0 var(--danger); }
 .msg.flash { animation: chflash 1.8s ease-out; }
 @keyframes chflash { from { background: var(--accent-soft); } to { background: transparent; } }
 .msgT { display: block; visibility: hidden; font-size: 11px; color: var(--ink-3); text-align: right; padding-top: 3px; }

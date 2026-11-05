@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { cookies } from "next/headers";
 import { ToastProvider } from "@/components/ui/toast";
+import { Splash } from "@/components/shell/splash";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   title: { default: "Permanent SEO", template: "%s · Permanent SEO" },
   description: "Team and client portal",
   manifest: "/manifest.json",
-  icons: { icon: "/icon.svg" },
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
 };
 
 export const viewport: Viewport = {
@@ -19,8 +20,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f8f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1215" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f6fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1430" },
   ],
 };
 
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       data-density={density === "compact" ? "compact" : undefined}
     >
       <body>
+        <Splash />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

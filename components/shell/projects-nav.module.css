@@ -1,0 +1,40 @@
+.wrap { position: relative; }
+
+.head { display: flex; align-items: center; gap: 2px; }
+.wrap .label { justify-content: flex-start; gap: 6px; flex: 1; }
+.label svg { transition: transform .15s; }
+.closed svg { transform: rotate(-90deg); }
+
+.menuWrap { position: relative; }
+.menu {
+  position: absolute; z-index: 60; top: calc(100% + 4px); right: 0; min-width: 176px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow-lg); padding: 6px; display: grid; gap: 2px;
+}
+.menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; background: none;
+  border-radius: var(--radius-ctl); color: var(--ink); text-align: left; font-size: 14px; white-space: nowrap;
+}
+.menu button:hover, .menu button:focus-visible { background: var(--surface-2); }
+.menu svg { width: 16px; height: 16px; color: var(--ink-3); flex: none; }
+
+.folder { display: grid; gap: 2px; }
+.wrap .folderRow { width: 100%; border: 0; background: none; text-align: left; gap: 6px; padding-left: 6px; }
+.folderRow svg { width: 16px; height: 16px; }
+.folderRow .chev { width: 14px; height: 14px; transition: transform .15s; }
+.folderRow .closedChev { transform: rotate(-90deg); }
+.indent { display: grid; gap: 2px; padding-left: 20px; }
+
+.wrap .project { height: 30px; font-size: 14px; }
+
+.empty { padding: 4px 10px; font-size: 13px; font-style: italic; color: var(--side-ink-2); }
+
+/* Icon-only sidebar: hide the list, keep one Projects icon link. */
+.wrap .collapsedLink { display: none; }
+:global(.app.is-collapsed) .full { display: none; }
+:global(.app.is-collapsed) .wrap .collapsedLink { display: flex; }
+
+@media (max-width: 900px) {
+  :global(.app.is-collapsed) .full { display: block; }
+  :global(.app.is-collapsed) .wrap .collapsedLink { display: none; }
+}

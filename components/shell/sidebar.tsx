@@ -9,7 +9,9 @@ import { cn } from "@/lib/utils";
 import { PRESENCE, WORKDAY_MIN, fmtMinutes, todaySessions, workedMinutes } from "@/lib/modules/shell/logic";
 import { setPresence, signOut, toggleClock } from "@/lib/modules/shell/actions";
 import type { ClockSession, Pin, Presence } from "@/lib/modules/shell/types";
+import type { SidebarProjects } from "@/lib/modules/work/space-types";
 import { NavIcon } from "./icons";
+import { ProjectsNav } from "./projects-nav";
 import { useNowSeconds } from "./use-now";
 
 type Props = {
@@ -29,6 +31,8 @@ type Props = {
   viewSwitch: boolean;
   menuOpen: boolean;
   onMenu: () => void;
+  /** Staff only: the Projects section. Omitted in the client portal. */
+  projects?: { list: SidebarProjects; canManage: boolean };
 };
 
 const iconFor = (groups: NavGroup[], href: string) =>
@@ -156,6 +160,8 @@ export function Sidebar(p: Props) {
           </nav>
         );
       })}
+
+      {!p.portal && p.projects ? <ProjectsNav projects={p.projects.list} canManage={p.projects.canManage} /> : null}
 
       <div className="side-foot">
         {p.viewSwitch ? (

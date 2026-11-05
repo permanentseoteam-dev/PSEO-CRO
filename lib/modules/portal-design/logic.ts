@@ -7,11 +7,11 @@ export type PortalDesign = { accent: string; logoUrl: string | null; theme: Port
 /** WCAG AA for normal text: white text on the accent (and accent text on white) needs this ratio. */
 export const MIN_CONTRAST = 4.5;
 
-/** Used when nothing is saved yet. Teal 700: 5.5:1 on white. */
-export const DEFAULT_DESIGN: PortalDesign = { accent: "#0f766e", logoUrl: null, theme: "system", density: "comfortable" };
+/** Used when nothing is saved yet. Bordio blue, darkened to pass AA: 4.7:1 on white (#0d8df4 is only 3.4:1). */
+export const DEFAULT_DESIGN: PortalDesign = { accent: "#0a74d1", logoUrl: null, theme: "system", density: "comfortable" };
 
 /** Accessible accents offered as one-click choices (all 4.5:1 or better on white). */
-export const ACCENT_CHOICES = ["#0f766e", "#1d4ed8", "#6d28d9", "#be123c", "#b45309", "#15803d", "#334155"];
+export const ACCENT_CHOICES = ["#0a74d1", "#0f766e", "#1d4ed8", "#6d28d9", "#be123c", "#b45309", "#15803d", "#334155"];
 
 const HEX = /^#[0-9a-f]{6}$/i;
 export const isHex = (v: unknown): v is string => typeof v === "string" && HEX.test(v);
@@ -31,7 +31,7 @@ export function contrastRatio(a: string, b: string): number {
 
 /** null when the accent is fine on white; otherwise the reason to show. */
 export function accentProblem(accent: string): string | null {
-  if (!isHex(accent)) return "Use a colour like #0f766e.";
+  if (!isHex(accent)) return "Use a colour like #0a74d1.";
   const r = contrastRatio(accent, "#ffffff");
   // Round down so a near miss never reads as "4.5:1".
   if (r < MIN_CONTRAST) return `Too light on white (${(Math.floor(r * 10) / 10).toFixed(1)}:1). Pick a darker colour with ${MIN_CONTRAST}:1 or more.`;

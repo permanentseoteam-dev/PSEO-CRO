@@ -1,0 +1,59 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: #111d40;
+  opacity: 1;
+  transition: opacity 250ms ease-out;
+}
+
+.hiding {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  display: block;
+}
+
+.track {
+  width: 140px;
+  height: 4px;
+  border-radius: 999px;
+  background: #1f2d5c;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  width: 85%;
+  border-radius: 999px;
+  background: #ffffff;
+  animation: fill 1.2s ease-out both;
+}
+
+@keyframes fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 85%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    transition: none;
+  }
+  .bar {
+    animation: none;
+  }
+}

@@ -16,7 +16,6 @@ import { balancesByCurrency, daysBetween, monthBounds, money, overdueByPerson, p
 import { AnnouncementsCard } from "./announcements";
 import { GettingStarted } from "./getting-started";
 import { LeaveDecision } from "./leave-decision";
-import { PushNudge } from "./push-nudge";
 
 /**
  * Phase 2 Home role panels. Server component: each panel shows only for people with its permission,
@@ -42,7 +41,6 @@ export async function HomeRolePanels({ me }: { me: Me }) {
 
   return (
     <>
-      <PushNudge />
       <div className="grid-2">
         {pulseCard}
         {hrCard}

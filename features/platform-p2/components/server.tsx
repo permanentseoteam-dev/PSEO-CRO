@@ -10,7 +10,7 @@ import { NotificationsLog } from "./notifications-log";
 
 export { HomeRolePanels } from "./home-panels";
 export { ApiDocs } from "./api-docs";
-export { PushNudge } from "./push-nudge";
+export { PushPrompt } from "./push-prompt";
 
 /** Calendar toolbar: Google sync status + "Sync now". */
 export async function CalendarSyncBar() {

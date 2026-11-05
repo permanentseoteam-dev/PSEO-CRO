@@ -1,0 +1,49 @@
+/* Table groups */
+.group { display: grid; gap: 8px; }
+.groupHead { display: inline-flex; align-items: center; gap: 6px; justify-self: start; background: none; border: 0; padding: 4px 2px; color: var(--ink); font-size: 15px; cursor: pointer; }
+.groupTitle { font-weight: 600; font-family: var(--font-head); }
+.chev { color: var(--ink-3); transition: transform .15s ease; }
+.chevOpen { transform: rotate(90deg); }
+.tbl { width: 100%; }
+.row { cursor: pointer; }
+.row:hover td { background: var(--surface-2); }
+.rowTitle { color: var(--ink); font-weight: 500; }
+.rowTitle:hover { color: var(--accent-ink); }
+.nowrap { white-space: nowrap; }
+.type { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.createBtn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 2px 0; color: var(--ink-3); cursor: pointer; font-size: 13px; }
+.createBtn:hover { color: var(--accent-ink); }
+.createInput { width: 100%; }
+/* Subtasks under a main row */
+.rowChev { display: inline-flex; align-items: center; vertical-align: middle; background: none; border: 0; padding: 2px; margin-right: 4px; color: var(--ink-3); cursor: pointer; }
+.rowChev:hover { color: var(--accent-ink); }
+.count { color: var(--ink-3); font-size: 12px; margin-left: 6px; }
+.subRow td:first-child { padding-left: 28px; }
+.subIcon { color: var(--ink-3); vertical-align: middle; }
+.subTitle { color: var(--ink-2); font-weight: 400; }
+.subTitle:hover { color: var(--accent-ink); }
+.subDone { text-decoration: line-through; color: var(--ink-3); }
+
+/* Kanban cards */
+.kcard { cursor: pointer; }
+.kTitle { font-weight: 500; }
+.kFoot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12px; }
+
+/* Task panel */
+.overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .35); display: flex; justify-content: flex-end; }
+.drawer { width: min(1180px, 100vw); height: 100%; background: var(--bg); border-left: 1px solid var(--line); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; animation: slideIn .2s ease-out; }
+@keyframes slideIn { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .drawer { animation: none; } }
+.drawerHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--ink-3); min-width: 0; }
+.fullLink { display: inline-flex; color: var(--ink-3); margin-left: 4px; }
+.fullLink:hover { color: var(--accent-ink); }
+.drawerBody { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+.drawerLeft, .drawerRight { overflow-y: auto; padding: 20px; }
+.drawerRight { border-left: 1px solid var(--line); background: var(--surface-2); }
+@media (max-width: 900px) {
+  .drawerBody { display: block; overflow-y: auto; }
+  .drawerLeft, .drawerRight { overflow: visible; }
+  .drawerRight { border-left: 0; border-top: 1px solid var(--line); }
+}

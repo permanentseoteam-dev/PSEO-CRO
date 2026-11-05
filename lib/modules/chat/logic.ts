@@ -115,6 +115,13 @@ export function buildRows(msgs: Message[], opts: { today: string; newFromId: num
 }
 
 /** Thread summary for a top-level message: reply count, up to 3 distinct authors, last reply time. */
+/** A message that mentions me stays highlighted until I react to it or reply in its thread. */
+export function mentionPending(m: Message, msgs: Message[], rx: Reaction[], meId: string) {
+  if (m.authorId === meId || !m.mentions.includes(meId)) return false;
+  if (rx.some((r) => r.messageId === m.id && r.memberId === meId)) return false;
+  return !msgs.some((r) => r.parentId === m.id && r.authorId === meId && !r.deletedAt);
+}
+
 export function threadInfo(msgs: Message[], parentId: number) {
   const replies = msgs.filter((m) => m.parentId === parentId && !m.deletedAt);
   const authors = [...new Set(replies.map((r) => r.authorId).filter((a): a is string => !!a))].slice(0, 3);

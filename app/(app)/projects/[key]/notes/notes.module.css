@@ -1,0 +1,33 @@
+.wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.list {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 1px solid var(--line);
+  border-radius: var(--radius-card); background: var(--surface); max-height: calc(100dvh - 140px); overflow-y: auto;
+}
+.listHead { padding: 2px 2px 8px; }
+.listHead :global(.btn) { width: 100%; }
+.row { display: grid; gap: 2px; padding: 9px 10px; border-radius: var(--radius-ctl); color: var(--ink); min-width: 0; }
+.row:hover { background: var(--surface-2); text-decoration: none; }
+.row.on { background: var(--blue-soft); }
+.rowTitle { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row.on .rowTitle { color: var(--blue); }
+.rowTime { font-size: 12.5px; color: var(--ink-3); }
+
+.editor {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; min-width: 0;
+  border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface);
+}
+.editorHead { display: flex; align-items: center; gap: 8px; }
+/* Doubled classes beat the global input rule's specificity. */
+.editorHead input.title.title.title.title {
+  flex: 1 1 0; min-width: 0; padding-left: 6px; background: transparent;
+  font: 700 20px/1.3 var(--font-head);
+}
+.editorHead input.title.title.title.title:not(:hover):not(:focus) { border-color: transparent; }
+.editor textarea.body { min-height: 420px; padding-left: 6px; background: transparent; font-size: 15px; resize: none; }
+.editor textarea.body:not(:hover):not(:focus) { border-color: transparent; }
+
+@media (max-width: 760px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); }
+  .list { max-height: 260px; }
+  .editor textarea.body { min-height: 300px; }
+}
