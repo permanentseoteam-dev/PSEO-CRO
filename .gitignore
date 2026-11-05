@@ -33,3 +33,6 @@ supabase/.branches/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local QA scripts and output (Playwright runs)
+/qa/

@@ -13,7 +13,7 @@ function Row({ t, today }: { t: MyTicket; today: string }) {
   const meta = metaLine(t);
   return (
     <tr>
-      <Td num>
+      <Td num className="whitespace-nowrap">
         <Link href={`/t/${t.key}`}>{t.key}</Link>
       </Td>
       <Td className="min-w-60">

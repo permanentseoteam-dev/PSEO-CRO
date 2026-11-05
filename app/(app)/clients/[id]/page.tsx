@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PageTitle } from "@/components/shell/page-title";
 import { requireMe, can } from "@/lib/auth/can";
 import { Avatar, ButtonLink, Card, CardBody, NoAccess, StatusDot, Tabs } from "@/components/ui";
 import { ClientDeleteButton, ClientEmailButton } from "@/features/client-admin/sections";
@@ -63,6 +64,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
 
   return (
     <div className="page">
+      <PageTitle title={client.name} />
       <Card>
         <CardBody className="stack" style={{ gap: 14 }}>
           <div className={s.head}>

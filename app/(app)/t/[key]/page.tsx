@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PageTitle } from "@/components/shell/page-title";
 import { requireMe, can } from "@/lib/auth/can";
 import { EmptyState, NoAccess, Priority, TicketStatusDot } from "@/components/ui";
 import { getTicket, listPeople, listProjects } from "@/lib/modules/tickets/queries";
@@ -49,6 +50,7 @@ export default async function TicketPage({ params }: Params) {
 
   return (
     <div className="page">
+      <PageTitle title={t.key} />
       <nav className={s.crumb} aria-label="Breadcrumb">
         <Link href="/tickets">Tickets</Link> /
         {t.project ? <><Link href={`/tickets?proj=${t.project.id}`}>{t.project.name}</Link> /</> : null}

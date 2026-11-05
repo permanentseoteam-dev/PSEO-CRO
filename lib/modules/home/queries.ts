@@ -137,8 +137,8 @@ export async function getMyEvents(meId: string, now: Date): Promise<MyEvent[]> {
   }));
 }
 
-/** Latest ticket notifications for me, with why they reached me. */
-export async function getUpdates(meId: string, tickets: MyTicket[]): Promise<Update[]> {
+/** Latest ticket notifications for me, with why they reached me. `tickets` may still be loading. */
+export async function getUpdates(meId: string, tickets: MyTicket[] | Promise<MyTicket[]>): Promise<Update[]> {
   const db = await createClient();
   const res = await db
     .from("notifications")
@@ -150,7 +150,7 @@ export async function getUpdates(meId: string, tickets: MyTicket[]): Promise<Upd
     .limit(6);
   const list = rows(res);
   const names = await memberNames(db, list.map((n) => n.actor_id));
-  const byKey = new Map(tickets.map((t) => [t.key, t]));
+  const byKey = new Map((await tickets).map((t) => [t.key, t]));
   return list.map((n) => ({
     id: n.id,
     actorName: (n.actor_id && names.get(n.actor_id)) || "Portal",

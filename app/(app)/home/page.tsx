@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { requireMe, can } from "@/lib/auth/can";
 import {
   Avatar,
@@ -13,6 +14,7 @@ import {
   Td,
   Th,
 } from "@/components/ui";
+import { SkeletonPanel, SkeletonTable } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_CAPACITY,
@@ -66,16 +68,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const today = localDate(now);
   const sp = await searchParams;
 
-  const showFinance = can(me, "finance.dashboard.view");
-  const [tickets, events, departments, clients, finance] = await Promise.all([
-    getMyTickets(me.id),
+  // Start every read now. The optional panels (department, finance) stream in under <Suspense>.
+  const deptP = loadDept(sp.dept, me.departmentId, today);
+  const financeP = can(me, "finance.dashboard.view") ? getFinanceSnapshot(today) : null;
+  const ticketsP = getMyTickets(me.id);
+  const [tickets, events, clients, updates] = await Promise.all([
+    ticketsP,
     getMyEvents(me.id, now),
-    getDepartments(),
     getMyClients(me.id, today, now),
-    showFinance ? getFinanceSnapshot(today) : null,
+    getUpdates(me.id, ticketsP),
   ]);
-  const deptId = departments.find((d) => d.id === sp.dept)?.id ?? me.departmentId ?? departments[0]?.id ?? null;
-  const [updates, dept] = await Promise.all([getUpdates(me.id, tickets), deptId ? getDeptPanel(deptId, today) : null]);
 
   const mine = tickets.filter((t) => t.assigneeId === me.id);
   const s = homeStats(mine, today);
@@ -208,56 +210,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </div>
 
       <div className="grid-2">
-        <Card>
-          <CardHead
-            title="Department"
-            actions={deptId && departments.length ? <DeptSelect value={deptId} options={departments} /> : null}
-          />
-          <CardBody>
-            {dept ? (
-              <>
-                <div className="mb-3.5 grid grid-cols-5 gap-2 max-sm:grid-cols-3">
-                  {(
-                    [
-                      ["Open", dept.open, false],
-                      ["Overdue", dept.overdue, true],
-                      ["Unassigned", dept.unassigned, false],
-                      ["Blocked", dept.blocked, true],
-                      ["In review", dept.review, false],
-                    ] as const
-                  ).map(([label, v, bad]) => (
-                    <div key={label} className="rounded-[var(--radius)] bg-surface-2 px-2.5 py-2">
-                      <b className={cn("num block text-xl", bad && v > 0 && "text-danger")}>{v}</b>
-                      <span className="text-xs text-ink-2">{label}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="small muted mb-1">Open tickets per person, against weekly capacity</div>
-                {dept.load.length ? (
-                  dept.load.map((p) => {
-                    const bar = loadBar(p.open, DEFAULT_CAPACITY);
-                    return (
-                      <div key={p.name} className="grid grid-cols-[28px_1fr_2fr_64px] items-center gap-2.5 py-1.5 max-sm:grid-cols-[28px_1fr_1fr_56px]">
-                        <Avatar name={p.name} size={28} />
-                        <span className="truncate">{p.name}</span>
-                        <div className={cn("bar", bar.tone && `t-${bar.tone}`)}>
-                          <i style={{ width: `${bar.pct}%` }} />
-                        </div>
-                        <span className="num small text-right">
-                          {p.open} / {DEFAULT_CAPACITY}
-                        </span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="muted small">No one in this department yet.</div>
-                )}
-              </>
-            ) : (
-              <div className="muted">No departments yet.</div>
-            )}
-          </CardBody>
-        </Card>
+        <Suspense fallback={<SkeletonPanel lines={6} />}>
+          <DeptCard data={deptP} />
+        </Suspense>
 
         <Card>
           <CardHead title="Next meetings" actions={<ButtonLink href="/calendar" size="sm" variant="ghost">Calendar</ButtonLink>} />
@@ -340,41 +295,122 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         )}
       </Card>
 
-      <HomeRolePanels me={me} />
+      <Suspense
+        fallback={
+          <div className="grid-2">
+            <SkeletonPanel lines={4} />
+            <SkeletonPanel lines={4} />
+          </div>
+        }
+      >
+        <HomeRolePanels me={me} />
+      </Suspense>
 
-      {showFinance && finance ? (
-        <Card>
-          <CardHead title="Finance snapshot" actions={<ButtonLink href="/finance/invoices" size="sm" variant="ghost">Invoices</ButtonLink>} />
-          {finance.length ? (
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Currency</Th>
-                  <Th right>Outstanding</Th>
-                  <Th right>Overdue</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {finance.map((f) => (
-                  <tr key={f.currency}>
-                    <Td>{f.currency}</Td>
-                    <Td right num>
-                      {money(f.outstanding, f.currency)}
-                    </Td>
-                    <Td right num className={f.overdue > 0 ? "text-danger" : undefined}>
-                      {money(f.overdue, f.currency)}
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          ) : (
-            <CardBody>
-              <span className="muted">No unpaid invoices.</span>
-            </CardBody>
-          )}
-        </Card>
+      {financeP ? (
+        <Suspense fallback={<SkeletonTable rows={3} cols={3} />}>
+          <FinanceCard data={financeP} />
+        </Suspense>
       ) : null}
     </div>
+  );
+}
+
+async function loadDept(wanted: string | undefined, mine: string | null, today: string) {
+  const departments = await getDepartments();
+  const deptId = departments.find((d) => d.id === wanted)?.id ?? mine ?? departments[0]?.id ?? null;
+  return { departments, deptId, dept: deptId ? await getDeptPanel(deptId, today) : null };
+}
+
+async function DeptCard({ data }: { data: ReturnType<typeof loadDept> }) {
+  const { departments, deptId, dept } = await data;
+  return (
+    <Card>
+      <CardHead
+        title="Department"
+        actions={deptId && departments.length ? <DeptSelect value={deptId} options={departments} /> : null}
+      />
+      <CardBody>
+        {dept ? (
+          <>
+            <div className="mb-3.5 grid grid-cols-5 gap-2 max-sm:grid-cols-3">
+              {(
+                [
+                  ["Open", dept.open, false],
+                  ["Overdue", dept.overdue, true],
+                  ["Unassigned", dept.unassigned, false],
+                  ["Blocked", dept.blocked, true],
+                  ["In review", dept.review, false],
+                ] as const
+              ).map(([label, v, bad]) => (
+                <div key={label} className="rounded-[var(--radius)] bg-surface-2 px-2.5 py-2">
+                  <b className={cn("num block text-xl", bad && v > 0 && "text-danger")}>{v}</b>
+                  <span className="text-xs text-ink-2">{label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="small muted mb-1">Open tickets per person, against weekly capacity</div>
+            {dept.load.length ? (
+              dept.load.map((p) => {
+                const bar = loadBar(p.open, DEFAULT_CAPACITY);
+                return (
+                  <div key={p.name} className="grid grid-cols-[28px_1fr_2fr_64px] items-center gap-2.5 py-1.5 max-sm:grid-cols-[28px_1fr_1fr_56px]">
+                    <Avatar name={p.name} size={28} />
+                    <span className="truncate">{p.name}</span>
+                    <div className={cn("bar", bar.tone && `t-${bar.tone}`)}>
+                      <i style={{ width: `${bar.pct}%` }} />
+                    </div>
+                    <span className="num small text-right">
+                      {p.open} / {DEFAULT_CAPACITY}
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="muted small">No one in this department yet.</div>
+            )}
+          </>
+        ) : (
+          <div className="muted">No departments yet.</div>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
+async function FinanceCard({ data }: { data: ReturnType<typeof getFinanceSnapshot> }) {
+  const finance = await data;
+  if (!finance) return null;
+  return (
+    <Card>
+      <CardHead title="Finance snapshot" actions={<ButtonLink href="/finance/invoices" size="sm" variant="ghost">Invoices</ButtonLink>} />
+      {finance.length ? (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Currency</Th>
+              <Th right>Outstanding</Th>
+              <Th right>Overdue</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {finance.map((f) => (
+              <tr key={f.currency}>
+                <Td>{f.currency}</Td>
+                <Td right num>
+                  {money(f.outstanding, f.currency)}
+                </Td>
+                <Td right num className={f.overdue > 0 ? "text-danger" : undefined}>
+                  {money(f.overdue, f.currency)}
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      ) : (
+        <CardBody>
+          <span className="muted">No unpaid invoices.</span>
+        </CardBody>
+      )}
+    </Card>
   );
 }

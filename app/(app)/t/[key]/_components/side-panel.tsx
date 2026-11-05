@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useOptimistic, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Card, CardBody, Checkbox, Dialog, Field, FormGrid, Input, Textarea, useToast } from "@/components/ui";
 import { logTime, startTimer, stopTimer, updateTicket } from "@/lib/modules/tickets/actions";
@@ -199,10 +199,11 @@ export function SidePanel({ t, people, projects, today, peopleFields }: Props) {
   );
 }
 
-function TimerControl({ ticketId, timer }: { ticketId: string; timer: TicketDetail["timer"] }) {
+function TimerControl({ ticketId, timer: saved }: { ticketId: string; timer: TicketDetail["timer"] }) {
   const toast = useToast();
-  const router = useRouter();
   const [pending, start] = useTransition();
+  // Flip Start/Stop at once; the action's revalidation brings the real timer (and the top-bar chip) back.
+  const [timer, setTimer] = useOptimistic(saved);
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
@@ -221,13 +222,14 @@ function TimerControl({ ticketId, timer }: { ticketId: string; timer: TicketDeta
   function toggle() {
     start(async () => {
       if (timer) {
+        setTimer(null);
         const r = await stopTimer(timer.id);
         toast(!r.ok ? r.error : r.data?.minutes ? `Logged ${fmtMinutes(r.data.minutes)}` : "Under a minute, nothing logged");
       } else {
+        setTimer({ id: "", startedAt: new Date().toISOString() });
         const r = await startTimer({ ticketId });
         toast(r.ok ? "Timer started" : r.error);
       }
-      router.refresh();
     });
   }
 

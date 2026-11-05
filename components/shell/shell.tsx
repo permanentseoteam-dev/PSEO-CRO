@@ -14,6 +14,7 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { Palette } from "./palette";
 import { NewTicketDialog } from "./new-ticket";
+import { PageTitleContext } from "./page-title";
 
 export type ShellProps = {
   /** "staff" = agency app, "portal" = client portal (client sidebar, no clock or timer). */
@@ -59,6 +60,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
   const [newOpen, setNewOpen] = useState(false);
   const [options, setOptions] = useState<TicketOptions | null>(null);
   const [keysOpen, setKeysOpen] = useState(false);
+  const [titleOverride, setTitleOverride] = useState<string | null>(null);
 
   // Close the drawer and menus when the route changes (state adjusted during render, not in an effect).
   const [lastPath, setLastPath] = useState(pathname);
@@ -209,7 +211,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
       <div className={cn("backdrop", drawer && "open")} aria-hidden="true" onClick={() => setDrawer(false)} />
       <div className="main-col">
         <Topbar
-          title={page.title}
+          title={titleOverride ?? page.title}
           desc={page.desc}
           pinned={pinned}
           onPin={pin}
@@ -227,7 +229,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
           onTheme={cycleTheme}
         />
         <main id="main" tabIndex={-1}>
-          {children}
+          <PageTitleContext.Provider value={setTitleOverride}>{children}</PageTitleContext.Provider>
         </main>
       </div>
 

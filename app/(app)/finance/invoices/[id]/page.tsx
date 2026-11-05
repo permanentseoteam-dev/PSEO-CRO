@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PageTitle } from "@/components/shell/page-title";
 import { requireMe, can } from "@/lib/auth/can";
 import { Avatar, Card, CardHead, NoAccess, StatusDot } from "@/components/ui";
 import { balance, displayStatus, fmtDate, invoiceLabel, money, round2, settledOutside } from "@/lib/modules/finance/core/logic";
@@ -50,6 +51,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="page">
+      <PageTitle title={label} />
       <div className="row between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div className="stack" style={{ gap: 4 }}>
           <Link className="small" href="/finance/invoices">

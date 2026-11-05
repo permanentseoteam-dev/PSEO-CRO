@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     "docs/**",
     "PSEO CRO/**",
     "supabase/**",
+    "qa/**",
   ]),
 ]);
 

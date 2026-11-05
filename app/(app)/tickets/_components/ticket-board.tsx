@@ -45,7 +45,12 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: TicketRow[]
     const t = items.find((x) => x.id === dragId);
     setDragId(null);
     setOver(null);
-    if (!t || t.status === status) return;
+    if (t) setStatus(t, status);
+  }
+
+  // Shared by drag and drop and the keyboard "Move to" select.
+  function setStatus(t: TicketRow, status: TicketStatus) {
+    if (t.status === status) return;
     start(async () => {
       move({ id: t.id, status });
       const r = await updateTicket({ id: t.id, patch: { status } });
@@ -106,6 +111,18 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: TicketRow[]
                     <span className="num row" style={{ gap: 4 }} title="Checklist">
                       <ListChecks size={14} aria-hidden="true" /> {t.checkDone}/{t.checkTotal}
                     </span>
+                  ) : null}
+                  {canEdit ? (
+                    <select
+                      className={s.kMove}
+                      aria-label={`Move ${t.key} to`}
+                      value={t.status}
+                      onChange={(e) => setStatus(t, e.target.value as TicketStatus)}
+                    >
+                      {STATUSES.map((x) => (
+                        <option key={x} value={x}>{STATUS_LABEL[x]}</option>
+                      ))}
+                    </select>
                   ) : null}
                 </div>
               </article>
