@@ -8,6 +8,7 @@ import type { Scope } from "@/lib/auth/perms";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { activeHref, nextTheme, pageFor, visibleNav } from "@/lib/modules/shell/logic";
+import { DEFAULT_AGENCY, type AgencySettings } from "@/lib/modules/agency/logic";
 import { newTicketOptions, paletteData, saveSidebar, setTheme, togglePin } from "@/lib/modules/shell/actions";
 import type { PaletteItem, ShellData, Theme, TicketOptions } from "@/lib/modules/shell/types";
 import type { SidebarProjects } from "@/lib/modules/work/space-types";
@@ -29,7 +30,8 @@ export type ShellProps = {
   /** Show the Team view / Client view switch. */
   viewSwitch: boolean;
   theme: Theme;
-  data: ShellData;
+  /** agency: the agency brand and workday (getShellData); the defaults when absent. */
+  data: ShellData & { agency?: AgencySettings | null };
   /** Staff only: sidebar Projects list and whether the "+" menu shows. */
   projects?: { list: SidebarProjects; canManage: boolean };
   children: ReactNode;
@@ -77,11 +79,12 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
   const groups = visibleNav(portal ? PORTAL_NAV : STAFF_NAV, me);
   const navHrefs = groups.flatMap((g) => g.items.map((i) => i.href));
   const active = activeHref(pathname, [...navHrefs, ...data.pins.map((p) => p.href)]);
-  const page = pageFor(pathname);
+  const agency = data.agency ?? DEFAULT_AGENCY;
+  const page = pageFor(pathname, agency.name);
   const pinned = data.pins.some((p) => p.href === pathname);
   const brand = portal
     ? { name: org ?? "Client portal", sub: "Client portal", mark: initialsOf(org ?? "Client") || "C", logo: logo ?? null }
-    : { name: "Permanent SEO", sub: "Agency portal", mark: "PS", logo: null };
+    : { name: agency.name, sub: agency.subtitle, mark: agency.initials, logo: agency.logoUrl };
 
   const persistSidebar = (c: boolean, f: string[]) => start(async () => void (await saveSidebar({ collapsed: c, folded: f })));
   const toggleCollapse = () => {
@@ -190,7 +193,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
   }, [me.id, router]);
 
   const pages: PaletteItem[] = groups.flatMap((g) =>
-    g.items.map((i) => ({ section: "Pages" as const, label: pageFor(i.href).title, href: i.href, meta: g.label ?? "", icon: i.icon })),
+    g.items.map((i) => ({ section: "Pages" as const, label: pageFor(i.href, agency.name).title, href: i.href, meta: g.label ?? "", icon: i.icon })),
   );
 
   return (
@@ -208,6 +211,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
         open={drawer}
         me={me}
         clock={data.clock}
+        workdayMin={agency.workdayMinutes}
         viewSwitch={viewSwitch}
         menuOpen={menu === "me"}
         onMenu={() => setMenu(menu === "me" ? null : "me")}
@@ -232,6 +236,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
           timer={portal ? null : data.timer}
           theme={theme}
           onTheme={cycleTheme}
+          brandName={agency.name}
         />
         <main id="main" tabIndex={-1}>
           <PageTitleContext.Provider value={setTitleOverride}>{children}</PageTitleContext.Provider>

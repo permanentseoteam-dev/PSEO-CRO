@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getAgencySettings } from "@/lib/modules/agency/queries";
+import type { AgencySettings } from "@/lib/modules/agency/logic";
 import type { ClockSession, Notif, RunningTimer, ShellData } from "./types";
 
 // Tables owned by other modules that the shell reads. Kept here so a column rename is a one-line fix.
@@ -19,11 +21,12 @@ type NotifRow = {
   actor: { name: string } | { name: string }[] | null;
 };
 
-export async function getShellData(memberId: string, opts: { staff: boolean }): Promise<ShellData> {
+/** Shell data plus the agency brand and workday (falls back to the defaults before 0218). */
+export async function getShellData(memberId: string, opts: { staff: boolean }): Promise<ShellData & { agency: AgencySettings }> {
   const supabase = await createClient();
   const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
 
-  const [settings, pins, notifs, unread, clock, timer] = await Promise.all([
+  const [settings, pins, notifs, unread, clock, timer, agency] = await Promise.all([
     supabase.from("user_settings").select("sidebar_collapsed, folded_groups").eq("member_id", memberId).maybeSingle(),
     supabase.from("pins").select("href, title").eq("member_id", memberId).order("position").order("created_at"),
     supabase
@@ -44,6 +47,7 @@ export async function getShellData(memberId: string, opts: { staff: boolean }): 
     opts.staff
       ? supabase.from("timers").select("id, started_at, ticket:tickets(key)").eq("member_id", memberId).limit(1).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    getAgencySettings(),
   ]);
 
   let running: RunningTimer | null = null;
@@ -78,5 +82,6 @@ export async function getShellData(memberId: string, opts: { staff: boolean }): 
           (r): ClockSession => ({ clockIn: r.clock_in, clockOut: r.clock_out }),
         ),
     timer: running,
+    agency,
   };
 }

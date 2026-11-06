@@ -2,6 +2,7 @@
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { balance, computeTotals, fmtDate, invoiceLabel, money, round2, settledOutside } from "./logic";
 import type { Entity, InvoiceDetail, PayChannel } from "./types";
+import { getAgencyBrand } from "@/lib/modules/agency/queries";
 
 const s = StyleSheet.create({
   page: { padding: 40, fontSize: 10, color: "#3b3f48", fontFamily: "Helvetica", lineHeight: 1.4 },
@@ -21,7 +22,7 @@ const s = StyleSheet.create({
   pay: { marginTop: 22, padding: 10, borderWidth: 1, borderStyle: "dashed", borderColor: "#c9ccd2", borderRadius: 6 },
 });
 
-export function InvoicePdf({ invoice: i, entity: e, channel }: PdfProps) {
+export function InvoicePdf({ invoice: i, entity: e, channel, agencyName }: PdfProps) {
   const t = computeTotals(i.lines.map((l) => ({ qty: l.qty, rate: l.rate, taxPct: l.tax_pct })), i.discount);
   const cur = i.currency;
   const b = i.bill_to ?? {};
@@ -30,7 +31,7 @@ export function InvoicePdf({ invoice: i, entity: e, channel }: PdfProps) {
   const taxLabel = e && e.tax_label !== "None" ? e.tax_label : "Tax";
 
   return (
-    <Document title={invoiceLabel(i)} author={e?.name ?? "Permanent SEO"}>
+    <Document title={invoiceLabel(i)} author={e?.name ?? agencyName ?? "Permanent SEO"}>
       <Page size="A4" style={s.page}>
         <View style={s.row}>
           <View>
@@ -142,9 +143,10 @@ export function InvoicePdf({ invoice: i, entity: e, channel }: PdfProps) {
   );
 }
 
-type PdfProps = { invoice: InvoiceDetail; entity: Entity | null; channel: PayChannel | null };
+type PdfProps = { invoice: InvoiceDetail; entity: Entity | null; channel: PayChannel | null; agencyName?: string };
 
 /** Render the invoice to a PDF buffer. */
-export function renderInvoicePdf(props: PdfProps) {
-  return renderToBuffer(<InvoicePdf {...props} />);
+export async function renderInvoicePdf(props: PdfProps) {
+  const agencyName = props.agencyName ?? (await getAgencyBrand()).name;
+  return renderToBuffer(<InvoicePdf {...props} agencyName={agencyName} />);
 }

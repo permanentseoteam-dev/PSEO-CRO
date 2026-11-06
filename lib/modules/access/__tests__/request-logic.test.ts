@@ -38,6 +38,10 @@ describe("pageTitleFrom", () => {
     expect(pageTitleFrom("Permanent SEO", "/finance")).toBe("/finance");
     expect(pageTitleFrom("", "/finance")).toBe("/finance");
   });
+  it("works after the agency is renamed", () => {
+    expect(pageTitleFrom("Clients · Acme Digital", "/clients")).toBe("Clients");
+    expect(pageTitleFrom("Acme Digital", "/clients")).toBe("/clients");
+  });
 });
 
 describe("pickAdmins", () => {

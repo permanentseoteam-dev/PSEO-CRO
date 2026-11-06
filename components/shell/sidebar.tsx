@@ -7,7 +7,9 @@ import { ChevronDown, CircleUser, LogOut, PanelLeftClose, PanelLeftOpen } from "
 import { Avatar, Seg, StatusDot, useToast } from "@/components/ui";
 import type { NavGroup } from "@/lib/nav";
 import { cn } from "@/lib/utils";
-import { PRESENCE, WORKDAY_MIN, fmtMinutes, todaySessions, workedMinutes } from "@/lib/modules/shell/logic";
+import {
+  LONG_SESSION_MIN, PRESENCE, WORKDAY_MIN, fmtMinutes, localDay, openSession, runningMinutes, sinceLabel, todaySessions, workedMinutes,
+} from "@/lib/modules/shell/logic";
 import { setPresence, signOut, toggleClock } from "@/lib/modules/shell/actions";
 import type { ClockSession, Pin, Presence } from "@/lib/modules/shell/types";
 import type { SidebarProjects } from "@/lib/modules/work/space-types";
@@ -34,6 +36,8 @@ type Props = {
   onMenu: () => void;
   /** Staff only: the Projects section. Omitted in the client portal. */
   projects?: { list: SidebarProjects; canManage: boolean };
+  /** Minutes in a full workday, for the clock progress bar. Defaults to WORKDAY_MIN (8h). */
+  workdayMin?: number;
 };
 
 const iconFor = (groups: NavGroup[], href: string) =>
@@ -50,18 +54,22 @@ function NavLink({ href, title, icon, on }: { href: string; title: string; icon:
   );
 }
 
-function ClockWidget({ sessions }: { sessions: ClockSession[] }) {
+function ClockWidget({ sessions, workdayMin }: { sessions: ClockSession[]; workdayMin: number }) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const secs = useNowSeconds();
-  const isIn = sessions.some((s) => !s.clockOut);
+  const open = openSession(sessions);
+  const isIn = open != null;
   const now = secs == null ? null : new Date(secs * 1000);
   const today = now ? todaySessions(sessions, now) : [];
   const worked = now ? workedMinutes(today, now) : 0;
   const last = today.at(-1);
+  const running = now && open ? runningMinutes(open, now) : 0;
 
   let text: React.ReactNode = " ";
-  if (now && isIn && today[0]) text = <>Clocked in <b>{hhmm(today[0].clockIn)}</b> · {fmtMinutes(worked)}</>;
+  if (now && open && new Date(open.clockIn) < localDay(now).start)
+    text = <>Clocked in since <b>{sinceLabel(open.clockIn, now)}</b> · {fmtMinutes(running)}</>;
+  else if (now && isIn && today[0]) text = <>Clocked in <b>{hhmm(today[0].clockIn)}</b> · {fmtMinutes(worked)}</>;
   else if (now && last?.clockOut) text = <>Clocked out at <b>{hhmm(last.clockOut)}</b> · {fmtMinutes(worked)}</>;
   else if (now) text = "Not clocked in yet";
 
@@ -78,8 +86,11 @@ function ClockWidget({ sessions }: { sessions: ClockSession[] }) {
       <div className="clock-top">
         <span className="clock-text">{text}</span>
       </div>
-      <div className={cn("bar", !isIn && "t-muted")} title={`${fmtMinutes(worked)} of 8h`}>
-        <i style={{ width: `${Math.min(100, Math.round((worked / WORKDAY_MIN) * 100))}%` }} />
+      {running >= LONG_SESSION_MIN ? (
+        <span className="clock-text t-warn">Running {Math.floor(running / 60)}h. Forgot to clock out?</span>
+      ) : null}
+      <div className={cn("bar", !isIn && "t-muted")} title={`${fmtMinutes(worked)} of ${fmtMinutes(workdayMin)}`}>
+        <i style={{ width: `${Math.min(100, Math.round((worked / workdayMin) * 100))}%` }} />
       </div>
       <button type="button" className="btn sm" onClick={click} disabled={pending}>
         {isIn ? "Clock out" : "Clock in"}
@@ -131,7 +142,7 @@ export function Sidebar(p: Props) {
         </button>
       </div>
 
-      {!p.portal && p.clock ? <ClockWidget sessions={p.clock} /> : null}
+      {!p.portal && p.clock ? <ClockWidget sessions={p.clock} workdayMin={p.workdayMin ?? WORKDAY_MIN} /> : null}
 
       {p.pins.length ? (
         <nav className="nav-group" aria-label="Pinned">

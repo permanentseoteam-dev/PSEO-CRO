@@ -29,6 +29,8 @@ type Props = {
   timer: RunningTimer | null;
   theme: Theme;
   onTheme: () => void;
+  /** Agency name, the avatar for notifications with no person behind them. */
+  brandName: string;
 };
 
 const HEARTBEAT_MS = 4 * 60 * 1000;
@@ -70,7 +72,7 @@ function TimerChip({ timer }: { timer: RunningTimer }) {
   );
 }
 
-function BellPanel({ notifications, unread, close }: { notifications: Notif[]; unread: number; close: () => void }) {
+function BellPanel({ notifications, unread, close, brandName }: { notifications: Notif[]; unread: number; close: () => void; brandName: string }) {
   const toast = useToast();
   const [, start] = useTransition();
   const secs = useNowSeconds();
@@ -101,7 +103,7 @@ function BellPanel({ notifications, unread, close }: { notifications: Notif[]; u
         {notifications.map((n) => {
           const body = (
             <>
-              <Avatar name={n.actor ?? "Permanent SEO"} size={30} />
+              <Avatar name={n.actor ?? brandName} size={30} />
               <span className="n-body">
                 {n.actor ? <b>{n.actor} </b> : null}
                 {n.action}
@@ -197,7 +199,7 @@ export function Topbar(p: Props) {
         <span className="bell-count" aria-hidden="true">
           {p.unread || ""}
         </span>
-        {p.menu === "bell" ? <BellPanel notifications={p.notifications} unread={p.unread} close={() => p.onMenu(null)} /> : null}
+        {p.menu === "bell" ? <BellPanel notifications={p.notifications} unread={p.unread} close={() => p.onMenu(null)} brandName={p.brandName} /> : null}
         <button type="button" className="icon-btn" onClick={p.onTheme} title={themeLabel} aria-label={`${themeLabel}. Click to change`}>
           <ThemeIcon />
         </button>

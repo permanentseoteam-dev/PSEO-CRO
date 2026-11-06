@@ -1,22 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useOptimistic, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, CornerDownRight, Plus } from "lucide-react";
 import { Button, Priority, Seg, useToast } from "@/components/ui";
 import { createProjectTask } from "@/lib/modules/work/space-actions";
+import { updateTicket } from "@/lib/modules/tickets/actions";
 import type { ProjectTask, StatusKey, TaskType, WorkConfig } from "@/lib/modules/work/space-types";
 import { cn } from "@/lib/utils";
 import { DueLabel } from "../../../../tickets/_components/bits";
 import s from "../tasks.module.css";
+import { landingIndex, moveTask } from "./kanban-move";
 
 const ORDER: StatusKey[] = ["todo", "in_progress", "in_review", "blocked", "done"];
 
 type View = "table" | "kanban";
-type Props = { projectId: string; tasks: ProjectTask[]; config: WorkConfig; view: View; today: string };
+type Props = { projectId: string; tasks: ProjectTask[]; config: WorkConfig; view: View; today: string; canEdit: boolean };
 
-export function TasksView({ projectId, tasks, config, view, today }: Props) {
+export function TasksView({ projectId, tasks, config, view, today, canEdit }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -57,7 +59,7 @@ export function TasksView({ projectId, tasks, config, view, today }: Props) {
       </div>
 
       {view === "kanban" ? (
-        <Kanban tasks={mains} subsOf={subsOf} config={config} taskHref={taskHref} today={today} />
+        <Kanban tasks={mains} subsOf={subsOf} config={config} taskHref={taskHref} today={today} canEdit={canEdit} />
       ) : (
         <>
           <Group title="Open tasks" rows={mains.filter((t) => t.status !== "done")} subsOf={subsOf} config={config} taskHref={taskHref} today={today} defaultOpen>
@@ -250,40 +252,131 @@ function CreateRow({ pending, onCreate }: { pending: boolean; onCreate: (title: 
   );
 }
 
-type KanbanProps = { tasks: ProjectTask[]; subsOf: Map<string, ProjectTask[]>; config: WorkConfig; taskHref: (key: string) => string; today: string };
+type KanbanProps = {
+  tasks: ProjectTask[];
+  subsOf: Map<string, ProjectTask[]>;
+  config: WorkConfig;
+  taskHref: (key: string) => string;
+  today: string;
+  canEdit: boolean;
+};
 
-function Kanban({ tasks, subsOf, config, taskHref, today }: KanbanProps) {
+/** Drag a card to another column (or use its "Move to" select) to change its status. No reordering: tasks have no sort column. */
+function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps) {
+  const router = useRouter();
+  const toast = useToast();
+  const [, start] = useTransition();
+  const [items, move] = useOptimistic(tasks, (cur: ProjectTask[], m: { id: string; status: StatusKey }) => moveTask(cur, m.id, m.status));
+  const [drag, setDrag] = useState<{ id: string; height: number } | null>(null);
+  const [over, setOver] = useState<StatusKey | null>(null);
   const types = Object.fromEntries(config.taskTypes.map((x) => [x.id, x]));
+  const dragged = drag ? items.find((t) => t.id === drag.id) : undefined;
+
+  function setStatus(t: ProjectTask, status: StatusKey) {
+    if (t.status === status) return;
+    start(async () => {
+      move({ id: t.id, status });
+      const r = await updateTicket({ id: t.id, patch: { status } });
+      // On failure the transition ends with the old props, so the card goes back by itself.
+      if (!r.ok) toast(r.error ?? "Couldn't move the task");
+    });
+  }
+
+  function endDrag() {
+    setDrag(null);
+    setOver(null);
+  }
+
   return (
     <div className="board">
       {ORDER.map((st) => {
-        const list = tasks.filter((t) => t.status === st);
+        const list = items.filter((t) => t.status === st);
         const head = config.statuses[st];
+        const slotAt = dragged && over === st && dragged.status !== st ? landingIndex(items, dragged.id, st) : -1;
+        const slot = <div className={s.slot} style={{ height: drag?.height }} aria-hidden="true" />;
         return (
-          <div key={st} className="col">
+          <div
+            key={st}
+            className={cn("col", s.col, over === st && "drop")}
+            onDragOver={(e) => {
+              if (!drag) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              if (over !== st) setOver(st);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (dragged) setStatus(dragged, st);
+              endDrag();
+            }}
+          >
             <div className="col-head">
               <span>{head.emoji} {head.label}</span> <span className="muted">{list.length}</span>
             </div>
-            {list.map((t) => {
+            {list.map((t, i) => {
               const ty = t.typeId ? types[t.typeId] : undefined;
               const subs = subsOf.get(t.id) ?? [];
               return (
-                <Link key={t.id} href={taskHref(t.key)} scroll={false} className={cn("kcard", s.kcard)}>
-                  <span className={s.kTitle}>{t.title}</span>
-                  <span className={s.kFoot}>
-                    {ty ? (
-                      <span className={s.type}>
-                        <span className={s.swatch} style={{ background: ty.color }} aria-hidden="true" /> {ty.name}
+                <Fragment key={t.id}>
+                  {i === slotAt ? slot : null}
+                  <article
+                    className={cn("kcard", s.kcard, canEdit && s.kDrag, drag?.id === t.id && "dragging")}
+                    draggable={canEdit}
+                    onClick={() => router.push(taskHref(t.key), { scroll: false })}
+                    onDragStart={(e) => {
+                      const el = e.currentTarget;
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData("text/plain", t.key);
+                      // The browser snapshots the drag image after this handler: lift the card for that
+                      // snapshot only, then dim the original left in the column.
+                      el.classList.add(s.lift);
+                      const height = el.offsetHeight;
+                      setTimeout(() => {
+                        el.classList.remove(s.lift);
+                        setDrag({ id: t.id, height });
+                      }, 0);
+                    }}
+                    onDragEnd={endDrag}
+                  >
+                    <Link href={taskHref(t.key)} scroll={false} className={s.kTitle} draggable={false} onClick={(e) => e.stopPropagation()}>
+                      {t.title}
+                    </Link>
+                    <span className={s.kFoot}>
+                      {ty ? (
+                        <span className={s.type}>
+                          <span className={s.swatch} style={{ background: ty.color }} aria-hidden="true" /> {ty.name}
+                        </span>
+                      ) : null}
+                      <DueLabel due={t.dueDate} status={t.status} today={today} />
+                      <Priority level={t.priority} />
+                      {subs.length ? <SubCount subs={subs} /> : null}
+                    </span>
+                    {t.assigneeName || canEdit ? (
+                      <span className={s.kBottom}>
+                        {t.assigneeName ? <span className="muted small">{t.assigneeName}</span> : <span />}
+                        {canEdit ? (
+                          <select
+                            className={s.kMove}
+                            aria-label={`Move ${t.key} to`}
+                            value={t.status}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => setStatus(t, e.target.value as StatusKey)}
+                          >
+                            {ORDER.map((x) => (
+                              <option key={x} value={x}>{config.statuses[x].label}</option>
+                            ))}
+                          </select>
+                        ) : null}
                       </span>
                     ) : null}
-                    <DueLabel due={t.dueDate} status={t.status} today={today} />
-                    <Priority level={t.priority} />
-                    {subs.length ? <SubCount subs={subs} /> : null}
-                  </span>
-                  {t.assigneeName ? <span className="muted small">{t.assigneeName}</span> : null}
-                </Link>
+                  </article>
+                </Fragment>
               );
             })}
+            {slotAt === list.length ? slot : null}
           </div>
         );
       })}

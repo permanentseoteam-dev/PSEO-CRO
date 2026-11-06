@@ -44,7 +44,7 @@ export default async function ProjectTasksPage({ params, searchParams }: Props) 
 
   return (
     <>
-      <TasksView projectId={space.id} tasks={tasks} config={space.config} view={view} today={today} />
+      <TasksView projectId={space.id} tasks={tasks} config={space.config} view={view} today={today} canEdit={can(me, "tickets.manage")} />
       {taskKey ? (
         <TaskDrawer
           view={view}

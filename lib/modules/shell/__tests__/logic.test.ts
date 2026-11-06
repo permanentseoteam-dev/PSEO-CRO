@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { STAFF_NAV } from "@/lib/nav";
 import {
-  activeHref, fmtClock, fmtMinutes, nextTheme, pageFor, parseTags, timeAgo, timerMinutes, todaySessions, visibleNav, workedMinutes,
+  activeHref, fmtClock, fmtMinutes, LONG_SESSION_MIN, minutesWithin, nextTheme, openSession, pageFor, parseTags, runningMinutes,
+  sinceLabel, timeAgo, timerMinutes, todaySessions, visibleNav, WORKDAY_MIN, workedMinutes,
 } from "../logic";
 
 describe("pageFor", () => {
@@ -61,6 +62,65 @@ describe("clock maths", () => {
     expect(fmtMinutes(45)).toBe("45m");
     expect(fmtClock(23 * 60 + 10)).toBe("00:23:10");
     expect(fmtClock(-5)).toBe("00:00:00");
+  });
+});
+
+describe("overnight clock sessions", () => {
+  const at = (day: number, h: number, m: number) => new Date(2026, 10, day, h, m).toISOString();
+  const dayStart = new Date(2026, 10, 5);
+  const dayEnd = new Date(2026, 10, 6);
+
+  it("clips a session at local midnight", () => {
+    const s = { clockIn: at(4, 8, 56), clockOut: at(5, 10, 21) };
+    expect(minutesWithin(s, dayStart, dayEnd, new Date(2026, 10, 5, 12, 0))).toBe(10 * 60 + 21);
+    expect(minutesWithin(s, new Date(2026, 10, 4), dayStart, new Date(2026, 10, 5, 12, 0))).toBe(15 * 60 + 4);
+    expect(minutesWithin(s, new Date(2026, 10, 6), new Date(2026, 10, 7), new Date(2026, 10, 6, 12, 0))).toBe(0);
+  });
+
+  it("keeps an open session from yesterday and counts only today's part", () => {
+    const now = new Date(2026, 10, 6, 8, 0);
+    const sessions = [{ clockIn: at(4, 8, 56), clockOut: at(5, 10, 21) }, { clockIn: at(5, 18, 0), clockOut: null }];
+    const today = todaySessions(sessions, now);
+    expect(today).toEqual([sessions[1]]);
+    expect(workedMinutes(today, now)).toBe(8 * 60);
+    const open = openSession(sessions)!;
+    expect(open).toBe(sessions[1]);
+    expect(runningMinutes(open, now)).toBe(14 * 60);
+    expect(sinceLabel(open.clockIn, now)).toBe("yesterday 18:00");
+  });
+
+  it("labels older and same-day starts", () => {
+    const now = new Date(2026, 10, 6, 8, 0); // Friday
+    expect(sinceLabel(at(6, 0, 11), now)).toBe("00:11");
+    expect(sinceLabel(at(3, 18, 0), now)).toBe("Tue 18:00");
+    expect(sinceLabel(new Date(2026, 9, 20, 18, 0).toISOString(), now)).toBe("20 Oct 18:00");
+  });
+
+  it("sums several sessions, including one that ended this morning", () => {
+    const now = new Date(2026, 10, 5, 15, 0);
+    const sessions = [
+      { clockIn: at(4, 8, 56), clockOut: at(5, 10, 21) },
+      { clockIn: at(5, 11, 0), clockOut: at(5, 12, 30) },
+      { clockIn: at(5, 13, 0), clockOut: null },
+    ];
+    const today = todaySessions(sessions, now);
+    expect(today).toHaveLength(3);
+    expect(workedMinutes(today, now)).toBe(621 + 90 + 120);
+  });
+
+  it("flags open sessions of 12h or more", () => {
+    const s = { clockIn: at(5, 18, 0), clockOut: null };
+    expect(runningMinutes(s, new Date(2026, 10, 6, 5, 59)) >= LONG_SESSION_MIN).toBe(false);
+    expect(runningMinutes(s, new Date(2026, 10, 6, 6, 0)) >= LONG_SESSION_MIN).toBe(true);
+  });
+
+  it("supports a custom workday length", () => {
+    expect(WORKDAY_MIN).toBe(480);
+    const workday = 7 * 60 + 30;
+    const now = new Date(2026, 10, 5, 15, 10);
+    const worked = workedMinutes([{ clockIn: at(5, 9, 0), clockOut: null }], now);
+    expect(`${fmtMinutes(worked)} of ${fmtMinutes(workday)}`).toBe("6h 10m of 7h 30m");
+    expect(Math.round((worked / workday) * 100)).toBe(82);
   });
 });
 

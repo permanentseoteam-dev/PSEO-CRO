@@ -2,10 +2,12 @@ import { ScheduledJobsSection } from "@/features/jobs/components/scheduled-jobs"
 import { ApiKeysSection, NotificationsLogSection } from "@/features/platform-p2/components/server";
 import { requireMe, can } from "@/lib/auth/can";
 import { getTwoStepPolicy, requiredByPolicy } from "@/lib/auth/mfa";
+import { getAgencySettings } from "@/lib/modules/agency/queries";
 import { notifMatrix } from "@/lib/modules/personal/logic";
 import { getSettings } from "@/lib/modules/personal/queries";
 import { getPortalDesignDefaults } from "@/lib/modules/portal-design/queries";
 import { createClient } from "@/lib/supabase/server";
+import { AgencyBrandingForm } from "./_components/agency-branding";
 import { PortalDesignForm } from "./_components/portal-design";
 import { SettingsView } from "./_components/settings-view";
 import { TwoStepPolicy } from "./_components/two-step-policy";
@@ -29,6 +31,7 @@ export default async function SettingsPage() {
         adminSections={
           admin
             ? [
+                { id: "agency", label: "Agency branding", node: <AgencyBrandingForm initial={admin.agency} /> },
                 { id: "portal", label: "Client portal design", node: <PortalDesignForm initial={admin.design} /> },
                 { id: "twostep", label: "2-step sign-in policy", node: <TwoStepPolicy roles={admin.staffRoles} required={policy} /> },
                 { id: "jobs", label: "Scheduled jobs", node: <ScheduledJobsSection /> },
@@ -51,7 +54,7 @@ export default async function SettingsPage() {
 
 async function adminData() {
   const db = await createClient();
-  const [design, roles] = await Promise.all([getPortalDesignDefaults(), db.from("roles").select("key, name").eq("kind", "staff").order("name")]);
+  const [design, roles, agency] = await Promise.all([getPortalDesignDefaults(), db.from("roles").select("key, name").eq("kind", "staff").order("name"), getAgencySettings()]);
   const { accent, logoUrl, theme, density } = design;
-  return { design: { accent, logoUrl, theme, density }, staffRoles: (roles.data ?? []) as { key: string; name: string }[] };
+  return { agency, design: { accent, logoUrl, theme, density }, staffRoles: (roles.data ?? []) as { key: string; name: string }[] };
 }

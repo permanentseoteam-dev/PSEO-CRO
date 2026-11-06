@@ -63,13 +63,13 @@ const NAV_TITLES = new Map([...STAFF_NAV, ...PORTAL_NAV].flatMap((g) => g.items.
 const KNOWN = [...new Set([...NAV_TITLES.keys(), ...Object.keys(PAGES)])].sort((a, b) => b.length - a.length);
 
 /** Title and help text for a pathname: detail routes first, then the longest known prefix. */
-export function pageFor(pathname: string): { title: string; desc: string } {
+export function pageFor(pathname: string, fallback = "Permanent SEO"): { title: string; desc: string } {
   const path = pathname.replace(/\/+$/, "") || "/";
   for (const d of DETAIL) if (d.re.test(path)) return { title: d.title, desc: d.desc };
   const href = KNOWN.find((h) => path === h || path.startsWith(h + "/"));
-  if (!href) return { title: "Permanent SEO", desc: "" };
+  if (!href) return { title: fallback, desc: "" };
   const p = PAGES[href];
-  return { title: p?.title ?? NAV_TITLES.get(href) ?? "Permanent SEO", desc: p?.desc ?? "" };
+  return { title: p?.title ?? NAV_TITLES.get(href) ?? fallback, desc: p?.desc ?? "" };
 }
 
 /** The nav item a pathname belongs to (longest matching href), for the active link. */
@@ -92,21 +92,61 @@ export const nextTheme = (t: Theme): Theme => ({ system: "light", light: "dark",
 const sameLocalDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-/** Today's clock-in sessions (local day of `now`), oldest first. */
+/** Local midnight at the start of `now`'s day, and the next local midnight. */
+export function localDay(now: Date): { start: Date; end: Date } {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return { start, end: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) };
+}
+
+const overlapMs = (s: ClockSession, from: Date, to: Date, now: Date) => {
+  const a = Math.max(new Date(s.clockIn).getTime(), from.getTime());
+  const b = Math.min(s.clockOut ? new Date(s.clockOut).getTime() : now.getTime(), to.getTime());
+  return Math.max(0, b - a);
+};
+
+/** Whole minutes of a session inside [dayStart, dayEnd); an open session runs to `now`. */
+export function minutesWithin(s: ClockSession, dayStart: Date, dayEnd: Date, now: Date): number {
+  return Math.floor(overlapMs(s, dayStart, dayEnd, now) / 60000);
+}
+
+/** Sessions that touch `now`'s local day (including ones carried over from earlier days), oldest first. */
 export function todaySessions(sessions: ClockSession[], now: Date): ClockSession[] {
+  const { start, end } = localDay(now);
   return sessions
-    .filter((s) => sameLocalDay(new Date(s.clockIn), now))
+    .filter((s) => new Date(s.clockIn) < end && (!s.clockOut || new Date(s.clockOut) > start))
     .sort((a, b) => a.clockIn.localeCompare(b.clockIn));
 }
 
-/** Minutes worked across sessions; an open session counts up to `now`. */
+/** Minutes worked on `now`'s local day; sessions are clipped at local midnight and an open one counts up to `now`. */
 export function workedMinutes(sessions: ClockSession[], now: Date): number {
+  const { start, end } = localDay(now);
   let ms = 0;
-  for (const s of sessions) {
-    const end = s.clockOut ? new Date(s.clockOut).getTime() : now.getTime();
-    ms += Math.max(0, end - new Date(s.clockIn).getTime());
-  }
+  for (const s of sessions) ms += overlapMs(s, start, end, now);
   return Math.floor(ms / 60000);
+}
+
+/** An open session runs this long before the widget asks whether you forgot to clock out. */
+export const LONG_SESSION_MIN = 12 * 60;
+
+/** The still-open session (latest one if there are several), or null. */
+export function openSession(sessions: ClockSession[]): ClockSession | null {
+  return sessions.filter((s) => !s.clockOut).sort((a, b) => b.clockIn.localeCompare(a.clockIn))[0] ?? null;
+}
+
+/** Whole minutes an open session has been running. */
+export function runningMinutes(s: ClockSession, now: Date): number {
+  return Math.max(0, Math.floor((now.getTime() - new Date(s.clockIn).getTime()) / 60000));
+}
+
+/** When a session started, relative to `now` (local time): "09:02", "yesterday 18:00", "Tue 18:00", "28 Oct 18:00". */
+export function sinceLabel(iso: string, now: Date): string {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const days = Math.round((localDay(now).start.getTime() - localDay(at).start.getTime()) / 86400000);
+  if (days <= 0) return time;
+  if (days === 1) return `yesterday ${time}`;
+  if (days < 7) return `${at.toLocaleDateString("en-GB", { weekday: "short" })} ${time}`;
+  return `${at.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${time}`;
 }
 
 /** "5h 41m", "45m". */

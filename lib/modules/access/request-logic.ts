@@ -6,13 +6,14 @@ export const ADMIN_ROLES = ["admin", "super_admin"] as const;
 export const REQUEST_ACTION = "asked for access to";
 export const DEDUPE_MS = 24 * 60 * 60 * 1000;
 
-const SITE_SUFFIX = " · Permanent SEO";
+const SEP = " · ";
 
-/** "Clients · Permanent SEO" -> "Clients"; falls back to the path when the tab has no page title. */
+/** "Clients · <agency>" -> "Clients". The template always appends the (editable) agency name as the last
+ *  segment; a title with no separator is the bare agency name, so fall back to the path. */
 export function pageTitleFrom(docTitle: string, path: string): string {
-  const t = docTitle.endsWith(SITE_SUFFIX) ? docTitle.slice(0, -SITE_SUFFIX.length) : docTitle;
-  const clean = t.trim();
-  return clean && clean !== "Permanent SEO" ? clean.slice(0, 120) : path;
+  const cut = docTitle.lastIndexOf(SEP);
+  const clean = cut === -1 ? "" : docTitle.slice(0, cut).trim();
+  return clean ? clean.slice(0, 120) : path;
 }
 
 /** Detail line; also the dedupe key for a path. */
