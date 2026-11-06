@@ -109,6 +109,20 @@ export async function listClientTickets(clientId: string, done: boolean, limit =
   }));
 }
 
+/** Open (not done) client-visible top-level tickets: the "work in progress" count. */
+export async function countOpenTickets(clientId: string): Promise<number> {
+  const supabase = await portalDb(clientId, "tickets.view");
+  if (!supabase) return 0;
+  const { count, error } = await supabase
+    .from("tickets")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .eq("client_visible", true)
+    .is("parent_id", null)
+    .neq("status", "done");
+  return error ? 0 : (count ?? 0);
+}
+
 // ---------------------------------------------------------------- home
 
 export async function listActivity(clientId: string, limit = 5): Promise<Activity[]> {
@@ -259,6 +273,13 @@ export async function listFiles(clientId: string, opts: { folderId?: string; nam
       versionId: v?.id ?? null,
     };
   });
+}
+
+/** Shared files outside hidden folders, as listFiles counts them. */
+export async function countSharedFiles(clientId: string): Promise<number> {
+  const supabase = (await portalDb(clientId))!;
+  const res = await supabase.from("client_files").select("id, folder:client_folders(client_visible)").eq("client_id", clientId).eq("shared", true);
+  return rows(res).filter((f) => one<Row>(f.folder)?.client_visible !== false).length;
 }
 
 export async function getBrandKit(clientId: string): Promise<BrandKit | null> {

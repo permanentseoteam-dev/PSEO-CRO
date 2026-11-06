@@ -9,7 +9,7 @@ import {
   fileProblem,
   firstUnreadId,
   mentionMatches,
-  mentionPending,
+  mentionState,
   mentionQuery,
   parseMentions,
   reactionSummary,
@@ -88,20 +88,26 @@ describe("unread counting", () => {
 
 describe("mention attention", () => {
   const mentioned = msg({ id: 90, at: "2026-11-04T05:00:00Z", mentions: [ME] });
-  it("highlights only another person's mention of the signed-in user", () => {
-    expect(mentionPending(mentioned, [], [], ME)).toBe(true);
-    expect(mentionPending({ ...mentioned, mentions: ["someone-else"] }, [], [], ME)).toBe(false);
-    expect(mentionPending({ ...mentioned, authorId: ME }, [], [], ME)).toBe(false);
+  it("is pending only for another person's mention of the signed-in user", () => {
+    expect(mentionState(mentioned, [], [], ME)).toBe("pending");
   });
-  it("clears attention after my reaction, not someone else's", () => {
-    expect(mentionPending(mentioned, [], [{ messageId: 90, memberId: ME, emoji: "👀" }], ME)).toBe(false);
-    expect(mentionPending(mentioned, [], [{ messageId: 90, memberId: "other", emoji: "👀" }], ME)).toBe(true);
+  it("shows the answered state to other viewers and to the author", () => {
+    expect(mentionState({ ...mentioned, mentions: ["someone-else"] }, [], [], ME)).toBe("answered");
+    expect(mentionState({ ...mentioned, authorId: ME }, [], [], ME)).toBe("answered");
   });
-  it("clears attention after my reply in this thread, not an unrelated or deleted reply", () => {
+  it("has no state for deleted messages or messages without mentions", () => {
+    expect(mentionState({ ...mentioned, mentions: [] }, [], [], ME)).toBeNull();
+    expect(mentionState({ ...mentioned, deletedAt: "2026-11-04T05:02:00Z" }, [], [], ME)).toBeNull();
+  });
+  it("is answered after my reaction, not someone else's", () => {
+    expect(mentionState(mentioned, [], [{ messageId: 90, memberId: ME, emoji: "👀" }], ME)).toBe("answered");
+    expect(mentionState(mentioned, [], [{ messageId: 90, memberId: "other", emoji: "👀" }], ME)).toBe("pending");
+  });
+  it("is answered after my reply in this thread, not an unrelated or deleted reply", () => {
     const reply = msg({ id: 91, at: "2026-11-04T05:01:00Z", parentId: 90, authorId: ME });
-    expect(mentionPending(mentioned, [reply], [], ME)).toBe(false);
-    expect(mentionPending(mentioned, [{ ...reply, parentId: 89 }], [], ME)).toBe(true);
-    expect(mentionPending(mentioned, [{ ...reply, deletedAt: "2026-11-04T05:02:00Z" }], [], ME)).toBe(true);
+    expect(mentionState(mentioned, [reply], [], ME)).toBe("answered");
+    expect(mentionState(mentioned, [{ ...reply, parentId: 89 }], [], ME)).toBe("pending");
+    expect(mentionState(mentioned, [{ ...reply, deletedAt: "2026-11-04T05:02:00Z" }], [], ME)).toBe("pending");
   });
   it("does not add a sidebar mention for messages addressed to someone else", () => {
     const conversation = { lastReadId: 0, unread: 0, mentions: 0 } as Conversation;

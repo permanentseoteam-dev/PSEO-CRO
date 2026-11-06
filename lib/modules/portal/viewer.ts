@@ -73,10 +73,11 @@ async function ownerViewer(clientId: string, staff: Me): Promise<Me> {
   const ownerIds = new Set(((ownerRows ?? []) as { member_id: string }[]).map((r) => r.member_id));
   const owner = list.find((p) => ownerIds.has(p.id)) ?? null;
 
-  const [roleRows, overrides, keys] = await Promise.all([
+  const [roleRows, overrides, keys, client] = await Promise.all([
     owner ? admin.from("member_roles").select("role").eq("member_id", owner.id) : Promise.resolve({ data: [{ role: "client_owner" }] }),
     owner ? admin.from("member_overrides").select("perm_key, scope").eq("member_id", owner.id) : Promise.resolve({ data: [] }),
     admin.from("permissions").select("key"),
+    admin.from("clients").select("name").eq("id", clientId).maybeSingle(),
   ]);
   const roles = ((roleRows.data ?? []) as { role: string }[]).map((r) => r.role);
   const { data: grants } = roles.length ? await admin.from("role_permissions").select("role, perm_key, scope").in("role", roles) : { data: [] };
@@ -85,7 +86,8 @@ async function ownerViewer(clientId: string, staff: Me): Promise<Me> {
     // No owner login yet: the staff id stands in; it is only used for reads that come back empty.
     id: owner?.id ?? staff.id,
     email: owner?.email ?? "",
-    name: owner?.name ?? "there",
+    // No owner login: the client's own name, so the greeting and sidebar read "Harbor Legal", not a person.
+    name: owner?.name ?? (client.data as { name: string } | null)?.name ?? "there",
     title: owner?.title ?? null,
     kind: "client",
     clientId,

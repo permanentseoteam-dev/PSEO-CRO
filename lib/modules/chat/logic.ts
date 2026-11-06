@@ -114,14 +114,19 @@ export function buildRows(msgs: Message[], opts: { today: string; newFromId: num
   return rows;
 }
 
-/** Thread summary for a top-level message: reply count, up to 3 distinct authors, last reply time. */
-/** A message that mentions me stays highlighted until I react to it or reply in its thread. */
-export function mentionPending(m: Message, msgs: Message[], rx: Reaction[], meId: string) {
-  if (m.authorId === meId || !m.mentions.includes(meId)) return false;
-  if (rx.some((r) => r.messageId === m.id && r.memberId === meId)) return false;
-  return !msgs.some((r) => r.parentId === m.id && r.authorId === meId && !r.deletedAt);
+/**
+ * Mention highlight for a message: "pending" while it mentions me and I haven't reacted or replied in its thread,
+ * "answered" once I have, or when it mentions someone else (or I wrote it). Null when deleted or without mentions.
+ * `mentions` holds member uuids only, so there are no @channel/@here tokens to handle.
+ */
+export function mentionState(m: Message, msgs: Message[], rx: Reaction[], meId: string): "pending" | "answered" | null {
+  if (m.deletedAt || !m.mentions.length) return null;
+  if (m.authorId === meId || !m.mentions.includes(meId)) return "answered";
+  if (rx.some((r) => r.messageId === m.id && r.memberId === meId)) return "answered";
+  return msgs.some((r) => r.parentId === m.id && r.authorId === meId && !r.deletedAt) ? "answered" : "pending";
 }
 
+/** Thread summary for a top-level message: reply count, up to 3 distinct authors, last reply time. */
 export function threadInfo(msgs: Message[], parentId: number) {
   const replies = msgs.filter((m) => m.parentId === parentId && !m.deletedAt);
   const authors = [...new Set(replies.map((r) => r.authorId).filter((a): a is string => !!a))].slice(0, 3);

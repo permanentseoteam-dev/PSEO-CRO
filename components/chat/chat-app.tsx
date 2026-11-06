@@ -537,7 +537,7 @@ export function ChatApp(props: Props) {
     return { tone: "ok", label: "Online", cls: s.online };
   }
 
-  function chIcon(c: Conversation) {
+  function chIcon(c: Conversation, nudge = false) {
     if (c.kind === "dm") {
       const other = c.members.find((m) => m.memberId !== me.id)?.memberId ?? me.id;
       const pr = presenceOf(other);
@@ -554,7 +554,11 @@ export function ChatApp(props: Props) {
           <Users size={15} />
         </span>
       );
-    return <span className={s.chIc}>{c.kind === "private" ? <Lock size={15} /> : <Hash size={15} />}</span>;
+    return (
+      <span key={nudge ? c.mentions : undefined} className={cn(s.chIc, nudge && s.nudge)}>
+        {c.kind === "private" ? <Lock size={15} /> : <Hash size={15} />}
+      </span>
+    );
   }
 
   function sideItem(c: Conversation) {
@@ -563,6 +567,8 @@ export function ChatApp(props: Props) {
     const count = on || muted ? 0 : c.notify === "mentions" ? c.mentions : c.unread || c.mentions;
     const bold = !on && !muted && (c.unread > 0 || c.mentions > 0);
     const name = isDirect(c) ? convLabel(c, people, me.id) : c.name ?? "";
+    // Bounce only for mentions that arrived after page load, not for every channel on first render.
+    const bounce = count > 0 && c.mentions > 0 && c.mentions !== (props.conversations.find((x) => x.id === c.id)?.mentions ?? 0);
     return (
       <button
         key={c.id}
@@ -571,7 +577,7 @@ export function ChatApp(props: Props) {
         aria-current={on || undefined}
         onClick={() => void open(c.id)}
       >
-        {chIcon(c)}
+        {chIcon(c, bounce)}
         <span className={s.name}>{name}</span>
         {drafts.has(c.id) && !on ? (
           <span className={s.flag} title="Draft">
@@ -584,7 +590,7 @@ export function ChatApp(props: Props) {
           </span>
         ) : null}
         {count ? (
-          <b key={c.mentions} className={cn(s.unr, c.mentions > 0 && s.mentionAlert)} aria-label={`${count} unread${c.mentions ? ", mentions you" : ""}`}>
+          <b key={c.mentions} className={cn(s.unr, c.mentions > 0 && s.mentionAlert, bounce && s.bounce)} aria-label={`${count} unread${c.mentions ? ", mentions you" : ""}`}>
             {c.mentions ? "@ " : ""}
             {count}
           </b>

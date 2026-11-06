@@ -97,7 +97,7 @@ function Group({ id, label, rows, today, empty }: { id: string; label: string; r
   );
 }
 
-export function MyWork({ tickets, meId, today, initialView, initialLayout = "list", canEdit = false }: { tickets: MyTicket[]; meId: string; today: string; initialView: View; initialLayout?: "list" | "board"; canEdit?: boolean }) {
+export function MyWork({ tickets, meId, today, initialView, initialLayout = "board", canEdit = false }: { tickets: MyTicket[]; meId: string; today: string; initialView: View; initialLayout?: "list" | "board"; canEdit?: boolean }) {
   const [layout, setLayout] = useState<"list" | "board">(initialLayout);
   const [view, setView] = useState<View>(initialView);
   const [q, setQ] = useState("");
@@ -117,7 +117,7 @@ export function MyWork({ tickets, meId, today, initialView, initialLayout = "lis
   const updateUrl = (nextView: View, nextLayout: "list" | "board") => {
     const params = new URLSearchParams();
     if (nextView !== "assigned") params.set("view", nextView);
-    if (nextLayout === "board") params.set("layout", "board");
+    if (nextLayout === "list") params.set("layout", "list");
     window.history.replaceState(null, "", params.size ? "/my?" + params : "/my");
   };
   const pick = (v: string) => {

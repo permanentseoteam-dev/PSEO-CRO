@@ -143,6 +143,9 @@ export function fmtWhen(iso: string): string {
 /** First name, for the greeting. */
 export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
+/** Name for the greeting: the person's first name, or the whole client name when the viewer is the client itself. */
+export const greetName = (name: string, clientName: string) => (name.trim() === clientName.trim() ? clientName.trim() : firstName(name));
+
 /** Paths a client login may open outside /portal. */
 const CLIENT_OPEN = ["/api", "/auth", "/login", "/invite", "/reset", "/logout"];
 

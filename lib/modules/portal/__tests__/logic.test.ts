@@ -9,6 +9,7 @@ import {
   fmtDate,
   fmtWhen,
   greeting,
+  greetName,
   invoiceTotals,
   invoiceView,
   meetHref,
@@ -18,6 +19,15 @@ import {
 } from "../logic";
 
 const today = "2026-11-04";
+
+describe("greetName", () => {
+  it("uses a person's first name", () => {
+    expect(greetName("Sara Khan", "Harbor Legal")).toBe("Sara");
+  });
+  it("keeps the whole client name when there is no person", () => {
+    expect(greetName("Harbor Legal", "Harbor Legal")).toBe("Harbor Legal");
+  });
+});
 
 describe("greeting", () => {
   it("follows the hour", () => {

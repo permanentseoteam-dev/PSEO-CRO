@@ -19,7 +19,7 @@ export async function getProfile(id: string): Promise<Profile | null> {
   const [m, prof, det, career, team, clients] = await Promise.all([
     db
       .from("members")
-      .select("id, name, title, email, presence, department_id, manager_id, department:departments!members_department_id_fkey(name), manager:members!members_manager_id_fkey(name)")
+      .select("id, name, title, email, presence, department_id, manager_id, department:departments!members_department_id_fkey(name), manager:members!manager_id(name)")
       .eq("id", id)
       .maybeSingle(),
     db.from("member_profiles").select("status_note, skills, phone, joined_on, shift").eq("member_id", id).maybeSingle(),

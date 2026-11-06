@@ -209,7 +209,7 @@ export async function copyTicket(raw: unknown): Promise<Result<{ key: string }>>
   if (!src) return { ok: false, error: "That ticket no longer exists." };
   const made = await createTicket({
     title: d.title, projectId: d.projectId, priority: src.priority, due: src.due_date, description: src.description ?? "",
-    doneWhen: src.done_when ?? "", tags: src.tags ?? [], assigneeId: d.assignees ? src.assignee_id : null, source: `Copied from ${src.key}`,
+    doneWhen: src.done_when ?? "", tags: src.tags ?? [], assigneeId: d.assignees ? src.assignee_id : undefined, source: `Copied from ${src.key}`,
   });
   if (!made.ok || !made.data) return made.ok ? BAD : made;
   const newId = made.data.id;
@@ -221,7 +221,7 @@ export async function copyTicket(raw: unknown): Promise<Result<{ key: string }>>
   if (d.subtasks) {
     const { data: subs } = await db.from("tickets").select("title, priority, assignee_id").eq("parent_id", d.id);
     for (const s of subs ?? []) {
-      await createTicket({ title: s.title, parentId: newId, projectId: d.projectId, priority: s.priority, assigneeId: d.assignees ? s.assignee_id : null });
+      await createTicket({ title: s.title, parentId: newId, projectId: d.projectId, priority: s.priority, assigneeId: d.assignees ? s.assignee_id : undefined });
     }
   }
   refresh();

@@ -33,11 +33,16 @@ describe("My work shared board", () => {
     expect(html).toContain('aria-label="Move MY-3 to"');
   });
 
-  it("retains the original grouped list as the personal default", () => {
+  it("opens the board by default", () => {
     const html = renderToStaticMarkup(createElement(MyWork, { tickets, meId: "me", today: "2026-11-06", initialView: "assigned" }));
-    expect(html).not.toContain('class="board"');
-    expect(html).toContain("No due date");
+    expect(html).toContain('class="board"');
     expect(html).toContain("MY-1 title");
     expect(html).toContain('aria-label="My work layout"');
+  });
+
+  it("still offers the grouped list when chosen", () => {
+    const html = renderToStaticMarkup(createElement(MyWork, { tickets, meId: "me", today: "2026-11-06", initialView: "assigned", initialLayout: "list" }));
+    expect(html).not.toContain('class="board"');
+    expect(html).toContain("No due date");
   });
 });

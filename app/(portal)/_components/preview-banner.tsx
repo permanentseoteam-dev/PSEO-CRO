@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { Eye } from "lucide-react";
 import { Button } from "@/components/ui";
 import { mmss } from "@/lib/modules/portal/logic";
 import { exitClientPreview } from "@/app/(app)/clients/preview-actions";
@@ -24,15 +25,23 @@ export function PreviewBanner({ clientId, clientName, exp }: { clientId: string;
 
   return (
     <div className={s.banner} role="status">
-      <span>
-        Viewing as <b>{clientName}</b>, read-only. Ends in{" "}
-        <span className="num" suppressHydrationWarning>
-          {mmss(left)}
+      <span className={s.who}>
+        <Eye aria-hidden className={s.eye} />
+        <span>
+          Viewing as <b>{clientName}</b> · read-only
         </span>
       </span>
-      <Button size="sm" disabled={pending} onClick={exit}>
-        Exit preview
-      </Button>
+      <span className={s.end}>
+        <span className={s.left}>
+          Ends in{" "}
+          <span className="num" suppressHydrationWarning>
+            {mmss(left)}
+          </span>
+        </span>
+        <Button size="sm" disabled={pending} onClick={exit}>
+          Exit preview
+        </Button>
+      </span>
     </div>
   );
 }

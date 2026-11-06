@@ -6,7 +6,7 @@ import { Check, CheckCheck, Clock, FileText, Forward, Image as ImageIcon, Link2,
 import { Avatar, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { dubai, formatSize, mentionPending, reactionSummary, threadInfo, tokenize } from "@/lib/modules/chat/logic";
+import { dubai, formatSize, mentionState, reactionSummary, threadInfo, tokenize } from "@/lib/modules/chat/logic";
 import type { FileRef, Message } from "@/lib/modules/chat/types";
 import { VoiceNote } from "@/features/chat-p2/components/voice-note";
 import { useChat } from "./context";
@@ -224,7 +224,7 @@ export function MessageItem({ m, grouped, inPane, status, flash }: Props) {
   const author = m.authorId ? c.people.get(m.authorId) : undefined;
   const name = author?.name ?? "Someone";
   const time = dubai(m.createdAt).time;
-  const mentioned = mentionPending(m, c.messages, c.reactions, c.me.id);
+  const mention = mentionState(m, c.messages, c.reactions, c.me.id);
   const editing = c.editingId === m.id;
   const menuOpen = c.menuId === m.id;
   const thread = !inPane && m.parentId == null && !m.deletedAt ? threadInfo(c.messages, m.id) : null;
@@ -232,10 +232,11 @@ export function MessageItem({ m, grouped, inPane, status, flash }: Props) {
   return (
     <div
       id={`m-${m.id}`}
-      className={cn(s.msg, grouped && s.grp, m.pending && s.pending, mentioned && s.mentioned, menuOpen && s.menuOpen, flash && s.flash)}
+      className={cn(s.msg, grouped && s.grp, m.pending && s.pending, mention === "answered" && s.mentioned, mention === "pending" && s.mentionPending, menuOpen && s.menuOpen, flash && s.flash)}
     >
       <div>{grouped ? <span className={cn(s.msgT, "num")}>{time}</span> : <Avatar name={name} size={34} />}</div>
       <div className={s.msgB}>
+        {mention === "pending" ? <span className="sr-only">Mentions you, awaiting your reply</span> : null}
         {m.pinnedAt && !m.deletedAt ? (
           <div className={cn(s.pin, "small")}>
             <Pin size={12} aria-hidden /> Pinned

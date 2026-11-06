@@ -9,5 +9,5 @@ export default async function MyWorkPage({ searchParams }: { searchParams: Promi
   const me = await requireMe();
   const sp = await searchParams;
   const tickets = await getMyTickets(me.id);
-  return <MyWork tickets={tickets} meId={me.id} today={localDate(new Date())} initialView={parseView(sp.view)} initialLayout={sp.layout === "board" ? "board" : "list"} canEdit={can(me, "tickets.manage")} />;
+  return <MyWork tickets={tickets} meId={me.id} today={localDate(new Date())} initialView={parseView(sp.view)} initialLayout={sp.layout === "list" ? "list" : "board"} canEdit={can(me, "tickets.manage")} />;
 }

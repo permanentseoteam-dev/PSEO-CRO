@@ -8,8 +8,15 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 16px;
-  padding: 10px 24px;
-  background: var(--warn-soft);
+  padding: 6px 24px;
+  min-height: 44px;
+  /* warn-soft is translucent in dark mode: layer it on the surface so scrolled content stays hidden. */
+  background: linear-gradient(var(--warn-soft), var(--warn-soft)), var(--surface);
   color: var(--ink);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line));
+  font-size: 14px;
 }
+.who { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.eye { width: 18px; height: 18px; flex: none; color: var(--warn); }
+.end { display: inline-flex; align-items: center; gap: 12px; margin-left: auto; }
+.left { color: var(--ink-2); white-space: nowrap; }
