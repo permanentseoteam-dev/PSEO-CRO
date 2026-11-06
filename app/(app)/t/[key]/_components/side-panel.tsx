@@ -2,16 +2,15 @@
 
 import { useEffect, useOptimistic, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, Button, Card, CardBody, Checkbox, Dialog, Field, FormGrid, Input, Textarea, useToast } from "@/components/ui";
+import { Button, Card, CardBody, Checkbox, Dialog, Field, FormGrid, Input, Textarea, useToast } from "@/components/ui";
 import { logTime, startTimer, stopTimer, updateTicket } from "@/lib/modules/tickets/actions";
-import { fmtClock, fmtMinutes, parseDuration, parseTags, PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL } from "@/lib/modules/tickets/logic";
-import type { Person, ProjectOpt, TicketDetail, TicketStatus } from "@/lib/modules/tickets/types";
+import { fmtClock, fmtMinutes, parseDuration, PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL } from "@/lib/modules/tickets/logic";
+import type { Person, TicketDetail, TicketStatus } from "@/lib/modules/tickets/types";
 import s from "./ticket.module.css";
 
-/** `peopleFields`: the Co-assignees and Watchers rows (server-rendered `<dt>/<dd>` pairs with pickers). */
-type Props = { t: TicketDetail; people: Person[]; projects: ProjectOpt[]; today: string; peopleFields: ReactNode };
+type Props = { t: TicketDetail; people: Person[]; today: string; typeField?: ReactNode; shortcutActions?: ReactNode };
 
-export function SidePanel({ t, people, projects, today, peopleFields }: Props) {
+export function SidePanel({ t, people, today, typeField, shortcutActions }: Props) {
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -68,24 +67,16 @@ export function SidePanel({ t, people, projects, today, peopleFields }: Props) {
     <Card>
       <CardBody>
         <dl className={s.dl}>
-          <dt>Project</dt>
-          <dd>
-            <select aria-label="Project" value={t.projectId ?? ""} disabled={dis} onChange={(e) => save({ projectId: e.target.value || null }, "Project changed")}>
-              <option value="">No project</option>
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </dd>
           <dt>Status</dt>
           <dd>
             <select aria-label="Status" value={t.status} disabled={dis} onChange={(e) => onStatus(e.target.value as TicketStatus)}>
               {STATUSES.map((x) => <option key={x} value={x}>{STATUS_LABEL[x]}</option>)}
             </select>
           </dd>
-          <dt>Priority</dt>
+          {typeField}
+          <dt>Due date</dt>
           <dd>
-            <select aria-label="Priority" value={t.priority} disabled={dis} onChange={(e) => save({ priority: e.target.value }, "Priority saved")}>
-              {PRIORITIES.map((x) => <option key={x} value={x}>{PRIORITY_LABEL[x]}</option>)}
-            </select>
+            <input type="date" aria-label="Due date" key={`due-${t.due}`} defaultValue={t.due ?? ""} disabled={dis} onChange={(e) => save({ due: e.target.value || null }, "Due date saved")} />
           </dd>
           <dt>Assignee</dt>
           <dd>
@@ -94,15 +85,10 @@ export function SidePanel({ t, people, projects, today, peopleFields }: Props) {
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </dd>
-          {peopleFields}
-          <dt>Due</dt>
-          <dd>
-            <input type="date" aria-label="Due" key={`due-${t.due}`} defaultValue={t.due ?? ""} disabled={dis} onChange={(e) => save({ due: e.target.value || null }, "Due date saved")} />
-          </dd>
-          <dt>Estimate</dt>
+          <dt>Estimated time</dt>
           <dd>
             <input
-              aria-label="Estimate"
+              aria-label="Estimated time"
               key={`est-${t.estimateMin}`}
               defaultValue={t.estimateMin ? fmtMinutes(t.estimateMin) : ""}
               placeholder="e.g. 6h"
@@ -110,41 +96,18 @@ export function SidePanel({ t, people, projects, today, peopleFields }: Props) {
               onBlur={onBlurSave(t.estimateMin ? fmtMinutes(t.estimateMin) : "", (v) => (v ? parseDuration(v) ?? undefined : null), "estimateMin")}
             />
           </dd>
-          <dt>Start</dt>
+          <dt>Priority</dt>
           <dd>
-            <input type="date" aria-label="Start" key={`start-${t.start}`} defaultValue={t.start ?? ""} disabled={dis} onChange={(e) => save({ start: e.target.value || null }, "Start date saved")} />
+            <select aria-label="Priority" value={t.priority} disabled={dis} onChange={(e) => save({ priority: e.target.value }, "Priority saved")}>
+              {PRIORITIES.map((x) => <option key={x} value={x}>{PRIORITY_LABEL[x]}</option>)}
+            </select>
           </dd>
-          <dt>Tags</dt>
-          <dd>
-            <input
-              aria-label="Tags"
-              key={`tags-${t.tags.join(",")}`}
-              defaultValue={t.tags.join(", ")}
-              placeholder="content, onpage"
-              disabled={dis}
-              onBlur={onBlurSave(t.tags.join(", "), (v) => parseTags(v), "tags")}
-            />
-          </dd>
-          <dt>Reporter</dt>
-          <dd className="row" style={{ flexWrap: "nowrap" }}>
-            {t.reporter ? <><Avatar name={t.reporter} size={22} /> {t.reporter}</> : <span className="muted">Unknown</span>}
-          </dd>
-          {t.source ? (
-            <>
-              <dt>Source</dt>
-              <dd>{t.source}</dd>
-            </>
-          ) : null}
-          <dt>Time logged</dt>
-          <dd>
-            <b className="num">{fmtMinutes(t.loggedMin)}</b>
-            {t.estimateMin ? <span className="muted"> of {fmtMinutes(t.estimateMin)}</span> : null}
-          </dd>
-          <dt>Timer</dt>
-          <dd><TimerControl ticketId={t.id} timer={t.timer} /></dd>
-          <dt />
-          <dd><Button size="sm" onClick={() => setLogOpen(true)}>Log time</Button></dd>
         </dl>
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          {shortcutActions}
+          <TimerControl ticketId={t.id} timer={t.timer} />
+          <Button size="sm" variant="ghost" onClick={() => setLogOpen(true)}>Log time</Button>
+        </div>
       </CardBody>
 
       <Dialog
@@ -235,8 +198,8 @@ function TimerControl({ ticketId, timer: saved }: { ticketId: string; timer: Tic
 
   return (
     <span className="row" style={{ flexWrap: "nowrap" }}>
-      <span className={s.timer}>{fmtClock(sec)}</span>
-      <Button size="sm" variant={timer ? "default" : "primary"} onClick={toggle} disabled={pending}>
+      {timer ? <span className={s.timer}>{fmtClock(sec)}</span> : null}
+      <Button size="sm" variant="ghost" onClick={toggle} disabled={pending}>
         {timer ? "Stop" : "Start timer"}
       </Button>
     </span>

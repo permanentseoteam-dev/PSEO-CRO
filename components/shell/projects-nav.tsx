@@ -80,17 +80,21 @@ export function ProjectsNav({ projects, canManage }: Props) {
   };
 
   return (
-    <nav className={cn("nav-group", s.wrap)} aria-label="Projects">
+    <nav className={cn("nav-group", s.wrap, !open && "folded")} aria-label="Projects">
       <Link className={cn("nav-link", s.collapsedLink, pathname.startsWith("/projects") && "on")} href="/projects" title="Projects">
         <FolderKanban aria-hidden="true" />
       </Link>
 
       <div className={s.full}>
         <div className={s.head}>
-          <button type="button" className={cn("nav-label", s.label, !open && s.closed)} onClick={() => setOpen(!open)} aria-expanded={open}>
-            <ChevronDown aria-hidden="true" />
+          <button type="button" className="nav-label" onClick={() => { setOpen(!open); setMenu(false); }} aria-expanded={open}>
             Projects
+            <ChevronDown aria-hidden="true" />
           </button>
+        </div>
+
+        {open ? (
+          <div className="nav-links">
           {canManage ? (
             <div className={s.menuWrap} ref={menuRef}>
               <button
@@ -117,10 +121,6 @@ export function ProjectsNav({ projects, canManage }: Props) {
               ) : null}
             </div>
           ) : null}
-        </div>
-
-        {open ? (
-          <div className="nav-links">
             {empty ? <span className={s.empty}>No projects yet</span> : null}
             {projects.folders.map((f) => {
               const fOpen = !closedFolders.includes(f.id);

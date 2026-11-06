@@ -6,7 +6,7 @@ import {
 
 describe("pageFor", () => {
   it("uses nav titles, overrides and detail routes", () => {
-    expect(pageFor("/tickets").title).toBe("Tickets");
+    expect(pageFor("/tickets").title).toBe("Task");
     expect(pageFor("/clients").title).toBe("Clients");
     expect(pageFor("/finance").title).toBe("Finance");
     expect(pageFor("/finance/invoices").title).toBe("Invoices");

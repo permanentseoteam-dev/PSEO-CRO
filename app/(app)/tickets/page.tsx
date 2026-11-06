@@ -13,7 +13,7 @@ import { TicketCalendar } from "./_components/ticket-calendar";
 import { NewTicketButton } from "./_components/new-ticket";
 import s from "./_components/tickets.module.css";
 
-export const metadata = { title: "Tickets" };
+export const metadata = { title: "Task" };
 
 export default async function TicketsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();

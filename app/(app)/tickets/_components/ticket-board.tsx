@@ -13,12 +13,14 @@ import { cn } from "@/lib/utils";
 import { DueLabel, People } from "./bits";
 import s from "./tickets.module.css";
 
+export type BoardTicket = Pick<TicketRow, "id" | "key" | "title" | "status" | "priority" | "assigneeId" | "coAssigneeIds" | "due" | "checkDone" | "checkTotal">;
+
 /** Kanban board: drag a card to another column to change its status. Live-updates from Supabase Realtime. */
-export function TicketBoard({ rows, names, today, canEdit }: { rows: TicketRow[]; names: Record<string, string>; today: string; canEdit: boolean }) {
+export function TicketBoard({ rows, names, today, canEdit }: { rows: BoardTicket[]; names: Record<string, string>; today: string; canEdit: boolean }) {
   const router = useRouter();
   const toast = useToast();
   const [, start] = useTransition();
-  const [items, move] = useOptimistic(rows, (cur: TicketRow[], m: { id: string; status: TicketStatus }) =>
+  const [items, move] = useOptimistic(rows, (cur: BoardTicket[], m: { id: string; status: TicketStatus }) =>
     cur.map((t) => (t.id === m.id ? { ...t, status: m.status } : t)),
   );
   const [dragId, setDragId] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: TicketRow[]
   }
 
   // Shared by drag and drop and the keyboard "Move to" select.
-  function setStatus(t: TicketRow, status: TicketStatus) {
+  function setStatus(t: BoardTicket, status: TicketStatus) {
     if (t.status === status) return;
     start(async () => {
       move({ id: t.id, status });

@@ -152,11 +152,16 @@ export function HeaderActions(p: ActionsProps) {
 
   return (
     <div className="row">
+      <details className={s.moreActions}>
+        <summary className="btn sm" aria-label="More task actions">•••</summary>
+        <div className={s.moreMenu}>
       <Button size="sm" onClick={watch} disabled={pending}>{p.watching ? "Watching" : "Watch"}</Button>
       <Button size="sm" onClick={copyLink}>Copy link</Button>
       {p.canEdit ? <Button size="sm" onClick={() => setDlg("copy")}>Copy to…</Button> : null}
       {p.canRepeat && p.projectId ? <Button size="sm" onClick={() => setDlg("repeat")}>Repeat…</Button> : null}
       {p.canDelete ? <Button size="sm" variant="danger" onClick={() => setDlg("delete")}>Delete</Button> : null}
+        </div>
+      </details>
 
       <Dialog
         open={dlg === "copy"}

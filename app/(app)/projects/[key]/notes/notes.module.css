@@ -1,33 +1,62 @@
-.wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
-.list {
-  display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 1px solid var(--line);
-  border-radius: var(--radius-card); background: var(--surface); max-height: calc(100dvh - 140px); overflow-y: auto;
-}
-.listHead { padding: 2px 2px 8px; }
-.listHead :global(.btn) { width: 100%; }
-.row { display: grid; gap: 2px; padding: 9px 10px; border-radius: var(--radius-ctl); color: var(--ink); min-width: 0; }
+.workspace { min-width: 0; background: var(--surface); min-height: calc(100dvh - 112px); }
+.header { height: 102px; display: flex; align-items: center; padding: 20px 28px; border-bottom: 1px solid var(--line); }
+.header :global(.btn) { border-radius: 999px; padding: 0 22px; min-height: 54px; font-size: 17px; gap: 8px; background: var(--blue); border-color: var(--blue); }
+.wrap { display: grid; grid-template-columns: minmax(230px, 29.5%) minmax(0, 1fr); min-height: calc(100dvh - 214px); }
+.list { min-width: 0; border-right: 1px solid var(--line); overflow-y: auto; max-height: calc(100dvh - 214px); }
+.row { display: grid; gap: 8px; padding: 26px 27px; min-height: 138px; color: var(--ink); }
 .row:hover { background: var(--surface-2); text-decoration: none; }
 .row.on { background: var(--blue-soft); }
-.rowTitle { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row.on .rowTitle { color: var(--blue); }
-.rowTime { font-size: 12.5px; color: var(--ink-3); }
-
-.editor {
-  display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; min-width: 0;
-  border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface);
-}
-.editorHead { display: flex; align-items: center; gap: 8px; }
-/* Doubled classes beat the global input rule's specificity. */
-.editorHead input.title.title.title.title {
-  flex: 1 1 0; min-width: 0; padding-left: 6px; background: transparent;
-  font: 700 20px/1.3 var(--font-head);
-}
-.editorHead input.title.title.title.title:not(:hover):not(:focus) { border-color: transparent; }
-.editor textarea.body { min-height: 420px; padding-left: 6px; background: transparent; font-size: 15px; resize: none; }
-.editor textarea.body:not(:hover):not(:focus) { border-color: transparent; }
-
-@media (max-width: 760px) {
-  .wrap { grid-template-columns: minmax(0, 1fr); }
-  .list { max-height: 260px; }
-  .editor textarea.body { min-height: 300px; }
-}
+.rowTitle { font-weight: 500; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rowPreview, .rowTime { color: var(--ink-3); font-size: 14px; line-height: 1.4; }
+.rowPreview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.noNotes { color: var(--ink-3); padding: 28px; }
+.editor { display: flex; flex-direction: column; min-width: 0; background: var(--surface); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; min-height: 60px; padding: 10px 40px; border-bottom: 1px solid var(--line); color: var(--ink-3); }
+.tool { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 34px; height: 34px; padding: 6px; background: transparent; border: 0; border-radius: 5px; color: var(--ink-3); }
+.tool svg { width: 21px; height: 21px; stroke-width: 1.6; }
+.tool:hover, .tool[aria-pressed="true"] { color: var(--blue); background: var(--blue-soft); }
+.tool:disabled { opacity: .4; }
+.tool:focus-visible, .colorTool:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+.divider { height: 26px; width: 1px; background: var(--line); margin: 0 4px; }
+.stylePicker { position: relative; display: flex; align-items: center; width: 139px; flex: none; }
+.stylePicker select { width: 100%; appearance: none; border: 0; padding: 7px 24px 7px 3px; background: transparent; color: var(--ink-3); font-size: 15px; box-shadow: none; }
+.stylePicker svg { position: absolute; right: 5px; width: 15px; pointer-events: none; }
+.colorTool { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 5px; overflow: hidden; }
+.colorTool svg { width: 22px; height: 22px; stroke-width: 1.6; }
+.colorTool input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.saveStatus { margin-left: auto; padding: 4px 0 4px 12px; white-space: nowrap; font-size: 12px; color: var(--ink-3); }
+.saveStatus button { border: 0; background: none; color: var(--danger, var(--ink)); text-decoration: underline; padding: 0; }
+.document { padding: 38px 40px; flex: 1; min-width: 0; }
+.titleRow { display: flex; align-items: center; gap: 10px; margin-bottom: 27px; }
+.titleRow input.title.title.title.title { flex: 1; min-width: 0; border: 0; outline: none; box-shadow: none; padding: 0; height: auto; border-radius: 0; background: transparent; color: var(--ink); font: 700 42px/1.3 var(--font-head); }
+.titleRow input.title::placeholder { color: var(--ink-3); opacity: 1; }
+.titleRow :global(.icon-btn) { color: var(--ink-3); opacity: 0; }
+.titleRow:hover :global(.icon-btn), .titleRow:focus-within :global(.icon-btn), .titleRow :global(.icon-btn:focus-visible) { opacity: 1; }
+.bodyWrap { position: relative; min-height: 330px; }
+.prose { min-height: 330px; outline: none; color: var(--ink); font-size: 16px; line-height: 1.65; overflow-wrap: anywhere; }
+.prose p { margin: 0 0 12px; }
+.prose h1 { font-size: 30px; } .prose h2 { font-size: 24px; } .prose h3 { font-size: 20px; }
+.prose h1, .prose h2, .prose h3 { margin: 18px 0 10px; line-height: 1.3; }
+.prose ul { list-style: disc; padding-left: 24px; } .prose ol { list-style: decimal; padding-left: 24px; }
+.prose blockquote { border-left: 3px solid var(--line); padding-left: 18px; margin: 16px 0; color: var(--ink-2); }
+.prose pre { background: var(--surface-2); padding: 15px; border-radius: var(--radius); overflow-x: auto; }
+.prose a { color: var(--blue); text-decoration: underline; }
+.prose :global(ul[data-type="taskList"]) { padding-left: 0; list-style: none; }
+.prose :global(li[data-type="taskItem"]) { display: flex; gap: 9px; align-items: flex-start; }
+.prose :global(li[data-type="taskItem"] > label) { flex: none; padding-top: 3px; }
+.prose :global(li[data-type="taskItem"] > div) { min-width: 0; flex: 1; }
+.prose :global(li[data-type="taskItem"] input) { width: 16px; height: 16px; accent-color: var(--blue); }
+.placeholder { position: absolute; top: 0; left: 0; color: var(--ink-3); pointer-events: none; font-size: 16px; line-height: 1.65; }
+.insertWrap { position: relative; }
+.insertMenu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; width: 175px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); border-radius: var(--radius); padding: 5px; }
+.insertMenu button { display: flex; align-items: center; gap: 10px; background: transparent; border: 0; color: var(--ink); padding: 8px; width: 100%; text-align: left; border-radius: 4px; }
+.insertMenu button:hover { background: var(--surface-2); }
+.insertMenu svg { width: 17px; height: 17px; }
+.linkForm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.linkForm input { flex: 1; min-width: 160px; }
+.linkForm [role="alert"] { width: 100%; }
+.empty { padding: 65px 35px; color: var(--ink-3); text-align: center; }
+.empty > svg { width: 36px; height: 36px; margin: auto; }
+.empty h2 { color: var(--ink); font-size: 23px; margin: 15px 0; }
+@media (max-width: 1100px) { .document { padding: 28px; } .toolbar { padding: 8px 12px; } .saveStatus { width: 100%; padding-left: 4px; } .row { padding: 22px; } }
+@media (max-width: 700px) { .header { height: 78px; padding: 14px 18px; } .header :global(.btn) { min-height: 44px; } .wrap { grid-template-columns: minmax(0, 1fr); } .list { display: flex; max-height: 140px; border-right: 0; border-bottom: 1px solid var(--line); } .row { min-width: 210px; max-width: 260px; min-height: 126px; padding: 18px; } .document { padding: 24px 20px; } .titleRow input.title.title.title.title { font-size: 32px; } .titleRow :global(.icon-btn) { opacity: 1; } .toolbar { gap: 0; } .divider { margin: 0 2px; } .stylePicker { width: 120px; } }

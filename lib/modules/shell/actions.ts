@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_PINS, timerMinutes } from "./logic";
+import { newTicketAssignee } from "@/lib/modules/tickets/assignment";
 import type { PaletteItem, TicketOptions } from "./types";
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
@@ -193,7 +194,7 @@ export async function paletteData(): Promise<PaletteItem[]> {
   const t = tickets.error ? [] : ((tickets.data ?? []) as { key: string; title: string }[]);
   const c = clients.error ? [] : ((clients.data ?? []) as { id: string; name: string }[]);
   return [
-    ...t.map((x): PaletteItem => ({ section: "Tickets", label: `${x.key} ${x.title}`, href: `/t/${x.key}`, meta: "", icon: "Ticket" })),
+    ...t.map((x): PaletteItem => ({ section: "Task", label: `${x.key} ${x.title}`, href: `/t/${x.key}`, meta: "", icon: "Ticket" })),
     ...c.map((x): PaletteItem => ({ section: "Clients", label: x.name, href: `/clients/${x.id}`, meta: "", icon: "Building2" })),
   ];
 }
@@ -205,13 +206,13 @@ export async function newTicketOptions(): Promise<TicketOptions> {
   if (!me || me.kind !== "staff") return { projects: [], people: [], templates: [] };
   const supabase = await createClient();
   const [projects, people, templates] = await Promise.all([
-    supabase.from("projects").select("id, key, name").order("key"),
+    supabase.from("projects").select("*").order("key"),
     supabase.from("members").select("id, name").eq("kind", "staff").eq("status", "active").order("name"),
     supabase.from("templates").select("*").limit(100),
   ]);
   type Tpl = { id: string; title?: string; name?: string; priority?: string | null; due_in_days?: number | null; active?: boolean };
   return {
-    projects: projects.error ? [] : ((projects.data ?? []) as TicketOptions["projects"]),
+    projects: projects.error ? [] : (projects.data ?? []).map((project) => ({ id: project.id, key: project.key, name: project.name, createdBy: project.created_by ?? null })),
     people: (people.data ?? []) as TicketOptions["people"],
     templates: templates.error
       ? []
@@ -224,7 +225,7 @@ export async function newTicketOptions(): Promise<TicketOptions> {
 const NewTicket = z.object({
   title: z.string().trim().min(2).max(200),
   projectId: z.string().uuid(),
-  assigneeId: z.string().uuid().nullable(),
+  assigneeId: z.string().uuid().nullable().optional(),
   priority: z.enum(["urgent", "high", "normal", "low"]),
   due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
   description: z.string().max(10000),
@@ -240,6 +241,7 @@ export async function createTicket(raw: unknown): Promise<Result<{ key: string }
   if (!me || me.kind !== "staff") return NO;
   const d = input.data;
   const supabase = await createClient();
+  const assigneeId = await newTicketAssignee(supabase, d.projectId, d.assigneeId);
   const { data, error } = await supabase
     .from("tickets")
     .insert({
@@ -249,7 +251,7 @@ export async function createTicket(raw: unknown): Promise<Result<{ key: string }
       done_when: d.doneWhen || null,
       priority: d.priority,
       status: "todo",
-      assignee_id: d.assigneeId,
+      assignee_id: assigneeId,
       reporter_id: me.id,
       due_date: d.due,
       tags: d.tags,

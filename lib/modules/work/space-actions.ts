@@ -188,7 +188,7 @@ export async function createProjectTask(raw: unknown): Promise<{ ok: true; key: 
 }
 
 export async function setTicketType(raw: unknown): Promise<Result> {
-  const p = z.object({ ticketId: uuid, typeId: typeId.nullable() }).safeParse(raw);
+  const p = z.object({ ticketId: uuid, typeId: z.enum(["responsible", "accountable", "consulted", "informed"]) }).safeParse(raw);
   if (!p.success) return BAD;
   const me = await staff();
   if (!me || !can(me, "tickets.manage")) return NO;

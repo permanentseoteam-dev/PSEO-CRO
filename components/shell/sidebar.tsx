@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 import { ChevronDown, CircleUser, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Avatar, Seg, StatusDot, useToast } from "@/components/ui";
@@ -88,6 +89,7 @@ function ClockWidget({ sessions }: { sessions: ClockSession[] }) {
 }
 
 export function Sidebar(p: Props) {
+  const pathname = usePathname();
   const toast = useToast();
   const [, start] = useTransition();
   const status = PRESENCE.find((s) => s.value === p.me.presence) ?? PRESENCE[0];
@@ -167,10 +169,10 @@ export function Sidebar(p: Props) {
         {p.viewSwitch ? (
           <Seg
             label="Preview as"
-            value={p.portal ? "client" : "team"}
+            value={p.portal || pathname === "/clients/preview" ? "client" : "team"}
             items={[
               { value: "team", label: "Team view", href: "/home" },
-              { value: "client", label: "Client view", href: "/portal" },
+              { value: "client", label: "Client view", href: "/clients/preview" },
             ]}
           />
         ) : null}

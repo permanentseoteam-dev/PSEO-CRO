@@ -2,17 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageTitle } from "@/components/shell/page-title";
 import { requireMe, can } from "@/lib/auth/can";
-import { EmptyState, NoAccess, Priority, TicketStatusDot } from "@/components/ui";
+import { EmptyState, NoAccess } from "@/components/ui";
 import { getTicket, listPeople, listProjects } from "@/lib/modules/tickets/queries";
 import { markRead } from "@/lib/modules/tickets/actions";
+import { TASK_TYPES } from "@/lib/modules/work/space-logic";
+import { TypeField } from "../../projects/[key]/tasks/_components/type-field";
+import { SoftActions } from "../../projects/[key]/tasks/_components/soft-actions";
 import { todayIn } from "@/lib/modules/tickets/logic";
-import { TicketClientCard, TicketDependencies, TicketPeopleFields, TicketScopeCard } from "@/features/work-p2";
-import { DueLabel } from "../../tickets/_components/bits";
 import { HeaderActions, TicketTitle } from "./_components/header";
 import { Description } from "./_components/description";
-import { Checklist } from "./_components/checklist";
 import { Subtasks } from "./_components/subtasks";
-import { Review } from "./_components/review";
 import { Files } from "./_components/files";
 import { Activity } from "./_components/activity";
 import { SidePanel } from "./_components/side-panel";
@@ -52,7 +51,7 @@ export default async function TicketPage({ params }: Params) {
     <div className="page">
       <PageTitle title={t.key} />
       <nav className={s.crumb} aria-label="Breadcrumb">
-        <Link href="/tickets">Tickets</Link> /
+        <Link href="/tickets">Task</Link> /
         {t.project ? <><Link href={`/tickets?proj=${t.project.id}`}>{t.project.name}</Link> /</> : null}
         {t.parent ? <><Link href={`/t/${t.parent.key}`}>{t.parent.key}</Link> /</> : null}
         <span>{t.key}</span>
@@ -77,37 +76,21 @@ export default async function TicketPage({ params }: Params) {
           commentCount={t.comments.length}
         />
       </div>
-      <div className="row small">
-        <TicketStatusDot status={t.status} />
-        <Priority level={t.priority} />
-        <span className="muted">Due</span> <DueLabel due={t.due} status={t.status} today={today} />
-        {t.rounds.length ? <span className="muted">· {t.rounds.length} {t.rounds.length === 1 ? "revision" : "revisions"}</span> : null}
-      </div>
-
       <div className={s.split}>
         <div className="stack" style={{ gap: 16 }}>
           <Description id={t.id} description={t.description} doneWhen={t.doneWhen} canEdit={t.canEdit} />
-          <Checklist ticketId={t.id} items={t.checklist} canEdit={t.canEdit} />
-          {!t.parent ? <Subtasks parentId={t.id} items={t.subtasks} people={people} canEdit={t.canEdit} /> : null}
-          <TicketDependencies ticketId={t.id} />
-          <Review
-            ticketId={t.id}
-            status={t.status}
-            round={t.reviewRound}
-            rounds={t.rounds}
-            reviewerId={t.reviewerId}
-            meId={me.id}
-            people={people}
-            canEdit={t.canEdit}
-            canModerate={t.canModerate}
-          />
-          <TicketClientCard ticketId={t.id} />
-          <Files ticketId={t.id} files={t.attachments} canDelete={t.canEdit} />
+          {!t.parent ? <div id="tp-subtasks"><Subtasks key={t.id} parentId={t.id} items={t.subtasks} people={people} canEdit={t.canEdit} defaultAssigneeId={t.project?.createdBy} /></div> : null}
+          <div id="tp-files"><Files ticketId={t.id} files={t.attachments} canDelete={t.canEdit} /></div>
           <Activity ticketId={t.id} comments={t.comments} history={t.history} names={names} meId={me.id} canModerate={t.canModerate} />
         </div>
         <aside className="stack" style={{ gap: 16 }}>
-          <SidePanel t={t} people={people} projects={projects} today={today} peopleFields={<TicketPeopleFields ticketId={t.id} />} />
-          <TicketScopeCard ticketId={t.id} />
+          <SidePanel
+            t={t}
+            people={people}
+            today={today}
+            typeField={<TypeField ticketId={t.id} typeId={t.typeId} types={TASK_TYPES} canEdit={t.canEdit} />}
+            shortcutActions={<SoftActions canEdit={t.canEdit} hasSubtasks={!t.parent} />}
+          />
         </aside>
       </div>
     </div>

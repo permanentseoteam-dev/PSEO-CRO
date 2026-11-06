@@ -584,7 +584,7 @@ export function ChatApp(props: Props) {
           </span>
         ) : null}
         {count ? (
-          <b className={s.unr} aria-label={`${count} unread${c.mentions ? ", mentions you" : ""}`}>
+          <b key={c.mentions} className={cn(s.unr, c.mentions > 0 && s.mentionAlert)} aria-label={`${count} unread${c.mentions ? ", mentions you" : ""}`}>
             {c.mentions ? "@ " : ""}
             {count}
           </b>

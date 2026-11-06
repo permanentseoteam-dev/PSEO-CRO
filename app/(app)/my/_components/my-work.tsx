@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react";
 import { Avatar, Button, Card, Checkbox, Priority, Seg, Table, Td, Th, TicketStatusDot } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { dueLabel, fmtShort, GROUPS, groupTickets, inView, lastDone, metaLine, VIEWS } from "@/lib/modules/home/logic";
+import { TicketBoard, type BoardTicket } from "../../tickets/_components/ticket-board";
 import type { MyTicket, View } from "@/lib/modules/home/types";
 
 function Row({ t, today }: { t: MyTicket; today: string }) {
@@ -96,7 +97,8 @@ function Group({ id, label, rows, today, empty }: { id: string; label: string; r
   );
 }
 
-export function MyWork({ tickets, meId, today, initialView }: { tickets: MyTicket[]; meId: string; today: string; initialView: View }) {
+export function MyWork({ tickets, meId, today, initialView, initialLayout = "list", canEdit = false }: { tickets: MyTicket[]; meId: string; today: string; initialView: View; initialLayout?: "list" | "board"; canEdit?: boolean }) {
+  const [layout, setLayout] = useState<"list" | "board">(initialLayout);
   const [view, setView] = useState<View>(initialView);
   const [q, setQ] = useState("");
   const [showDone, setShowDone] = useState(false);
@@ -106,17 +108,33 @@ export function MyWork({ tickets, meId, today, initialView }: { tickets: MyTicke
     .filter((t) => inView(t, view, meId))
     .filter((t) => !needle || `${t.key} ${t.title} ${t.projectName ?? ""}`.toLowerCase().includes(needle));
   const groups = groupTickets(list, today);
+  const names = Object.fromEntries(tickets.filter((t) => t.assigneeId && t.assigneeName).map((t) => [t.assigneeId!, t.assigneeName!]));
+  const boardRows: BoardTicket[] = [...list.filter((t) => t.status !== "done"), ...(showDone ? lastDone(list) : [])].map((t) => ({
+    id: t.id, key: t.key, title: t.title, status: t.status, priority: t.priority,
+    assigneeId: t.assigneeId, coAssigneeIds: [], due: t.due, checkDone: t.checklistDone, checkTotal: t.checklistTotal,
+  }));
 
+  const updateUrl = (nextView: View, nextLayout: "list" | "board") => {
+    const params = new URLSearchParams();
+    if (nextView !== "assigned") params.set("view", nextView);
+    if (nextLayout === "board") params.set("layout", "board");
+    window.history.replaceState(null, "", params.size ? "/my?" + params : "/my");
+  };
   const pick = (v: string) => {
     setView(v as View);
-    window.history.replaceState(null, "", v === "assigned" ? "/my" : `/my?view=${v}`);
+    updateUrl(v as View, layout);
+  };
+  const pickLayout = (v: string) => {
+    const next = v === "board" ? "board" : "list";
+    setLayout(next);
+    updateUrl(view, next);
   };
 
   return (
     <div className="page">
       <div className="row between">
         <Seg
-          label="Which tickets"
+          label="Which tasks"
           value={view}
           onChange={pick}
           items={VIEWS.map(([v, label]) => ({
@@ -125,23 +143,28 @@ export function MyWork({ tickets, meId, today, initialView }: { tickets: MyTicke
             count: tickets.filter((t) => t.status !== "done" && inView(t, v, meId)).length,
           }))}
         />
-        <Button
-          variant="primary"
-          onClick={() => document.querySelector<HTMLButtonElement>("button.new-ticket")?.click()}
-        >
-          New ticket
-        </Button>
+        <div className="row">
+          <Seg label="My work layout" value={layout} onChange={pickLayout} items={[{ value: "list", label: "List" }, { value: "board", label: "Board" }]} />
+          <Button
+            variant="primary"
+            onClick={() => document.querySelector<HTMLButtonElement>("button.new-ticket")?.click()}
+          >
+            New task
+          </Button>
+        </div>
       </div>
       <div className="toolbar">
-        <input type="search" placeholder="Search my tickets" aria-label="Search my tickets" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Checkbox label="Show done tickets" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} />
+        <input type="search" placeholder="Search my tasks" aria-label="Search my tasks" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Checkbox label="Show done tasks" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} />
       </div>
-      <div className="stack gap-4!">
-        {GROUPS.map(([g, label]) => (
-          <Group key={g} id={g} label={label} rows={groups[g]} today={today} empty="Nothing here." />
-        ))}
-        {showDone ? <Group id="done" label="Done, last 40" rows={lastDone(list)} today={today} empty="No done tickets yet." /> : null}
-      </div>
+      {layout === "board" ? <TicketBoard rows={boardRows} names={names} today={today} canEdit={canEdit} /> : (
+        <div className="stack gap-4!">
+          {GROUPS.map(([g, label]) => (
+            <Group key={g} id={g} label={label} rows={groups[g]} today={today} empty="Nothing here." />
+          ))}
+          {showDone ? <Group id="done" label="Done, last 40" rows={lastDone(list)} today={today} empty="No done tickets yet." /> : null}
+        </div>
+      )}
     </div>
   );
 }

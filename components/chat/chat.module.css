@@ -29,6 +29,8 @@
 .chIc { position: relative; width: 22px; display: inline-flex; justify-content: center; color: var(--ink-3); flex: none; }
 .flag { color: var(--ink-3); display: inline-flex; }
 .unr { color: var(--accent); font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.unr.mentionAlert { display: inline-block; padding: 1px 6px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); animation: chmention 600ms ease-in-out 3; }
+@keyframes chmention { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-4px); } 65% { transform: translateY(-1px); } }
 .pres { position: absolute; right: -3px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface-2); background: var(--ink-3); }
 .pres.online { background: var(--ok); }
 .pres.away { background: var(--warn); }
@@ -62,7 +64,7 @@
 .msg { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 6px 16px; }
 .msg.grp { padding-top: 1px; padding-bottom: 3px; }
 .msg:hover, .msg.menuOpen { background: var(--surface-2); }
-.msg.mentioned { background: var(--danger-soft); box-shadow: inset 3px 0 0 var(--danger); }
+.msg.mentioned { background: var(--warn-soft); box-shadow: inset 3px 0 0 var(--warn); }
 .msg.flash { animation: chflash 1.8s ease-out; }
 @keyframes chflash { from { background: var(--accent-soft); } to { background: transparent; } }
 .msgT { display: block; visibility: hidden; font-size: 11px; color: var(--ink-3); text-align: right; padding-top: 3px; }
@@ -129,7 +131,7 @@
 .dots i:nth-child(2) { animation-delay: .15s; }
 .dots i:nth-child(3) { animation-delay: .3s; }
 @keyframes chdot { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
-@media (prefers-reduced-motion: reduce) { .dots i, .msg.flash { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .dots i, .msg.flash, .unr.mentionAlert { animation: none; } }
 .comp { position: relative; margin: 0 16px 14px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface); }
 .comp:focus-within { border-color: var(--accent); }
 .comp textarea {

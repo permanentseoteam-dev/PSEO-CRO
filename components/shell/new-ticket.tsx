@@ -13,7 +13,7 @@ const addDays = (n: number) => {
   return d.toLocaleDateString("en-CA"); // yyyy-mm-dd, local
 };
 
-export function NewTicketDialog({ open, onClose, options, meId }: { open: boolean; onClose: () => void; options: TicketOptions | null; meId: string }) {
+export function NewTicketDialog({ open, onClose, options }: { open: boolean; onClose: () => void; options: TicketOptions | null; meId: string }) {
   const toast = useToast();
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
@@ -22,6 +22,11 @@ export function NewTicketDialog({ open, onClose, options, meId }: { open: boolea
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("normal");
   const [due, setDue] = useState("");
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [assignee, setAssignee] = useState<string | null>(null);
+  const selectedProject = options?.projects.find((project) => project.id === (projectId ?? options.projects[0]?.id));
+  const creatorId = selectedProject?.createdBy;
+  const defaultAssignee = options?.people.some((person) => person.id === creatorId) ? creatorId ?? "" : "";
 
   const pickTemplate = (id: string) => {
     const t = options?.templates.find((x) => x.id === id);
@@ -36,6 +41,8 @@ export function NewTicketDialog({ open, onClose, options, meId }: { open: boolea
     setTitle("");
     setPriority("normal");
     setDue("");
+    setProjectId(null);
+    setAssignee(null);
     onClose();
   };
 
@@ -103,7 +110,7 @@ export function NewTicketDialog({ open, onClose, options, meId }: { open: boolea
               <Input id="nt-title" required minLength={2} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Fix crawl errors on service pages" />
             </Field>
             <Field label="Project" htmlFor="nt-proj" hint={noProjects ? "Create a project first." : undefined}>
-              <Select id="nt-proj" name="project" required>
+              <Select id="nt-proj" name="project" required value={selectedProject?.id ?? ""} onChange={(event) => setProjectId(event.target.value)}>
                 {options.projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.key} · {p.name}
@@ -112,7 +119,7 @@ export function NewTicketDialog({ open, onClose, options, meId }: { open: boolea
               </Select>
             </Field>
             <Field label="Assignee" htmlFor="nt-asg">
-              <Select id="nt-asg" name="assignee" defaultValue={meId}>
+              <Select id="nt-asg" name="assignee" value={assignee ?? defaultAssignee} onChange={(event) => setAssignee(event.target.value)}>
                 <option value="">Unassigned</option>
                 {options.people.map((p) => (
                   <option key={p.id} value={p.id}>

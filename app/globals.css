@@ -139,6 +139,9 @@
 
 @layer base {
 *, *::before, *::after { box-sizing: border-box; }
+/* Keep every scroll surface functional while removing browser scrollbar chrome. */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
@@ -179,7 +182,6 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
   position: sticky; top: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
   background: var(--side-bg); color: var(--side-ink); border-right: 1px solid var(--side-line);
   display: flex; flex-direction: column; gap: 10px; padding: 14px 10px;
-  scrollbar-width: thin; scrollbar-color: var(--side-active) transparent;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 2px 4px 6px; }
 .brand-mark { flex: none; width: 32px; height: 32px; }

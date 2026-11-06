@@ -19,7 +19,7 @@ export const STAFF_NAV: NavGroup[] = [
     name: "Work",
     label: "Work",
     items: [
-      { href: "/tickets", title: "Tickets", icon: "Ticket" },
+      { href: "/tickets", title: "Task", icon: "Ticket" },
       { href: "/projects", title: "Projects", icon: "FolderKanban" },
       { href: "/reviews", title: "Reviews", icon: "ClipboardCheck" },
       { href: "/templates", title: "Templates", icon: "LayoutTemplate" },

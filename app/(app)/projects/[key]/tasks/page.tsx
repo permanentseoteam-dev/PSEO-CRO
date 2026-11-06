@@ -3,14 +3,12 @@ import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { requireMe, can } from "@/lib/auth/can";
 import { NoAccess } from "@/components/ui";
-import { getTicket, listPeople, listProjects } from "@/lib/modules/tickets/queries";
+import { getTicket, listPeople } from "@/lib/modules/tickets/queries";
 import { markRead } from "@/lib/modules/tickets/actions";
 import { todayIn } from "@/lib/modules/tickets/logic";
 import { getProjectSpace, listProjectTasks } from "@/lib/modules/work/space";
-import { TicketPeopleFields } from "@/features/work-p2";
 import { TicketTitle } from "../../../t/[key]/_components/header";
 import { Description } from "../../../t/[key]/_components/description";
-import { Checklist } from "../../../t/[key]/_components/checklist";
 import { Subtasks } from "../../../t/[key]/_components/subtasks";
 import { Files } from "../../../t/[key]/_components/files";
 import { Activity } from "../../../t/[key]/_components/activity";
@@ -36,11 +34,10 @@ export default async function ProjectTasksPage({ params, searchParams }: Props) 
   const view = sp.view === "kanban" ? "kanban" : "table";
   const taskKey = typeof sp.task === "string" && /^[A-Za-z]{2,8}-\d{1,7}$/.test(sp.task) ? sp.task.toUpperCase() : null;
 
-  const [tasks, t, people, projects] = await Promise.all([
+  const [tasks, t, people] = await Promise.all([
     listProjectTasks(space.id),
     taskKey ? getTicket(taskKey, me) : null,
     taskKey ? listPeople() : [],
-    taskKey ? listProjects() : [],
   ]);
   if (t) await markRead(t.id);
   const today = todayIn();
@@ -69,22 +66,15 @@ export default async function ProjectTasksPage({ params, searchParams }: Props) 
                 <SidePanel
                   t={t}
                   people={people}
-                  projects={projects}
                   today={today}
-                  peopleFields={
-                    <>
-                      <TypeField ticketId={t.id} typeId={tasks.find((x) => x.id === t.id)?.typeId ?? null} types={space.config.taskTypes} canEdit={t.canEdit} />
-                      <TicketPeopleFields ticketId={t.id} />
-                    </>
-                  }
+                  typeField={<TypeField ticketId={t.id} typeId={t.typeId} types={space.config.taskTypes} canEdit={t.canEdit} />}
+                  shortcutActions={<SoftActions canEdit={t.canEdit} hasSubtasks={!t.parent} />}
                 />
                 </div>
-                <SoftActions ticketId={t.id} canEdit={t.canEdit} hasSubtasks={!t.parent} />
                 <Description id={t.id} description={t.description} doneWhen={t.doneWhen} canEdit={t.canEdit} />
-                <Checklist ticketId={t.id} items={t.checklist} canEdit={t.canEdit} />
                 {!t.parent ? (
                   <div id="tp-subtasks">
-                    <Subtasks parentId={t.id} items={t.subtasks} people={people} canEdit={t.canEdit} />
+                    <Subtasks key={t.id} parentId={t.id} items={t.subtasks} people={people} canEdit={t.canEdit} defaultAssigneeId={t.project?.createdBy} />
                   </div>
                 ) : null}
                 <div id="tp-files">

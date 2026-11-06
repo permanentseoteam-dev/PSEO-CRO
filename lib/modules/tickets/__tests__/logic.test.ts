@@ -25,12 +25,18 @@ const ctx = { meId: ME, teamIds: [ME, "m3"], today: TODAY };
 const f = (sp: Record<string, string>) => parseFilters(sp, TODAY);
 
 describe("parseFilters / toQuery", () => {
+  it("defaults to Board while preserving explicit List links", () => {
+    expect(f({}).view).toBe("board");
+    expect(toQuery(f({}))).toBe("");
+    expect(f({ view: "list" }).view).toBe("list");
+    expect(f(Object.fromEntries(new URLSearchParams(toQuery(f({ view: "list" }))))).view).toBe("list");
+  });
   it("falls back to defaults on bad values", () => {
     const x = f({ view: "nope", st: "x", sort: "y", month: "2026-13-1" });
-    expect(x).toMatchObject({ view: "list", st: "active", sort: "due", month: "2026-11" });
+    expect(x).toMatchObject({ view: "board", st: "active", sort: "due", month: "2026-11" });
   });
   it("round-trips and drops defaults", () => {
-    expect(toQuery(f({ st: "done", q: "seo", view: "list" }))).toBe("st=done&q=seo");
+    expect(toQuery(f({ st: "done", q: "seo", view: "list" }))).toBe("view=list&st=done&q=seo");
     expect(toQuery({ ...f({ view: "cal" }), month: "2026-12" })).toBe("view=cal&month=2026-12");
   });
 });

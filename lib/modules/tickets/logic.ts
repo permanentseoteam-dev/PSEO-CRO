@@ -41,7 +41,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>, 
   };
   const month = /^\d{4}-\d{2}$/.test(s("month")) ? s("month") : today.slice(0, 7);
   return {
-    view: oneOf<View>(s("view"), ["list", "board", "cal"], "list"),
+    view: oneOf<View>(s("view"), ["list", "board", "cal"], "board"),
     st: oneOf<StatusTab>(s("st"), ["active", ...STATUSES], "active"),
     q: s("q").slice(0, 100),
     who: s("who"),
@@ -56,7 +56,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>, 
 }
 
 const DEFAULTS: Omit<Filters, "month"> = {
-  view: "list", st: "active", q: "", who: "", pri: "", due: "", tag: "", proj: "", group: "", sort: "due",
+  view: "board", st: "active", q: "", who: "", pri: "", due: "", tag: "", proj: "", group: "", sort: "due",
 };
 
 /** Query string for filters, leaving out defaults. `month` is kept only on the calendar. */

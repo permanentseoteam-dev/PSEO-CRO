@@ -60,8 +60,8 @@ export async function listPeople(): Promise<Person[]> {
 
 export async function listProjects(): Promise<ProjectOpt[]> {
   const db = await createClient();
-  const res = await db.from("projects").select("id, key, name").order("key");
-  return rows(res).map((p) => ({ id: p.id, key: p.key, name: p.name }));
+  const res = await db.from("projects").select("*").order("key");
+  return rows(res).map((p) => ({ id: p.id, key: p.key, name: p.name, createdBy: p.created_by ?? null }));
 }
 
 /** People in my team for the "My team" filter: my department plus my direct reports. */
@@ -103,7 +103,7 @@ export async function getTicket(key: string, me: Me): Promise<TicketDetail | nul
     db.from("ticket_reads").select("member_id, read_at").eq("ticket_id", id),
     db.from("time_entries").select("minutes").eq("ticket_id", id),
     db.from("timers").select("id, ticket_id, started_at").eq("member_id", me.id).maybeSingle(),
-    t.project_id ? db.from("projects").select("id, key, name").eq("id", t.project_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    t.project_id ? db.from("projects").select("*").eq("id", t.project_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     t.parent_id ? db.from("tickets").select("key, title").eq("id", t.parent_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
 
@@ -137,6 +137,7 @@ export async function getTicket(key: string, me: Me): Promise<TicketDetail | nul
   );
 
   return {
+    typeId: t.type_id ?? null,
     id,
     key: t.key,
     title: t.title,
@@ -150,7 +151,7 @@ export async function getTicket(key: string, me: Me): Promise<TicketDetail | nul
     reviewerId: t.reviewer_id,
     reviewRound: t.review_round ?? 0,
     projectId: t.project_id,
-    project: project.data ? { id: project.data.id, key: project.data.key, name: project.data.name } : null,
+    project: project.data ? { id: project.data.id, key: project.data.key, name: project.data.name, createdBy: project.data.created_by ?? null } : null,
     parent: parent.data ? { key: parent.data.key, title: parent.data.title } : null,
     due: t.due_date,
     start: t.start_date,

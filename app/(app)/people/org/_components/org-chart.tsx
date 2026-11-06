@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Maximize, Minus, Plus } from "lucide-react";
 import { Avatar, Button, Card, CardBody, CardHead, Dialog, Field, FormGrid, Input, Select, useToast } from "@/components/ui";
 import { searchOrg, type OrgNode } from "@/lib/modules/team/logic";
 import { cn } from "@/lib/utils";
 import { AvatarDot } from "../../_components/avatar-dot";
 import { placePerson } from "../../actions";
+import s from "./org-chart.module.css";
 
 type Unplaced = { id: string; name: string; title: string | null; reason: string };
 type Option = { id: string; name: string };
@@ -28,6 +29,24 @@ export function OrgChart({ roots, unplaced, people, canPlace }: { roots: OrgNode
   const [placing, setPlacing] = useState<Unplaced | null>(null);
   const { hits, open } = useMemo(() => searchOrg(roots, q), [roots, q]);
   const firstHit = useRef<HTMLDivElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const fit = useCallback(() => {
+    const view = viewport.current;
+    const chart = canvas.current;
+    if (!view || !chart) return;
+    setZoom(Math.max(0.25, Math.min(1, (view.clientWidth - 16) / chart.offsetWidth, (view.clientHeight - 16) / chart.offsetHeight)));
+    view.scrollTo({ left: 0, top: 0 });
+  }, []);
+
+  useEffect(() => {
+    if (!viewport.current) return;
+    const observer = new ResizeObserver(fit);
+    observer.observe(viewport.current);
+    return () => observer.disconnect();
+  }, [fit]);
 
   const firstId = hits.values().next().value;
 
@@ -41,43 +60,43 @@ export function OrgChart({ roots, unplaced, people, canPlace }: { roots: OrgNode
     const isClosed = closed.has(p.id) && !open.has(p.id) && n.children.length > 0;
     const hit = hits.has(p.id);
     return (
-      <li key={p.id} className="my-1.5">
+      <li key={p.id} className={s.branch}>
         <div
           ref={p.id === firstId ? firstHit : undefined}
-          className={cn(
-            "flex max-w-[460px] items-center gap-2.5 rounded-[var(--radius)] border bg-surface px-2.5 py-2",
-            hit ? "border-accent bg-accent-soft" : "border-line",
-          )}
+          className={cn(s.person, hit && s.hit)}
         >
-          {n.children.length ? (
-            <button
-              type="button"
-              className="icon-btn"
-              aria-expanded={!isClosed}
-              aria-label={`${isClosed ? "Open" : "Fold"} ${p.name}'s team`}
-              onClick={() =>
-                setClosed((c) => {
-                  const next = new Set(c);
-                  if (next.has(p.id)) next.delete(p.id);
-                  else next.add(p.id);
-                  return next;
-                })
-              }
-            >
-              <ChevronDown className={cn("transition-transform", isClosed && "-rotate-90")} />
-            </button>
-          ) : (
-            <span className="w-7 flex-none" />
-          )}
-          <AvatarDot name={p.name} size={36} presence={p.presence} />
-          <div className="min-w-0 flex-1">
-            <b>{p.name}</b>
-            <div className="small muted">{[p.title, p.department].filter(Boolean).join(" · ")}</div>
+          <div className={s.personInfo}>
+            <AvatarDot name={p.name} size={40} presence={p.presence} />
+            <div className="min-w-0 flex-1">
+              <b>{p.name}</b>
+              <div className="small muted">{p.title || "Title not set"}</div>
           </div>
-          {n.teamSize ? <span className="small muted whitespace-nowrap">{n.teamSize} in team</span> : null}
+          </div>
+          <div className={s.personFoot}>
+            <span className="small muted">{p.department || "No department"}</span>
+            {n.children.length ? (
+              <button
+                type="button"
+                className={s.teamToggle}
+                aria-expanded={!isClosed}
+                aria-label={`${isClosed ? "Open" : "Fold"} ${p.name}'s team`}
+                onClick={() =>
+                  setClosed((c) => {
+                    const next = new Set(c);
+                    if (next.has(p.id)) next.delete(p.id);
+                    else next.add(p.id);
+                    return next;
+                  })
+                }
+              >
+                <span className="small">{n.teamSize} in team</span>
+                <ChevronDown className={cn("size-4 transition-transform", isClosed && "-rotate-90")} />
+              </button>
+            ) : <span className="small muted">Individual</span>}
+          </div>
         </div>
         {n.children.length && !isClosed ? (
-          <ul className="ml-[22px] list-none border-l border-line p-0 pl-3.5">{n.children.map(node)}</ul>
+          <ul className={s.children}>{n.children.map(node)}</ul>
         ) : null}
       </li>
     );
@@ -99,11 +118,45 @@ export function OrgChart({ roots, unplaced, people, canPlace }: { roots: OrgNode
         </Button>
       </div>
 
-      <div className="grid items-start gap-5 min-[901px]:grid-cols-[1fr_300px]">
+      <div className={s.layout}>
         <Card>
-          <CardBody className="overflow-x-auto">
-            {roots.length ? <ul className="m-0 list-none p-0">{roots.map(node)}</ul> : <p className="muted">No reporting lines yet.</p>}
-          </CardBody>
+          <CardHead title="Reporting structure" actions={roots.length ? (
+            <div className={s.controls}>
+              <button type="button" className="icon-btn sm" aria-label="Zoom out" disabled={zoom <= 0.25} onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))}><Minus /></button>
+              <output aria-label="Chart zoom" className="small muted">{Math.round(zoom * 100)}%</output>
+              <button type="button" className="icon-btn sm" aria-label="Zoom in" disabled={zoom >= 1.5} onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}><Plus /></button>
+              <Button size="sm" variant="ghost" onClick={fit}><Maximize className="size-4" /> Fit</Button>
+            </div>
+          ) : undefined} />
+          {roots.length ? <>
+            <p className={s.hint} id="org-pan-hint">Drag the canvas or scroll to explore. Use arrow keys when the chart is focused.</p>
+            <div
+              ref={viewport}
+              className={s.viewport}
+              role="region"
+              aria-label="Organization reporting chart"
+              aria-describedby="org-pan-hint"
+              tabIndex={0}
+              onPointerDown={(e) => {
+                if (e.button !== 0 || e.pointerType === "touch" || (e.target as HTMLElement).closest("button")) return;
+                const view = e.currentTarget;
+                drag.current = { x: e.clientX, y: e.clientY, left: view.scrollLeft, top: view.scrollTop };
+                view.setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (!drag.current) return;
+                e.currentTarget.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
+                e.currentTarget.scrollTop = drag.current.top - (e.clientY - drag.current.y);
+              }}
+              onPointerUp={() => { drag.current = null; }}
+              onPointerCancel={() => { drag.current = null; }}
+              onLostPointerCapture={() => { drag.current = null; }}
+            >
+              <div ref={canvas} className={s.canvas} style={{ zoom }}>
+                <ul className={s.roots}>{roots.map(node)}</ul>
+              </div>
+            </div>
+          </> : <CardBody><p className="muted">No reporting lines yet.</p></CardBody>}
         </Card>
         <Card>
           <CardHead title="Not placed yet" actions={<b>{unplaced.length}</b>} />

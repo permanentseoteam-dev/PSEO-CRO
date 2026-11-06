@@ -33,7 +33,7 @@ export function ToolsShell({ projectKey, children }: { projectKey: string; child
   ];
 
   return (
-    <div className={cn(s.shell, hidden && s.hidden)}>
+    <div className={cn(s.shell, hidden && s.hidden, pathname.endsWith("/notes") && s.notesShell)}>
       {hidden ? (
         <button type="button" className={s.show} onClick={() => toggle(false)} aria-label="Show tools" title="Show tools">
           <ChevronRight />

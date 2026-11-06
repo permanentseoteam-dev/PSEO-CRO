@@ -3,7 +3,13 @@ import type { ConfigMode, StatusKey, TaskType, WorkConfig } from "./space-types"
 
 export const STATUS_KEYS: StatusKey[] = ["todo", "in_progress", "in_review", "blocked", "done"];
 
-/** Same defaults as the seed row in 0213_project_space.sql. */
+/** Fixed RACI options; legacy workspace/project custom types cannot add choices. */
+export const TASK_TYPES: TaskType[] = [
+  { id: "responsible", name: "Responsible", color: "#ef4444" },
+  { id: "accountable", name: "Accountable", color: "#3b82f6" },
+  { id: "consulted", name: "Consulted", color: "#eab308" },
+  { id: "informed", name: "Informed", color: "#22c55e" },
+];
 export const DEFAULT_WORK_CONFIG: WorkConfig = {
   statuses: {
     todo: { label: "New task", emoji: "✉️" },
@@ -12,16 +18,7 @@ export const DEFAULT_WORK_CONFIG: WorkConfig = {
     blocked: { label: "Blocked", emoji: "⛔" },
     done: { label: "Completed", emoji: "✅" },
   },
-  taskTypes: [
-    { id: "operational", name: "Operational", color: "#cfe3ff" },
-    { id: "strategic", name: "Strategic", color: "#e3d7ff" },
-    { id: "technical", name: "Technical", color: "#d4f0e7" },
-    { id: "planning", name: "Planning", color: "#fff1c7" },
-    { id: "content", name: "Content", color: "#ffd9e1" },
-    { id: "seo", name: "SEO", color: "#d8f3c9" },
-    { id: "design", name: "Design", color: "#ffe0cc" },
-    { id: "learning", name: "Learning", color: "#d6eef7" },
-  ],
+  taskTypes: TASK_TYPES,
   eventTypes: [
     { id: "meeting", name: "Meeting", color: "#cfe3ff" },
     { id: "phone_call", name: "Phone call", color: "#d4f0e7" },
@@ -42,7 +39,8 @@ function typeList(v: unknown): TaskType[] | null {
  * (per status label/emoji, or a whole type list) over the workspace's; anything missing or malformed falls back.
  */
 export function effectiveConfig(workspace: WorkConfig, mode: ConfigMode, projectConfig: unknown): WorkConfig {
-  if (mode !== "custom" || !projectConfig || typeof projectConfig !== "object") return workspace;
+  const base = workspace.taskTypes === TASK_TYPES ? workspace : { ...workspace, taskTypes: TASK_TYPES };
+  if (mode !== "custom" || !projectConfig || typeof projectConfig !== "object") return base;
   const p = projectConfig as Record<string, unknown>;
   const ps = (p.statuses && typeof p.statuses === "object" ? p.statuses : {}) as Record<string, Record<string, unknown> | undefined>;
   const statuses = {} as WorkConfig["statuses"];
@@ -55,7 +53,7 @@ export function effectiveConfig(workspace: WorkConfig, mode: ConfigMode, project
   }
   return {
     statuses,
-    taskTypes: typeList(p.taskTypes) ?? workspace.taskTypes,
+    taskTypes: TASK_TYPES,
     eventTypes: typeList(p.eventTypes) ?? workspace.eventTypes,
   };
 }

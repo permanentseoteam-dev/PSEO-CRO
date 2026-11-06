@@ -30,10 +30,10 @@ export type ShellData = {
   timer: RunningTimer | null;
 };
 
-export type PaletteItem = { section: "Pages" | "Tickets" | "Clients"; label: string; href: string; meta: string; icon: string };
+export type PaletteItem = { section: "Pages" | "Task" | "Clients"; label: string; href: string; meta: string; icon: string };
 
 export type TicketOptions = {
-  projects: { id: string; key: string; name: string }[];
+  projects: { id: string; key: string; name: string; createdBy?: string | null }[];
   people: { id: string; name: string }[];
   templates: { id: string; title: string; priority: string | null; dueInDays: number | null }[];
 };

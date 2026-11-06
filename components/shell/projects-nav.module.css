@@ -1,11 +1,8 @@
 .wrap { position: relative; }
 
-.head { display: flex; align-items: center; gap: 2px; }
-.wrap .label { justify-content: flex-start; gap: 6px; flex: 1; }
-.label svg { transition: transform .15s; }
-.closed svg { transform: rotate(-90deg); }
+.head { display: block; }
 
-.menuWrap { position: relative; }
+.menuWrap { position: relative; display: flex; justify-content: flex-end; padding-right: 6px; }
 .menu {
   position: absolute; z-index: 60; top: calc(100% + 4px); right: 0; min-width: 176px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;

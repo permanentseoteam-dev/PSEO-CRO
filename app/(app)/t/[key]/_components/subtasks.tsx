@@ -8,7 +8,7 @@ import { addSubtask } from "@/lib/modules/tickets/actions";
 import type { Person, Subtask } from "@/lib/modules/tickets/types";
 import s from "./ticket.module.css";
 
-export function Subtasks({ parentId, items, people, canEdit }: { parentId: string; items: Subtask[]; people: Person[]; canEdit: boolean }) {
+export function Subtasks({ parentId, items, people, canEdit, defaultAssigneeId }: { parentId: string; items: Subtask[]; people: Person[]; canEdit: boolean; defaultAssigneeId?: string | null }) {
   const toast = useToast();
   const router = useRouter();
   const [adding, setAdding] = useState(false);
@@ -37,7 +37,7 @@ export function Subtasks({ parentId, items, people, canEdit }: { parentId: strin
         {adding ? (
           <form className="row" onSubmit={add} style={{ marginBottom: 8 }}>
             <input name="title" required minLength={2} maxLength={200} placeholder="Subtask title" aria-label="Subtask title" style={{ flex: "1 1 200px" }} autoFocus />
-            <select name="assignee" aria-label="Assignee" defaultValue="" style={{ width: "auto" }}>
+            <select name="assignee" aria-label="Assignee" defaultValue={people.some((person) => person.id === defaultAssigneeId) ? defaultAssigneeId ?? "" : ""} style={{ width: "auto" }}>
               <option value="">Unassigned</option>
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>

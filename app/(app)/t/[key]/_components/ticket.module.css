@@ -38,3 +38,8 @@
 .round summary { cursor: pointer; font-size: 14px; color: var(--ink); }
 .reviewer { border-top: 1px solid var(--line); padding-top: 12px; }
 .timer { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent-ink); }
+
+.moreActions { position: relative; }
+.moreActions > summary { list-style: none; cursor: pointer; }
+.moreActions > summary::-webkit-details-marker { display: none; }
+.moreMenu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; gap: 4px; min-width: 160px; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lg); }

@@ -11,12 +11,17 @@ import type { Person, ProjectOpt } from "@/lib/modules/tickets/types";
 type Template = { id: string; title: string; priority: string | null; dueInDays: number | null };
 type Props = { meId: string; people: Person[]; projects: ProjectOpt[]; templates: Template[]; today: string; defaultProject?: string };
 
-export function NewTicketButton({ meId, people, projects, templates, today, defaultProject }: Props) {
+export function NewTicketButton({ people, projects, templates, today, defaultProject }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [tpl, setTpl] = useState("");
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [assignee, setAssignee] = useState<string | null>(null);
+  const selectedProjectId = projectId ?? defaultProject ?? projects[0]?.id ?? "";
+  const creatorId = projects.find((project) => project.id === selectedProjectId)?.createdBy;
+  const defaultAssignee = people.some((person) => person.id === creatorId) ? creatorId ?? "" : "";
   const chosen = templates.find((t) => t.id === tpl);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -47,7 +52,7 @@ export function NewTicketButton({ meId, people, projects, templates, today, defa
 
   return (
     <>
-      <Button variant="primary" onClick={() => setOpen(true)}>New ticket</Button>
+      <Button variant="primary" onClick={() => { setProjectId(null); setAssignee(null); setOpen(true); }}>New ticket</Button>
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
@@ -74,13 +79,13 @@ export function NewTicketButton({ meId, people, projects, templates, today, defa
               <Input id="tk-new-title" name="title" required minLength={2} maxLength={200} placeholder="What needs doing?" defaultValue={chosen?.title ?? ""} />
             </Field>
             <Field label="Project" htmlFor="tk-new-project">
-              <Select id="tk-new-project" name="project" defaultValue={defaultProject ?? projects[0]?.id ?? ""}>
+              <Select id="tk-new-project" name="project" value={selectedProjectId} onChange={(event) => setProjectId(event.target.value)}>
                 <option value="">No project</option>
                 {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </Select>
             </Field>
             <Field label="Assignee" htmlFor="tk-new-assignee">
-              <Select id="tk-new-assignee" name="assignee" defaultValue={meId}>
+              <Select id="tk-new-assignee" name="assignee" value={assignee ?? defaultAssignee} onChange={(event) => setAssignee(event.target.value)}>
                 <option value="">Unassigned</option>
                 {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </Select>

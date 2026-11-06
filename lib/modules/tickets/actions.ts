@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fileProblem, minutesBetween, parseDuration, todayIn } from "./logic";
 import type { Result } from "./types";
+import { newTicketAssignee } from "./assignment";
 
 const BAD = { ok: false as const, error: "Check the form and try again." };
 const NO = { ok: false as const, error: "You don't have access to do that." };
@@ -57,6 +58,7 @@ export async function createTicket(raw: unknown): Promise<Result<{ id: string; k
   if (!me || !can(me, "tickets.manage")) return NO;
   const d = p.data;
   const db = await createClient();
+  const assigneeId = await newTicketAssignee(db, d.projectId, d.assigneeId);
 
   let checklist: string[] = [];
   let subtasks: string[] = [];
@@ -79,7 +81,7 @@ export async function createTicket(raw: unknown): Promise<Result<{ id: string; k
       title: d.title,
       project_id: d.projectId ?? null,
       parent_id: d.parentId ?? null,
-      assignee_id: d.assigneeId ?? null,
+      assignee_id: assigneeId,
       reporter_id: me.id,
       priority: d.priority,
       status: "todo",
@@ -99,7 +101,7 @@ export async function createTicket(raw: unknown): Promise<Result<{ id: string; k
   for (const title of subtasks.slice(0, 30)) {
     await db.from("tickets").insert({
       title: title.slice(0, 200), project_id: d.projectId ?? null, parent_id: data.id, reporter_id: me.id,
-      assignee_id: d.assigneeId ?? null, priority: d.priority, status: "todo",
+      assignee_id: assigneeId, priority: d.priority, status: "todo",
     });
   }
   refresh();
@@ -114,7 +116,7 @@ export async function addSubtask(raw: unknown): Promise<Result<{ id: string; key
   const { data: parent } = await db.from("tickets").select("project_id, priority").eq("id", p.data.parentId).maybeSingle();
   if (!parent) return { ok: false, error: "That ticket no longer exists." };
   return createTicket({
-    title: p.data.title, parentId: p.data.parentId, projectId: parent.project_id, assigneeId: p.data.assigneeId ?? null, priority: parent.priority,
+    title: p.data.title, parentId: p.data.parentId, projectId: parent.project_id, assigneeId: p.data.assigneeId, priority: parent.priority,
   });
 }
 

@@ -8,7 +8,7 @@ import { STATUS_KEYS as STATUS_ORDER } from "@/lib/modules/work/space-logic";
 import s from "./config-editor.module.css";
 
 type Result = { ok: true } | { ok: false; error: string };
-type Kind = "statuses" | "taskTypes" | "eventTypes";
+type Kind = "statuses" | "eventTypes";
 
 /** The three config sections (statuses, task types, event types), each with an edit dialog when `editable`. */
 export function ConfigSections({
@@ -35,7 +35,7 @@ export function ConfigSections({
           </span>
         ))}
       </Section>
-      <Section title="Task types" button="Edit types" editable={editable} onEdit={() => setOpen("taskTypes")}>
+      <Section title="Task types" button="Fixed RACI types" editable={false} onEdit={() => {}}>
         <TypeChips types={config.taskTypes} />
       </Section>
       <Section title="Event types" button="Edit types" editable={editable} onEdit={() => setOpen("eventTypes")}>
