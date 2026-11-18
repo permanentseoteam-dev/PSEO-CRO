@@ -2,9 +2,10 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { Button, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
+import { saveProfile } from "../../settings/actions";
 import { saveHrDetails, saveMyDetails } from "../actions";
 
-type Mine = { bio: string; skills: string; phone: string; linkedin: string; emergencyName: string; emergencyPhone: string };
+type Mine = { name: string; bio: string; skills: string; phone: string; linkedin: string; emergencyName: string; emergencyPhone: string };
 
 export function EditMyDetails({ initial }: { initial: Mine }) {
   const [open, setOpen] = useState(false);
@@ -13,8 +14,13 @@ export function EditMyDetails({ initial }: { initial: Mine }) {
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
+    const { name, ...f } = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
     start(async () => {
+      // The name lives on the member record and is saved the same way Settings → Profile saves it.
+      if (name.trim() !== initial.name) {
+        const n = await saveProfile({ name });
+        if (!n.ok) return toast(n.error);
+      }
       const r = await saveMyDetails(f);
       if (!r.ok) return toast(r.error);
       setOpen(false);
@@ -40,6 +46,9 @@ export function EditMyDetails({ initial }: { initial: Mine }) {
       >
         <form id="me-edit" onSubmit={submit}>
           <FormGrid>
+            <Field label="Name" htmlFor="me-name" full>
+              <Input id="me-name" name="name" required minLength={2} maxLength={80} defaultValue={initial.name} />
+            </Field>
             <Field label="Bio" htmlFor="me-bio" full>
               <Textarea id="me-bio" name="bio" rows={3} maxLength={2000} defaultValue={initial.bio} />
             </Field>

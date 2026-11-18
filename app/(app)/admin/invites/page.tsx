@@ -27,7 +27,7 @@ export default async function InvitesPage() {
           state: inviteState(i, now),
         }))}
         roles={roles
-          .filter((r) => r.key !== "super_admin" || me.roles.includes("super_admin"))
+          .filter((r) => r.key !== "admin" || me.roles.includes("admin"))
           .map((r) => ({ key: r.key, name: r.name, kind: r.kind }))}
         departments={departments}
         clients={clients}

@@ -66,7 +66,6 @@ export type Profile = {
   linkedin: string | null;
   emergencyName: string | null;
   emergencyPhone: string | null;
-  slackUserId: string | null;
   location: string | null;
   contract: "full_time" | "part_time" | "contractor";
   probationStart: string | null;

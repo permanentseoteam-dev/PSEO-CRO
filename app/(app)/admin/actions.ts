@@ -48,7 +48,7 @@ export async function createInvite(raw: unknown): Promise<{ ok: true; link: stri
   const supabase = await createClient();
   const role = await roleByKey(supabase, input.data.role);
   if (!role) return fail("Pick a role.");
-  if (role.key === "super_admin" && !me.roles.includes("super_admin")) return fail("Only a super admin can invite a super admin.");
+  if (role.key === "admin" && !me.roles.includes("admin")) return fail("Only an admin can invite an admin.");
   if (role.kind === "client" && !clientId) return fail("Pick the client this login belongs to.");
 
   const { data: existing } = await supabase.from("members").select("id").eq("email", email).maybeSingle();
@@ -157,9 +157,7 @@ export async function saveRolePermissions(raw: unknown): Promise<{ ok: true; cou
   const me = await admin();
   if (!me) return fail(NO);
   const { changes } = input.data;
-  if (changes.some((c) => c.role === "super_admin")) return fail("Super admin always has every permission.");
-  if (changes.some((c) => c.role === "admin" && c.perm === "admin.access.manage"))
-    return fail("Admins always keep admin.access.manage, so nobody gets locked out.");
+  if (changes.some((c) => c.role === "admin")) return fail("Admin always has every permission.");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -211,9 +209,9 @@ export async function savePersonAccess(raw: unknown): Promise<{ ok: true } | Fai
 
   const current = ((person.member_roles ?? []) as { role: string }[]).map((r) => r.role);
   const { add, remove } = roleDiff(current, roles);
-  if ([...add, ...remove].includes("super_admin") && !me.roles.includes("super_admin"))
-    return fail("Only a super admin can give or take away super admin.");
-  if (memberId === me.id && (status !== "active" || !roles.some((r) => r === "admin" || r === "super_admin")))
+  if ([...add, ...remove].includes("admin") && !me.roles.includes("admin"))
+    return fail("Only an admin can give or take away admin.");
+  if (memberId === me.id && (status !== "active" || !roles.includes("admin")))
     return fail("You can't remove your own admin access.");
 
   if (remove.length) {

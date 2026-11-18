@@ -29,8 +29,8 @@ describe("resolvePerms", () => {
     expect(p).toEqual({ "chat.use": "own", "finance.invoices.view": "team" });
   });
 
-  it("gives super_admin everything", () => {
-    const p = resolvePerms({ keys, roles: ["super_admin"], grants: [], overrides: [] });
+  it("gives admin everything", () => {
+    const p = resolvePerms({ keys, roles: ["admin"], grants: [], overrides: [] });
     expect(p["finance.invoices.view"]).toBe("all");
   });
 

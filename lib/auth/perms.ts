@@ -21,7 +21,7 @@ export type Me = {
 const rank = (s: Scope) => SCOPES.indexOf(s);
 
 /**
- * Effective scopes: super_admin gets "all" on every key; otherwise the best scope across roles,
+ * Effective scopes: admin gets "all" on every key; otherwise the best scope across roles,
  * and a member override replaces it (it can raise or lower).
  */
 export function resolvePerms(input: {
@@ -31,7 +31,7 @@ export function resolvePerms(input: {
   overrides: { perm_key: string; scope: Scope }[];
 }): Record<string, Scope> {
   const out: Record<string, Scope> = {};
-  if (input.roles.includes("super_admin")) {
+  if (input.roles.includes("admin")) {
     for (const k of input.keys) out[k] = "all";
     return out;
   }

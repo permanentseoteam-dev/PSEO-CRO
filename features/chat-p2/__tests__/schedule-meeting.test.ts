@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getMe: vi.fn(), can: vi.fn(), createClient: vi.fn(), notify: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getMe: vi.fn(), can: vi.fn(), createClient: vi.fn(), notify: vi.fn(), findConflicts: vi.fn() }));
 
 vi.mock("@/lib/auth/can", () => ({ getMe: mocks.getMe, can: mocks.can }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/modules/calendar/notify", () => ({ notify: mocks.notify }));
+vi.mock("@/lib/modules/calendar/conflicts", () => ({ findConflicts: mocks.findConflicts }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("../queries", () => ({ getChannelExtras: vi.fn() }));
-vi.mock("../adapters", () => ({ getSlackAdapter: vi.fn() }));
 
 import { scheduleChannelMeeting } from "../actions";
 import { dubaiTomorrow } from "../logic";
@@ -37,6 +37,7 @@ function fakeSupabase() {
 describe("scheduleChannelMeeting", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.findConflicts.mockResolvedValue([]);
     inserts = {};
     noteError = null;
     mocks.getMe.mockResolvedValue({ id: ME, kind: "staff", name: "Sam" });
@@ -66,6 +67,20 @@ describe("scheduleChannelMeeting", () => {
     noteError = { code: "42501" };
     const res = await scheduleChannelMeeting(input);
     expect(res.ok && res.data?.warning).toMatch(/note couldn't be posted/);
+  });
+  it("refuses a meeting that runs past midnight", async () => {
+    const res = await scheduleChannelMeeting({ ...input, time: "23:50", minutes: "30" });
+    expect(res).toMatchObject({ ok: false, error: expect.stringMatching(/midnight/) });
+    expect(inserts.events).toBeUndefined();
+  });
+
+  it("returns clashes without saving, and books anyway with force", async () => {
+    const clash = { memberId: OTHER, memberName: "Hamza", title: "Weekly sync", date: "2026-11-19", start: "15:00", end: "15:30" };
+    mocks.findConflicts.mockResolvedValue([clash]);
+    expect(await scheduleChannelMeeting(input)).toMatchObject({ ok: false, conflicts: [clash] });
+    expect(inserts.events).toBeUndefined();
+    expect(await scheduleChannelMeeting({ ...input, force: true })).toMatchObject({ ok: true });
+    expect(inserts.events).toHaveLength(1);
   });
 });
 

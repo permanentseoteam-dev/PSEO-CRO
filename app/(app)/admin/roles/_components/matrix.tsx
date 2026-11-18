@@ -46,14 +46,11 @@ export function Matrix({ roles, perms, saved }: { roles: { key: string; name: st
               {roles.map((r) => {
                 const k = cellKey(r.key, p.key);
                 const value = edited[k] ?? base[k] ?? "none";
-                const locked = r.key === "admin" && p.key === "admin.access.manage";
                 return (
                   <Td key={r.key}>
                     <Select
                       aria-label={`${p.key} for ${r.name}`}
                       value={value}
-                      disabled={locked}
-                      title={locked ? "Admins always keep this" : undefined}
                       className={value !== (base[k] ?? "none") ? "font-semibold" : undefined}
                       style={{ padding: "3px 6px" }}
                       onChange={(e) => setEdited((cur) => ({ ...cur, [k]: e.target.value as Scope }))}

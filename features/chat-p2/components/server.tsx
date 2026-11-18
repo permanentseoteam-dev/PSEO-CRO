@@ -1,10 +1,9 @@
 import { can, getMe } from "@/lib/auth/can";
 import { dubaiTomorrow } from "../logic";
-import { getChannelExtras, getSlackSetup } from "../queries";
+import { getChannelExtras } from "../queries";
 import { ChannelSettingsP2 } from "./channel-settings";
 import { Huddle } from "./huddle";
 import { ScheduleMeeting } from "./schedule-meeting";
-import { SlackImport } from "./slack-import";
 
 // Server entry points for the Phase 1 chat page. See ../WIRING.md.
 
@@ -33,11 +32,4 @@ export async function ChannelSettingsExtras({ channelId }: { channelId: string }
   const x = await getChannelExtras(channelId);
   if (!x) return null;
   return <ChannelSettingsP2 channel={x.channel} isAdmin={x.isAdmin} />;
-}
-
-/** "Slack import" button for the chat sidebar. Hidden without chat.slack.manage (all). */
-export async function SlackImportButton() {
-  const me = await getMe();
-  if (!me || me.kind !== "staff" || !can(me, "chat.slack.manage", "all")) return null;
-  return <SlackImport setup={await getSlackSetup()} />;
 }

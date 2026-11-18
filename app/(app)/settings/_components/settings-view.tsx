@@ -9,28 +9,27 @@ import { EMAIL_HINT } from "@/lib/modules/personal/logic";
 import { fmt12 } from "@/lib/format-time";
 import type { NotifEvent } from "@/lib/modules/personal/types";
 import { saveDesign, saveEmail, saveNotif, saveProfile, saveQuiet } from "../actions";
+import { EditCtx, EditToggle, ReadRows, SaveCancel, useCardSave } from "./edit-mode";
 import { TwoStep } from "./two-step";
 
 type Notif = { event: NotifEvent; label: string; inApp: boolean; email: boolean; phone: boolean };
 type Props = {
   email: string;
   name: string;
-  isStaff: boolean;
   isAdmin: boolean;
   /** The admin requires 2-step sign-in for one of my roles, so I can't turn it off. */
   twoStepRequired: boolean;
   /** Server-rendered platform-p2 sections; pass only when the user may see them. */
   apiKeys?: ReactNode;
   notifLog?: ReactNode;
-  /** Extra admin-only sections, listed under "Admin" in the nav. Pass only when the user may see them. */
-  adminSections?: { id: string; label: string; node: ReactNode }[];
+  /** Extra admin-only sections, listed under "Admin" in the nav. Pass only when the user may see them. `editable` adds the pencil. */
+  adminSections?: { id: string; label: string; node: ReactNode; editable?: boolean }[];
   initial: {
     theme: "system" | "light" | "dark";
     density: "comfortable" | "compact";
     email: "daily" | "urgent" | "off";
     quietFrom: string;
     quietTo: string;
-    slackUserId: string;
     notif: Notif[];
   };
 };
@@ -65,16 +64,129 @@ function SegButtons<T extends string>({ label, items, value, onChange }: { label
   );
 }
 
-function Section({ id, domId, title, actions, children }: { id: string; domId?: string; title: ReactNode; actions?: ReactNode; children: ReactNode }) {
+/** Settings card. `editable` cards open read-only, with a pencil that switches them to edit mode (see edit-mode.tsx). */
+function Section({ id, domId, title, editable, children }: { id: string; domId?: string; title: string; editable?: boolean; children: ReactNode }) {
+  const [editing, setEditing] = useState(false);
   return (
     <Card id={domId ?? `pf-${id}`} data-sec={id} className="scroll-mt-4">
-      <CardHead title={title} actions={actions} />
-      <CardBody className="stack">{children}</CardBody>
+      <CardHead title={title} actions={editable && !editing ? <EditToggle label={title} onClick={() => setEditing(true)} /> : undefined} />
+      <CardBody className="stack">{editable ? <EditCtx.Provider value={{ editing, setEditing }}>{children}</EditCtx.Provider> : children}</CardBody>
     </Card>
   );
 }
 
-export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, apiKeys, notifLog, adminSections, initial }: Props) {
+type Theme = Props["initial"]["theme"];
+type Density = Props["initial"]["density"];
+type Mail = Props["initial"]["email"];
+const THEMES: [Theme, string][] = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];
+const DENSITIES: [Density, string][] = [["comfortable", "Comfortable"], ["compact", "Compact"]];
+const MAILS: [Mail, string][] = [["daily", "Daily digest"], ["urgent", "Urgent only"], ["off", "Off"]];
+const labelOf = <T extends string>(items: [T, string][], v: T) => items.find(([k]) => k === v)?.[1] ?? v;
+
+function applyDesign({ theme, density }: { theme: Theme; density: Density }) {
+  const html = document.documentElement;
+  if (theme === "system") delete html.dataset.theme;
+  else html.dataset.theme = theme;
+  if (density === "compact") html.dataset.density = "compact";
+  else delete html.dataset.density;
+}
+
+function DesignCard({ initial }: { initial: { theme: Theme; density: Density } }) {
+  const c = useCardSave(initial);
+  if (!c.editing) return <ReadRows rows={[["Theme", labelOf(THEMES, c.saved.theme)], ["Density", labelOf(DENSITIES, c.saved.density)]]} />;
+  // Changes show on the page straight away; Cancel puts the saved look back.
+  const pick = (next: typeof initial) => {
+    c.setDraft(next);
+    applyDesign(next);
+  };
+  return (
+    <>
+      <Field label="Theme">
+        <SegButtons label="Theme" value={c.draft.theme} items={THEMES} onChange={(v) => pick({ ...c.draft, theme: v })} />
+      </Field>
+      <Field label="Density">
+        <SegButtons label="Density" value={c.draft.density} items={DENSITIES} onChange={(v) => pick({ ...c.draft, density: v })} />
+      </Field>
+      <SaveCancel
+        pending={c.pending}
+        onSave={() => c.save(() => saveDesign(c.draft), "Design saved")}
+        onCancel={() => {
+          applyDesign(c.saved);
+          c.cancel();
+        }}
+      />
+    </>
+  );
+}
+
+function EmailCard({ initial }: { initial: Mail }) {
+  const c = useCardSave(initial);
+  if (!c.editing) return <ReadRows rows={[["Send me email", labelOf(MAILS, c.saved)]]} />;
+  return (
+    <>
+      <Field label="Send me email" hint={EMAIL_HINT[c.draft]}>
+        <SegButtons label="Send me email" value={c.draft} items={MAILS} onChange={c.setDraft} />
+      </Field>
+      <SaveCancel pending={c.pending} onSave={() => c.save(() => saveEmail(c.draft), "Email setting saved")} onCancel={c.cancel} />
+    </>
+  );
+}
+
+function QuietCard({ initial }: { initial: { from: string; to: string } }) {
+  const toast = useToast();
+  const c = useCardSave(initial);
+  const { from, to } = c.draft;
+  function save() {
+    if (!from !== !to) return toast("Set both times, or clear both to turn quiet hours off.");
+    c.save(() => saveQuiet({ from, to }), from ? `Quiet hours set to ${fmt12(from)} to ${fmt12(to)}` : "Quiet hours off");
+  }
+  return (
+    <>
+      {c.editing ? (
+        <>
+          <div className="row items-end">
+            <Field label="From" htmlFor="pf-qfrom">
+              <Input id="pf-qfrom" type="time" value={from} onChange={(e) => c.setDraft({ from: e.currentTarget.value, to })} />
+            </Field>
+            <Field label="To" htmlFor="pf-qto">
+              <Input id="pf-qto" type="time" value={to} onChange={(e) => c.setDraft({ from, to: e.currentTarget.value })} />
+            </Field>
+            <Button disabled={c.pending} onClick={() => c.setDraft({ from: "22:00", to: "08:00" })}>
+              {`Use ${fmt12("22:00")} to ${fmt12("08:00")}`}
+            </Button>
+          </div>
+          <SaveCancel pending={c.pending} onSave={save} onCancel={c.cancel} />
+        </>
+      ) : (
+        <ReadRows rows={[["Quiet hours", c.saved.from ? `${fmt12(c.saved.from)} to ${fmt12(c.saved.to)}` : "Off"]]} />
+      )}
+      <p className="muted m-0">No phone alerts in these hours, except urgent client escalations.</p>
+    </>
+  );
+}
+
+function ProfileCard({ initial }: { initial: string }) {
+  const c = useCardSave(initial);
+  if (!c.editing) return <ReadRows rows={[["Display name", c.saved]]} />;
+  return (
+    <form
+      className="stack"
+      onSubmit={(e) => {
+        e.preventDefault();
+        c.save(() => saveProfile({ name: c.draft.trim() }), "Profile saved");
+      }}
+    >
+      <FormGrid>
+        <Field label="Display name" htmlFor="pf-name">
+          <Input id="pf-name" name="name" minLength={2} maxLength={80} required value={c.draft} onChange={(e) => c.setDraft(e.currentTarget.value)} />
+        </Field>
+      </FormGrid>
+      <SaveCancel pending={c.pending} onCancel={c.cancel} />
+    </form>
+  );
+}
+
+export function SettingsView({ email, name, isAdmin, twoStepRequired, apiKeys, notifLog, adminSections, initial }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [active, setActive] = useState("design");
@@ -100,24 +212,7 @@ export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, a
     setActive(id);
   };
 
-  // ---------------------------------------------------------------- design
-  const [theme, setTheme] = useState(initial.theme);
-  const [density, setDensity] = useState(initial.density);
-  function design(next: { theme: typeof theme; density: typeof density }, msg: string) {
-    const html = document.documentElement;
-    if (next.theme === "system") delete html.dataset.theme;
-    else html.dataset.theme = next.theme;
-    if (next.density === "compact") html.dataset.density = "compact";
-    else delete html.dataset.density;
-    setTheme(next.theme);
-    setDensity(next.density);
-    start(async () => {
-      const r = await saveDesign(next);
-      toast(r.ok ? msg : r.error);
-    });
-  }
-
-  // ---------------------------------------------------------------- notifications, email, quiet hours
+  // ---------------------------------------------------------------- notifications
   const [notif, setNotif] = useState(initial.notif);
   function toggle(i: number, ch: "inApp" | "email" | "phone", on: boolean) {
     const row = { ...notif[i], [ch]: on };
@@ -128,28 +223,6 @@ export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, a
         setNotif((cur) => cur.map((x, j) => (j === i ? notif[i] : x)));
         toast(r.error);
       }
-    });
-  }
-
-  const [mail, setMail] = useState(initial.email);
-  const [qFrom, setQFrom] = useState(initial.quietFrom);
-  const [qTo, setQTo] = useState(initial.quietTo);
-  function quiet(from: string, to: string) {
-    setQFrom(from);
-    setQTo(to);
-    start(async () => {
-      const r = await saveQuiet({ from, to });
-      toast(r.ok ? (from ? `Quiet hours set to ${fmt12(from)} to ${fmt12(to)}` : "Quiet hours off") : r.error);
-    });
-  }
-
-  // ---------------------------------------------------------------- profile
-  function profile(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
-    start(async () => {
-      const r = await saveProfile({ name: f.name, slackUserId: f.slackUserId ?? "" });
-      toast(r.ok ? "Profile saved" : r.error);
     });
   }
 
@@ -217,13 +290,8 @@ export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, a
       </nav>
 
       <div className="flex min-w-0 flex-col gap-4">
-        <Section id="design" title="Design">
-          <Field label="Theme">
-            <SegButtons label="Theme" value={theme} items={[["system", "System"], ["light", "Light"], ["dark", "Dark"]]} onChange={(v) => design({ theme: v, density }, `Theme set to ${v}`)} />
-          </Field>
-          <Field label="Density">
-            <SegButtons label="Density" value={density} items={[["comfortable", "Comfortable"], ["compact", "Compact"]]} onChange={(v) => design({ theme, density: v }, `Density set to ${v}`)} />
-          </Field>
+        <Section id="design" title="Design" editable>
+          <DesignCard initial={{ theme: initial.theme, density: initial.density }} />
         </Section>
 
         <Section id="notif" title="Notifications">
@@ -251,52 +319,16 @@ export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, a
           </Table>
         </Section>
 
-        <Section id="email" title="Email">
-          <Field label="Send me email" hint={EMAIL_HINT[mail]}>
-            <SegButtons
-              label="Send me email"
-              value={mail}
-              items={[["daily", "Daily digest"], ["urgent", "Urgent only"], ["off", "Off"]]}
-              onChange={(v) => {
-                setMail(v);
-                start(async () => {
-                  const r = await saveEmail(v);
-                  if (!r.ok) toast(r.error);
-                });
-              }}
-            />
-          </Field>
+        <Section id="email" title="Email" editable>
+          <EmailCard initial={initial.email} />
         </Section>
 
-        <Section id="quiet" title="Quiet hours">
-          <div className="row items-end">
-            <Field label="From" htmlFor="pf-qfrom">
-              <Input id="pf-qfrom" type="time" value={qFrom} onChange={(e) => setQFrom(e.currentTarget.value)} onBlur={() => (qFrom && qTo) || (!qFrom && !qTo) ? quiet(qFrom, qTo) : undefined} />
-            </Field>
-            <Field label="To" htmlFor="pf-qto">
-              <Input id="pf-qto" type="time" value={qTo} onChange={(e) => setQTo(e.currentTarget.value)} onBlur={() => (qFrom && qTo) || (!qFrom && !qTo) ? quiet(qFrom, qTo) : undefined} />
-            </Field>
-            <Button disabled={pending} onClick={() => quiet("22:00", "08:00")}>Use 10:00 PM to 8:00 AM</Button>
-          </div>
-          <p className="muted m-0">No phone alerts in these hours, except urgent client escalations.</p>
+        <Section id="quiet" title="Quiet hours" editable>
+          <QuietCard initial={{ from: initial.quietFrom, to: initial.quietTo }} />
         </Section>
 
-        <Section id="profile" title="Profile">
-          <form onSubmit={profile} className="stack">
-            <FormGrid>
-              {isStaff ? (
-                <Field label="Slack user ID" htmlFor="pf-slack">
-                  <Input id="pf-slack" name="slackUserId" maxLength={30} defaultValue={initial.slackUserId} placeholder="U04QJ7K2M1P" />
-                </Field>
-              ) : null}
-              <Field label="Display name" htmlFor="pf-name">
-                <Input id="pf-name" name="name" minLength={2} maxLength={80} required defaultValue={name} />
-              </Field>
-            </FormGrid>
-            <div className="row">
-              <Button variant="primary" type="submit" disabled={pending}>Save profile</Button>
-            </div>
-          </form>
+        <Section id="profile" title="Profile" editable>
+          <ProfileCard initial={name} />
         </Section>
 
         <Section id="push" domId="push" title="Phone alerts">
@@ -354,7 +386,7 @@ export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, a
 
         {isAdmin
           ? adminSections?.map((s) => (
-              <Section key={s.id} id={s.id} title={s.label}>
+              <Section key={s.id} id={s.id} title={s.label} editable={s.editable}>
                 {s.node}
               </Section>
             ))

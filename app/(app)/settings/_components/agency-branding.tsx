@@ -1,12 +1,41 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Field, Input, useToast } from "@/components/ui";
+import { Field, Input, useToast } from "@/components/ui";
 import { AgencyInput, suggestInitials, type AgencySettings } from "@/lib/modules/agency/logic";
 import { saveAgencySettings } from "@/lib/modules/agency/actions";
+import { ReadRows, SaveCancel, useEditing } from "./edit-mode";
 
-/** Admin form for the agency's own brand and workday length, with a live sidebar preview. */
+/** Admin card for the agency's own brand and workday length: saved values, or the form while editing. */
 export function AgencyBrandingForm({ initial }: { initial: AgencySettings }) {
+  const { editing, setEditing } = useEditing();
+  const [saved, setSaved] = useState(initial);
+  if (!editing) {
+    return (
+      <ReadRows
+        rows={[
+          ["Company name", saved.name],
+          ["Subtitle", saved.subtitle || "None"],
+          ["Initials", saved.initials],
+          ["Logo URL", saved.logoUrl || "None"],
+          ["Workday hours", String(saved.workdayMinutes / 60)],
+        ]}
+      />
+    );
+  }
+  return (
+    <AgencyForm
+      initial={saved}
+      onDone={(next) => {
+        if (next) setSaved(next);
+        setEditing(false);
+      }}
+    />
+  );
+}
+
+/** The edit form, with a live sidebar preview. Unmounted on Cancel, which drops the draft. */
+function AgencyForm({ initial, onDone }: { initial: AgencySettings; onDone: (saved?: AgencySettings) => void }) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [name, setName] = useState(initial.name);
@@ -33,6 +62,7 @@ export function AgencyBrandingForm({ initial }: { initial: AgencySettings }) {
     start(async () => {
       const r = await saveAgencySettings(input);
       toast(r.ok ? "Agency branding saved" : r.error);
+      if (r.ok) onDone({ name: name.trim(), subtitle: subtitle.trim(), initials: (initials.trim() || suggestInitials(name)).toUpperCase(), logoUrl: logoUrl.trim() || null, workdayMinutes: Math.round(Number(hours) * 60) });
     });
   }
 
@@ -68,11 +98,7 @@ export function AgencyBrandingForm({ initial }: { initial: AgencySettings }) {
             {problem}
           </p>
         ) : null}
-        <div className="row">
-          <Button variant="primary" disabled={pending || !!problem} onClick={save}>
-            Save agency branding
-          </Button>
-        </div>
+        <SaveCancel pending={pending} disabled={!!problem} onSave={save} onCancel={() => onDone()} />
       </div>
 
       <div aria-label="Sidebar preview" role="region">

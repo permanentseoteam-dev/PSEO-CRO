@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarPlus } from "lucide-react";
 import { Button, Checkbox, Dialog, Field, FormGrid, IconButton, Input, Select, useToast } from "@/components/ui";
+import { MIDNIGHT_ERROR, clashText, endsByMidnight } from "@/lib/modules/calendar/logic";
+import type { Conflict } from "@/lib/modules/calendar/conflicts";
 import { scheduleChannelMeeting } from "../actions";
 import { MEETING_MINUTES } from "../logic";
 import type { Person } from "../types";
@@ -25,13 +27,18 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
   const [pending, start] = useTransition();
   const others = people.filter((p) => p.id !== meId);
   const [picked, setPicked] = useState<string[]>([]);
+  const [clashes, setClashes] = useState<Conflict[] | null>(null);
 
-  function submit(form: HTMLFormElement) {
+  function submit(form: HTMLFormElement, force = false) {
     const f = new FormData(form);
     const date = String(f.get("date"));
     const time = String(f.get("time"));
     if (!date || !time) {
       toast("Pick a date and time");
+      return;
+    }
+    if (!endsByMidnight(time, Number(f.get("minutes")))) {
+      toast(MIDNIGHT_ERROR);
       return;
     }
     start(async () => {
@@ -42,7 +49,12 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
         time,
         minutes: f.get("minutes"),
         attendees: picked,
+        force,
       });
+      if (!res.ok && "conflicts" in res) {
+        setClashes(res.conflicts);
+        return;
+      }
       if (!res.ok) {
         toast(res.error);
         return;
@@ -50,6 +62,7 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
       toast(res.data?.warning ?? (picked.length ? "Meeting scheduled and invites sent" : "Meeting scheduled"));
       setOpen(false);
       setPicked([]);
+      setClashes(null);
       router.refresh();
     });
   }
@@ -76,6 +89,7 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
             e.preventDefault();
             submit(e.currentTarget);
           }}
+          onChange={() => setClashes(null)}
           className="stack"
           style={{ gap: 14 }}
         >
@@ -116,6 +130,21 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
               </div>
             )}
           </Field>
+          {clashes?.length ? (
+            <div role="alert" className="stack" style={{ gap: 8 }}>
+              <strong>Already booked</strong>
+              <ul className="small m-0" style={{ paddingLeft: 18 }}>
+                {clashes.map((c, i) => (
+                  <li key={i}>{clashText(c, meId, false)}</li>
+                ))}
+              </ul>
+              <div>
+                <Button size="sm" disabled={pending} onClick={(e) => submit(e.currentTarget.form!, true)}>
+                  Book anyway
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </form>
       </Dialog>
     </>

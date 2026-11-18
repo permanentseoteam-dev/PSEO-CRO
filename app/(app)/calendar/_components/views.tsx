@@ -13,6 +13,7 @@ import {
   fmtShort,
   fmtT,
   isWeekend,
+  packColumns,
   timeRange,
   viewRange,
   type View,
@@ -41,6 +42,12 @@ const kindClass = (e: CalEvent) => (e.kind === "client_meeting" ? s.client : s.i
 const first = (name: string) => name.split(" ")[0];
 const on = <T extends { date: string; start: number }>(list: T[], d: string) =>
   list.filter((x) => x.date === d).sort((a, b) => a.start - b.start);
+
+// Blocks are at least 20px tall (25 min), so short meetings are packed by their drawn height.
+const lay = (evs: CalEvent[]) => {
+  const pos = packColumns(evs.map((e) => ({ start: e.start, mins: Math.max(e.mins, 25) })));
+  return evs.map((e, i) => ({ e, ...pos[i] }));
+};
 
 export function CalendarBody(p: ViewProps) {
   if (p.view === "month") return <MonthView {...p} />;
@@ -124,12 +131,12 @@ function TimeGrid(p: ViewProps & { days: string[] }) {
                   );
                 })
               : null}
-            {on(p.events, d).map((e) => (
+            {lay(on(p.events, d)).map(({ e, col, cols }) => (
               <button
                 key={e.id}
                 type="button"
                 className={cn(s.blk, s.e, kindClass(e))}
-                style={{ top: top(e.start), height: Math.max(20, (e.mins / 60) * PX - 2) }}
+                style={{ top: top(e.start), height: Math.max(20, (e.mins / 60) * PX - 2), "--i": col, "--n": cols } as CSSProperties}
                 title={e.title}
                 onClick={() => p.onOpen(e.id)}
               >

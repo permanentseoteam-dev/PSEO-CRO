@@ -41,7 +41,9 @@
   position: absolute; left: 3px; right: 3px; border-radius: 5px; padding: 3px 6px; font-size: 12px; overflow: hidden; text-align: left;
   border-top: 0; border-right: 0; border-bottom: 0; font-family: inherit; cursor: pointer;
 }
-.cols .blk.e { right: 42%; }
+/* Overlapping meetings sit side by side: column --i of --n (packColumns), inside 3px gutters. */
+.blk.e { --w: calc(100% - 6px); right: auto; left: calc(3px + var(--w) * var(--i, 0) / var(--n, 1)); width: calc(var(--w) / var(--n, 1) - 2px); }
+.cols .blk.e { --w: calc(58% - 3px); }
 .blk.b { left: auto; width: 38%; right: 3px; cursor: default; font-size: 11px; }
 .now { position: absolute; left: 0; right: 0; border-top: 2px solid var(--danger); z-index: 2; }
 .dayw { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); gap: 16px; align-items: start; }
@@ -74,3 +76,4 @@
   .agRow { grid-template-columns: 84px 1fr; }
   .agRow .hideSm { display: none; }
 }
+.clashes { margin: 0; padding-left: 18px; display: grid; gap: 2px; max-height: 140px; overflow: auto; }

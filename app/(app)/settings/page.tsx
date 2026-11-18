@@ -26,7 +26,6 @@ export default async function SettingsPage() {
       <SettingsView
         email={me.email}
         name={me.name}
-        isStaff={me.kind === "staff"}
         isAdmin={isAdmin}
         twoStepRequired={requiredByPolicy(me.kind, me.roles, policy)}
         apiKeys={isAdmin ? <ApiKeysSection /> : undefined}
@@ -34,11 +33,11 @@ export default async function SettingsPage() {
         adminSections={
           admin
             ? [
-                { id: "agency", label: "Agency branding", node: <AgencyBrandingForm initial={admin.agency} /> },
+                { id: "agency", label: "Agency branding", editable: true, node: <AgencyBrandingForm initial={admin.agency} /> },
                 { id: "departments", label: "Departments", node: <DepartmentsManager departments={admin.departments} staff={admin.staff} /> },
                 { id: "services", label: "Services", node: <ServicesManager services={admin.services} /> },
-                { id: "portal", label: "Client portal design", node: <PortalDesignForm initial={admin.design} /> },
-                { id: "twostep", label: "2-step sign-in policy", node: <TwoStepPolicy roles={admin.staffRoles} required={policy} /> },
+                { id: "portal", label: "Client portal design", editable: true, node: <PortalDesignForm initial={admin.design} /> },
+                { id: "twostep", label: "2-step sign-in policy", editable: true, node: <TwoStepPolicy roles={admin.staffRoles} required={policy} /> },
                 { id: "jobs", label: "Scheduled jobs", node: <ScheduledJobsSection /> },
               ]
             : undefined
@@ -49,7 +48,6 @@ export default async function SettingsPage() {
           email: s.email,
           quietFrom: s.quietFrom,
           quietTo: s.quietTo,
-          slackUserId: s.slackUserId,
           notif: notifMatrix(s.notif),
         }}
       />

@@ -76,10 +76,7 @@ export async function saveNotif(raw: unknown): Promise<Result> {
   return error ? fail(error) : { ok: true };
 }
 
-const Profile = z.object({
-  name: z.string().trim().min(2).max(80),
-  slackUserId: z.string().trim().max(30).regex(/^[A-Z0-9]*$/, "Slack IDs look like U04QJ7K2M1P."),
-});
+const Profile = z.object({ name: z.string().trim().min(2).max(80) });
 
 export async function saveProfile(raw: unknown): Promise<Result> {
   const p = Profile.safeParse(raw);
@@ -89,10 +86,6 @@ export async function saveProfile(raw: unknown): Promise<Result> {
   const db = await createClient();
   const a = await db.from("members").update({ name: p.data.name }).eq("id", me.id);
   if (a.error) return fail(a.error);
-  if (me.kind === "staff") {
-    const b = await db.from("member_details").upsert({ member_id: me.id, slack_user_id: p.data.slackUserId || null }, { onConflict: "member_id" });
-    if (b.error) return fail(b.error);
-  }
   revalidatePath("/", "layout");
   return { ok: true };
 }

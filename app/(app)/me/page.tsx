@@ -127,6 +127,7 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         <div className="ml-auto flex flex-wrap gap-2 max-sm:ml-0">
           <EditMyDetails
             initial={{
+              name: p.name,
               bio: p.bio ?? "",
               skills: p.skills.join(", "),
               phone: p.phone ?? "",

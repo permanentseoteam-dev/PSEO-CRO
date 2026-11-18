@@ -11,13 +11,13 @@ export function AccessForm({
   roles,
   initialRoles,
   initialStatus,
-  canGrantSuper,
+  canGrantAdmin,
 }: {
   memberId: string;
   roles: { key: string; name: string; description: string | null }[];
   initialRoles: string[];
   initialStatus: Status;
-  canGrantSuper: boolean;
+  canGrantAdmin: boolean;
 }) {
   const toast = useToast();
   const [picked, setPicked] = useState(initialRoles);
@@ -33,7 +33,7 @@ export function AccessForm({
           <Checkbox
             key={r.key}
             checked={picked.includes(r.key)}
-            disabled={r.key === "super_admin" && !canGrantSuper}
+            disabled={r.key === "admin" && !canGrantAdmin}
             onChange={(e) => toggle(r.key, e.target.checked)}
             label={
               <span>

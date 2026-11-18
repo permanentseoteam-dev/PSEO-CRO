@@ -55,7 +55,6 @@ export async function getProfile(id: string): Promise<Profile | null> {
     linkedin: s("linkedin"),
     emergencyName: s("emergency_name"),
     emergencyPhone: s("emergency_phone"),
-    slackUserId: s("slack_user_id"),
     location: s("location"),
     contract: (s("contract") ?? "full_time") as Profile["contract"],
     probationStart: s("probation_start"),
@@ -286,10 +285,9 @@ export async function onLeave(day: string): Promise<Set<string>> {
 
 export async function getSettings(meId: string) {
   const db = await createClient();
-  const [s, n, d] = await Promise.all([
+  const [s, n] = await Promise.all([
     db.from("user_settings").select("theme, density, email_digest, quiet_from, quiet_to").eq("member_id", meId).maybeSingle(),
     db.from("notification_prefs").select("event, in_app, email, phone").eq("member_id", meId),
-    db.from("member_details").select("slack_user_id").eq("member_id", meId).maybeSingle(),
   ]);
   const st = (s.data ?? {}) as { theme?: string; density?: string; email_digest?: string; quiet_from?: string | null; quiet_to?: string | null };
   return {
@@ -299,7 +297,6 @@ export async function getSettings(meId: string) {
     quietFrom: st.quiet_from?.slice(0, 5) ?? "",
     quietTo: st.quiet_to?.slice(0, 5) ?? "",
     notif: (n.data ?? []) as { event: string; in_app: boolean; email: boolean; phone: boolean }[],
-    slackUserId: (d.data as { slack_user_id: string | null } | null)?.slack_user_id ?? "",
   };
 }
 

@@ -1,6 +1,6 @@
 # chat-p2 wiring
 
-Phase 2 chat extras: voice notes, huddles, schedule meeting from a channel, channel settings (admins-only, archive), Slack import and bridge, Web Push. Everything lives in `features/chat-p2/`. Nothing here is mounted yet. These steps connect it to the Phase 1 chat module (`app/(app)/chat`, `components/chat`, `0105_chat`).
+Phase 2 chat extras: voice notes, huddles, schedule meeting from a channel, channel settings (admins-only, archive), Web Push. Everything lives in `features/chat-p2/`. Nothing here is mounted yet. These steps connect it to the Phase 1 chat module (`app/(app)/chat`, `components/chat`, `0105_chat`).
 
 ## Database
 - Migration `supabase/migrations/0205_chat_p2.sql` runs after `0105_chat`. It needs these from 0105:
@@ -11,18 +11,13 @@ Phase 2 chat extras: voice notes, huddles, schedule meeting from a channel, chan
   - `huddles`
   - `huddle_participants`
   - `push_subscriptions`
-  - `slack_workspaces`
-  - `slack_channel_links`
-  - `slack_import_jobs`
 - Also adds:
   - the helper `can_see_huddle(uuid)`
   - the trigger `messages_block_archived`, which blocks new messages in archived conversations
   - two RLS policies on `realtime.messages` that admit conversation members to private topics `huddle:<channel_id>`
 - None of these tables join the realtime publication. Huddle signalling uses Broadcast and Presence only.
 - Seed `supabase/seed/0205_chat_p2.sql` adds:
-  - the permission `chat.slack.manage`, granted to `admin` at scope `all`
   - one finished huddle in `seo-team`
-  - the Slack workspace `brandsurge.slack.com` (not connected) with 4 channel links
 
 ## Conversation header (`app/(app)/chat`, Phase 1 conversation header)
 - `import { ChatHeaderExtras } from "@/features/chat-p2/components/server";`
@@ -45,13 +40,6 @@ Phase 2 chat extras: voice notes, huddles, schedule meeting from a channel, chan
 - The Phase 1 sidebar should hide channels with `archived_at` set. History stays in search.
 - The composer should be disabled when `archived_at` is set, because the database now rejects those inserts.
 
-## Chat sidebar (mockup "Slack import" button)
-- `import { SlackImportButton } from "@/features/chat-p2/components/server";` and render `<SlackImportButton />` in the sidebar footer or toolbar. It renders nothing unless the user has `chat.slack.manage` at scope `all`.
-- The adapter is `features/chat-p2/adapters.ts` (`SlackAdapter`, `notConfiguredSlack`):
-  - "Connect Slack" returns a "not set up" message.
-  - "Start import" records a `slack_import_jobs` row with status `not_configured`.
-  - To go live, implement `SlackAdapter` and return it from `getSlackAdapter()`.
-
 ## Web Push
 1. Copy `features/chat-p2/sw/push-sw.js` to `public/push-sw.js`. Keep the same name, because `PUSH_SW_URL` is `/push-sw.js`.
 2. Settings: render `<PushToggle />` from `features/chat-p2/components/push-toggle.tsx` in Settings → Notifications, next to the Phase 1 quiet-hours fields (`user_settings.quiet_from` and `quiet_to`). Optionally also use it for the Home "push-notification nudge".
@@ -63,7 +51,7 @@ Phase 2 chat extras: voice notes, huddles, schedule meeting from a channel, chan
    - a real `PushSender`
 
 ## Client portal
-- `/portal/messages` can reuse `ChatHeaderExtras` for huddles, which works for client logins in their own client channel. It can also reuse `VoiceRecorder` and `VoiceNote`. Schedule meeting, settings and Slack hide themselves for client logins.
+- `/portal/messages` can reuse `ChatHeaderExtras` for huddles, which works for client logins in their own client channel. It can also reuse `VoiceRecorder` and `VoiceNote`. Schedule meeting and settings hide themselves for client logins.
 
 ## Nav
 - No new routes or nav entries. Everything mounts inside `/chat`, `/portal/messages` and `/settings`.

@@ -7,7 +7,7 @@ import type { AuditRow, GrantRow, InviteRow, Option, OverrideRow, PermissionRow,
 export async function listRoles(): Promise<RoleRow[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("roles").select("key, name, kind, description");
-  const order = ["super_admin", "admin", "finance_head", "dept_head", "member", "client_owner", "client_viewer"];
+  const order = ["admin", "finance_head", "dept_head", "member", "client_owner", "client_viewer"];
   return ((data ?? []) as RoleRow[]).sort((a, b) => {
     const ia = order.indexOf(a.key), ib = order.indexOf(b.key);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.name.localeCompare(b.name);

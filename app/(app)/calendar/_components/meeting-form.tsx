@@ -4,7 +4,21 @@ import { useState, useTransition, type TransitionStartFunction } from "react";
 import { useRouter } from "next/navigation";
 import { fmt12 } from "@/lib/format-time";
 import { Button, Checkbox, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
-import { REPEATS, REPEAT_LABEL, calHref, fmtShort, fmtT, isWeekend, toMin, type Repeat, type View } from "@/lib/modules/calendar/logic";
+import {
+  MIDNIGHT_ERROR,
+  REPEATS,
+  REPEAT_LABEL,
+  calHref,
+  endsByMidnight,
+  clashText,
+  fmtShort,
+  fmtT,
+  isWeekend,
+  toMin,
+  type Repeat,
+  type View,
+} from "@/lib/modules/calendar/logic";
+import type { Conflict } from "@/lib/modules/calendar/conflicts";
 import type { CalEvent, ClientOption, Person, Visibility } from "@/lib/modules/calendar/types";
 import { findTime, saveMeeting } from "../actions";
 import type { CalMe } from "./calendar";
@@ -140,8 +154,14 @@ function FormBody({
   const router = useRouter();
   const [v, setV] = useState<Values>(() => initial(state, defaultDate));
   const [slots, setSlots] = useState<{ note: string; times: string[] } | null>(null);
+  const [clashes, setClashes] = useState<Conflict[] | null>(null);
 
-  const set = <K extends keyof Values>(k: K, val: Values[K]) => setV((cur) => ({ ...cur, [k]: val }));
+  // Any change makes an earlier clash list stale.
+  const set = <K extends keyof Values>(k: K, val: Values[K]) => {
+    setClashes(null);
+    setV((cur) => ({ ...cur, [k]: val }));
+  };
+  const late = !endsByMidnight(v.start, v.minutes);
   const editing = !!state.event;
   const others = (x: Values) => x.memberIds.filter((id) => id !== me.id);
 
@@ -159,16 +179,22 @@ function FormBody({
       );
     });
 
-  const submit = (ev: React.FormEvent) => {
-    ev.preventDefault();
+  const save = (force: boolean) => {
+    if (late) return toast(MIDNIGHT_ERROR);
     start(async () => {
-      const r = await saveMeeting({ ...v, id: state.event?.id ?? "", memberIds: others(v) });
+      const r = await saveMeeting({ ...v, id: state.event?.id ?? "", memberIds: others(v), force });
+      if (!r.ok && "conflicts" in r) return setClashes(r.conflicts);
       if (!r.ok) return toast(r.error);
       toast(editing ? "Changes saved" : "Meeting created");
       onClose();
       router.push(calHref(view, r.date, showCol));
     });
   };
+  const submit = (ev: React.FormEvent) => {
+    ev.preventDefault();
+    save(false);
+  };
+  const many = new Set(clashes?.map((c) => c.date)).size > 1;
 
   return (
         <form id="cal-form" onSubmit={submit} className="stack" style={{ gap: 14 }}>
@@ -215,6 +241,11 @@ function FormBody({
                 ))}
               </Select>
             </Field>
+            {late ? (
+              <div className="field full small" role="alert" style={{ color: "var(--danger)" }}>
+                {MIDNIGHT_ERROR}
+              </div>
+            ) : null}
             <Field label="Guests" htmlFor="cf-guests">
               <Input id="cf-guests" placeholder="client@company.com, another@company.com" value={v.guests} onChange={(e) => set("guests", e.target.value)} />
             </Field>
@@ -316,6 +347,21 @@ function FormBody({
               checked={v.invite}
               onChange={(e) => set("invite", e.target.checked)}
             />
+            {clashes?.length ? (
+              <div className={`field full ${s.findbox}`} role="alert" ref={(el) => el?.scrollIntoView({ block: "nearest" })}>
+                <strong>Already booked</strong>
+                <ul className={`small ${s.clashes}`}>
+                  {clashes.map((c, i) => (
+                    <li key={i}>{clashText(c, me.id, many)}</li>
+                  ))}
+                </ul>
+                <div>
+                  <Button size="sm" disabled={pending} onClick={() => save(true)}>
+                    Book anyway
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </FormGrid>
         </form>
   );

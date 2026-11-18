@@ -1,7 +1,7 @@
 // Pure logic for the chat extras. No I/O.
 import { fmt12 } from "@/lib/format-time";
 import { addDays, toLocal } from "@/lib/modules/calendar/logic";
-import type { BridgeState, ChannelKind } from "./types";
+import type { ChannelKind } from "./types";
 
 // ---------------------------------------------------------------- voice notes
 export const MAX_VOICE_SECONDS = 300;
@@ -132,27 +132,3 @@ export function urlBase64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-// ---------------------------------------------------------------- Slack
-/** Start of the import window. */
-export function importSince(now: Date, days: number): string {
-  return new Date(now.getTime() - days * 86_400_000).toISOString();
-}
-
-/** Portal channels mapped from more than one Slack channel (not allowed: the bridge would echo). */
-export function duplicateTargets(links: { channelId: string | null }[]): string[] {
-  const seen = new Set<string>();
-  const dup = new Set<string>();
-  for (const l of links) {
-    if (!l.channelId) continue;
-    if (seen.has(l.channelId)) dup.add(l.channelId);
-    seen.add(l.channelId);
-  }
-  return [...dup];
-}
-
-export function importProgress(imported: number, total: number | null): number | null {
-  if (!total || total <= 0) return null;
-  return Math.min(100, Math.round((imported / total) * 100));
-}
-
-export const bridgeTone = (b: BridgeState) => (b === "running" ? "ok" : "warn");

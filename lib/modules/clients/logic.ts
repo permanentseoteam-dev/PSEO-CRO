@@ -4,7 +4,7 @@ import { fmt12 } from "@/lib/format-time";
 
 export const CURRENCIES = ["AED", "USD", "PKR", "GBP", "EUR", "SAR"] as const;
 export const COUNTRIES = ["UAE", "Saudi Arabia", "Pakistan", "UK", "USA"] as const;
-export const CHANNELS = { whatsapp: "WhatsApp", email: "Email", slack: "Slack", phone: "Phone" } as const;
+export const CHANNELS = { whatsapp: "WhatsApp", email: "Email", phone: "Phone" } as const;
 export const CLIENT_STATUSES = ["onboarding", "active", "paused", "churned", "terminated", "internal"] as const;
 export const END_REASONS = ["Budget cut", "Moved in-house", "Unhappy with results", "Business closed", "Other"] as const;
 export const TEAM_ROLES = { delivery_lead: "Delivery lead", delivery: "Delivery", account_executive: "Account executive", backup: "Backup" } as const;

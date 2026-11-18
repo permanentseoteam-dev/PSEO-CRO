@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   addMonths,
+  endsByMidnight,
   freeSlots,
   fromLocal,
   isDate,
   occurrences,
+  overlaps,
+  packColumns,
   parseGuests,
   parseParams,
   stepCursor,
@@ -98,3 +101,38 @@ describe("parseGuests", () => {
   it("rejects non-emails", () => expect(parseGuests("nina, a@b.co")).toBeNull());
 });
 
+
+describe("endsByMidnight", () => {
+  it("allows a meeting ending exactly at midnight", () => expect(endsByMidnight("23:30", 30)).toBe(true));
+  it("rejects one running past midnight", () => expect(endsByMidnight("23:50", 30)).toBe(false));
+  it("allows normal times", () => expect(endsByMidnight("11:00", 120)).toBe(true));
+});
+
+describe("overlaps", () => {
+  it("finds a real overlap", () => expect(overlaps(600, 60, 630, 30)).toBe(true));
+  it("finds containment", () => expect(overlaps(600, 120, 630, 15)).toBe(true));
+  it("touching end == start is not a conflict", () => {
+    expect(overlaps(600, 30, 630, 30)).toBe(false);
+    expect(overlaps(630, 30, 600, 30)).toBe(false);
+  });
+});
+
+describe("packColumns", () => {
+  it("gives a lone meeting the full width", () => expect(packColumns([{ start: 600, mins: 30 }])).toEqual([{ col: 0, cols: 1 }]));
+  it("puts two overlapping meetings side by side", () =>
+    expect(packColumns([{ start: 600, mins: 60 }, { start: 630, mins: 60 }])).toEqual([{ col: 0, cols: 2 }, { col: 1, cols: 2 }]));
+  it("keeps back-to-back meetings full width", () =>
+    expect(packColumns([{ start: 600, mins: 30 }, { start: 630, mins: 30 }])).toEqual([{ col: 0, cols: 1 }, { col: 0, cols: 1 }]));
+  it("reuses a freed column within a cluster and keeps input order", () => {
+    // A 10:00-12:00, B 10:00-10:30, C 10:30-11:00 (fits under B), D 13:00 alone.
+    const r = packColumns([
+      { start: 780, mins: 30 },
+      { start: 630, mins: 30 },
+      { start: 600, mins: 120 },
+      { start: 600, mins: 30 },
+    ]);
+    expect(r).toEqual([{ col: 0, cols: 1 }, { col: 1, cols: 2 }, { col: 0, cols: 2 }, { col: 1, cols: 2 }]);
+  });
+  it("uses three columns when three meetings overlap", () =>
+    expect(packColumns([{ start: 600, mins: 60 }, { start: 610, mins: 60 }, { start: 620, mins: 60 }]).map((x) => x.cols)).toEqual([3, 3, 3]));
+});

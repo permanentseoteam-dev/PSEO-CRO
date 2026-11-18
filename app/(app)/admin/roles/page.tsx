@@ -20,8 +20,8 @@ export default async function RolesPage() {
     <div className="page">
       <AdminHeader value="roles" />
       <Matrix
-        // Super admin always has everything, so it has no column.
-        roles={roles.filter((r) => r.key !== "super_admin").map((r) => ({ key: r.key, name: r.name }))}
+        // Admin always has everything, so it has no column.
+        roles={roles.filter((r) => r.key !== "admin").map((r) => ({ key: r.key, name: r.name }))}
         perms={perms}
         saved={saved}
       />

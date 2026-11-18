@@ -155,3 +155,51 @@ export function parseParams(p: Record<string, string | undefined>, today: string
 export function calHref(view: View, cursor: string, showCol: boolean) {
   return `/calendar?view=${view}&d=${cursor}${showCol ? "&col=1" : ""}`;
 }
+
+/** Meetings must end by midnight (office time): start "HH:MM" plus length fits in the day. */
+export const MIDNIGHT_ERROR = "Meetings must end by midnight. Pick an earlier start or a shorter length.";
+export const endsByMidnight = (time: string, minutes: number) => toMin(time) + minutes <= 24 * 60;
+
+/** Two blocks [start, start + mins) overlap. Touching (one ends as the other starts) is not an overlap. */
+export const overlaps = (aStart: number, aMins: number, bStart: number, bMins: number) =>
+  aStart < bStart + bMins && bStart < aStart + aMins;
+
+/**
+ * Side-by-side layout for one day column. Overlapping blocks form a cluster; each block takes the first free
+ * column in its cluster and the cluster's width is split evenly. Returns { col, cols } in input order.
+ */
+export function packColumns(blocks: { start: number; mins: number }[]): { col: number; cols: number }[] {
+  const out = blocks.map(() => ({ col: 0, cols: 1 }));
+  const order = blocks.map((_, i) => i).sort((a, b) => blocks[a].start - blocks[b].start || blocks[b].mins - blocks[a].mins);
+  let cluster: number[] = [];
+  let ends: number[] = []; // end minute of the last block in each column of the current cluster
+  let clusterEnd = -1;
+  const close = () => cluster.forEach((i) => (out[i].cols = ends.length));
+  for (const i of order) {
+    const { start, mins } = blocks[i];
+    if (start >= clusterEnd) {
+      close();
+      cluster = [];
+      ends = [];
+    }
+    let col = ends.findIndex((e) => e <= start);
+    if (col === -1) col = ends.push(0) - 1;
+    ends[col] = start + Math.max(mins, 1);
+    out[i].col = col;
+    cluster.push(i);
+    clusterEnd = Math.max(clusterEnd, start + Math.max(mins, 1));
+  }
+  close();
+  return out;
+}
+
+/** One clash line for the meeting forms, e.g. "Hamza already has “Weekly sync” 11:00 AM–11:30 AM". */
+export function clashText(
+  c: { memberId: string; memberName: string; title: string; date: string; start: string; end: string },
+  meId: string,
+  withDate: boolean,
+): string {
+  const me = c.memberId === meId;
+  const what = c.title === "Busy" ? (me ? "are busy" : "is busy") : `${me ? "already have" : "already has"} “${c.title}”`;
+  return `${me ? "You" : c.memberName} ${what} ${withDate ? `on ${fmtShort(c.date)} ` : ""}${fmt12(c.start)}–${fmt12(c.end)}`;
+}

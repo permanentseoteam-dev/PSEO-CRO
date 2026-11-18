@@ -4,12 +4,12 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { can, getMe } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
-import { DATE_RE, TIME_RE, fromLocal } from "@/lib/modules/calendar/logic";
+import { DATE_RE, MIDNIGHT_ERROR, TIME_RE, endsByMidnight, fromLocal } from "@/lib/modules/calendar/logic";
+import { findConflicts, type Conflict } from "@/lib/modules/calendar/conflicts";
 import { notify } from "@/lib/modules/calendar/notify";
-import { getSlackAdapter } from "./adapters";
 import { getChannelExtras } from "./queries";
-import { MAX_HUDDLE_PEOPLE, MAX_VOICE_SECONDS, MEETING_MINUTES, canArchive, canSetAdminsOnly, duplicateTargets, meetingMessage, meetingWhen } from "./logic";
-import { BRIDGE_STATES, IMPORT_DAYS, type Huddle, type Result } from "./types";
+import { MAX_HUDDLE_PEOPLE, MAX_VOICE_SECONDS, MEETING_MINUTES, canArchive, canSetAdminsOnly, meetingMessage, meetingWhen } from "./logic";
+import type { Huddle, Result } from "./types";
 
 // Every action: zod parse -> can() check -> Supabase write (RLS is the real guard) -> revalidate.
 const bad = { ok: false as const, error: "Check the form and try again." };
@@ -154,16 +154,26 @@ const Meeting = z.object({
   time: z.string().regex(TIME_RE),
   minutes: z.coerce.number().refine((m) => (MEETING_MINUTES as readonly number[]).includes(m)),
   attendees: z.array(id).max(50),
+  /** Book even when attendees already have a meeting then. */
+  force: z.boolean().optional(),
 });
 
 /** Calendar event (0104_calendar) with the chosen channel members, invites, plus a note in the conversation. */
-export async function scheduleChannelMeeting(raw: unknown): Promise<Result<{ warning: string | null }>> {
+export async function scheduleChannelMeeting(
+  raw: unknown,
+): Promise<Result<{ warning: string | null }> | { ok: false; error: string; conflicts: Conflict[] }> {
   const input = Meeting.safeParse(raw);
   if (!input.success) return bad;
   const me = await getMe();
   if (!me || me.kind !== "staff" || !can(me, "calendar.use") || !can(me, "chat.use")) return no;
   const m = input.data;
+  if (!endsByMidnight(m.time, m.minutes)) return { ok: false, error: MIDNIGHT_ERROR };
   const supabase = await createClient();
+  const people = [...new Set([me.id, ...m.attendees])];
+  if (!m.force) {
+    const conflicts = await findConflicts(supabase, { dates: [m.date], time: m.time, minutes: m.minutes, memberIds: people });
+    if (conflicts.length) return { ok: false, error: "Some people are already booked at that time.", conflicts };
+  }
 
   const { data: c } = await supabase.from("channels").select("kind, client_id").eq("id", m.channelId).maybeSingle();
   if (!c) return no;
@@ -185,7 +195,6 @@ export async function scheduleChannelMeeting(raw: unknown): Promise<Result<{ war
     });
   if (error) return { ok: false, error: error.message };
 
-  const people = [...new Set([me.id, ...m.attendees])];
   const { error: aErr } = await supabase
     .from("event_attendees")
     .insert(people.map((p) => ({ event_id: ev.id, member_id: p, rsvp: p === me.id ? "yes" : "pending" })));
@@ -241,87 +250,6 @@ export async function setArchived(raw: unknown): Promise<Result> {
   if (!data?.length) return { ok: false, error: "Only conversation admins can archive it." };
   chatPage();
   return { ok: true };
-}
-
-// ---------------------------------------------------------------- Slack import and bridge
-const SlackForm = z.object({
-  workspace: z.string().trim().min(3).max(120).regex(/^[a-z0-9.-]+$/i),
-  importDays: z.coerce.number().refine((d) => (IMPORT_DAYS as readonly number[]).includes(d)),
-  bridge: z.enum(BRIDGE_STATES),
-  links: z.array(z.object({ id, channelId: id.nullable() })).max(200),
-});
-
-async function slackAdmin() {
-  const me = await getMe();
-  return me && me.kind === "staff" && can(me, "chat.slack.manage", "all") ? me : null;
-}
-
-export async function saveSlackSetup(raw: unknown): Promise<Result> {
-  const input = SlackForm.safeParse(raw);
-  if (!input.success) return bad;
-  if (duplicateTargets(input.data.links).length) return { ok: false, error: "Each portal channel can link to one Slack channel only." };
-  const me = await slackAdmin();
-  if (!me) return no;
-  const supabase = await createClient();
-  const s = input.data;
-  const { data: ws, error } = await supabase
-    .from("slack_workspaces")
-    .upsert({ workspace: s.workspace.toLowerCase(), import_days: s.importDays, bridge: s.bridge }, { onConflict: "workspace" })
-    .select("id")
-    .single();
-  if (error || !ws) return { ok: false, error: error?.message ?? "Couldn't save." };
-  // Clear first so swapping two targets doesn't trip the one-link-per-channel index.
-  const ids = s.links.map((l) => l.id);
-  if (ids.length) {
-    const { error: clr } = await supabase.from("slack_channel_links").update({ channel_id: null }).in("id", ids);
-    if (clr) return { ok: false, error: clr.message };
-  }
-  for (const l of s.links) {
-    const { error: e } = await supabase.from("slack_channel_links").update({ channel_id: l.channelId }).eq("id", l.id).eq("workspace_id", ws.id);
-    if (e) return { ok: false, error: e.message };
-  }
-  revalidatePath("/chat");
-  return { ok: true };
-}
-
-export async function setLinkBridge(raw: unknown): Promise<Result> {
-  const input = z.object({ linkId: id, bridge: z.enum(BRIDGE_STATES) }).safeParse(raw);
-  if (!input.success) return bad;
-  if (!(await slackAdmin())) return no;
-  const supabase = await createClient();
-  const { error } = await supabase.from("slack_channel_links").update({ bridge: input.data.bridge }).eq("id", input.data.linkId);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/chat");
-  return { ok: true };
-}
-
-/** Queue an import. Until Slack is connected the job is recorded as not_configured and nothing is fetched. */
-export async function startSlackImport(raw: unknown): Promise<Result<{ configured: boolean }>> {
-  const input = z.object({ workspaceId: id }).safeParse(raw);
-  if (!input.success) return bad;
-  const me = await slackAdmin();
-  if (!me) return no;
-  const adapter = getSlackAdapter();
-  const supabase = await createClient();
-  const { data: ws } = await supabase.from("slack_workspaces").select("import_days, status").eq("id", input.data.workspaceId).maybeSingle();
-  if (!ws) return bad;
-  const ready = adapter.configured && ws.status === "connected";
-  const { error } = await supabase.from("slack_import_jobs").insert({
-    workspace_id: input.data.workspaceId,
-    days: ws.import_days,
-    status: ready ? "queued" : "not_configured",
-    started_by: me.id,
-  });
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/chat");
-  return { ok: true, data: { configured: ready } };
-}
-
-export async function connectSlack(): Promise<Result<{ url: string }>> {
-  if (!(await slackAdmin())) return no;
-  const r = getSlackAdapter().connectUrl("/chat");
-  if (r.ok) return { ok: true, data: { url: r.data } };
-  return { ok: false, error: r.reason === "not_configured" ? "Slack isn't set up for this workspace yet. Ask the lead to add the Slack app." : r.message };
 }
 
 // ---------------------------------------------------------------- Web Push

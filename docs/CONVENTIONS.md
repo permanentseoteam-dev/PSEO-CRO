@@ -84,7 +84,7 @@ Env vars (in `.env.local`, see `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`, `NEX
 - Server: `const me = await getMe()` (or `requireMe()`, which redirects to `/login`) from `@/lib/auth/can`. `me` has `id, name, kind ('staff'|'client'), clientId, departmentId, roles, perms`.
 - Client components: pass `me.perms` down as a prop and use `can` from `@/lib/auth/perms` (no server import).
 - `can(me, "finance.invoices.view")` means scope at least `own`; `can(me, key, "team")`, `can(me, key, "all")` for wider scope. Scopes: `none < own < team < all`.
-- Permission keys are in `public.permissions` (seeded in `supabase/seed/0001_core.sql`). A module that needs a new key adds it to its own seed with `insert into public.permissions … on conflict do nothing` and grants it in `role_permissions`. super_admin gets every key automatically.
+- Permission keys are in `public.permissions` (seeded in `supabase/seed/0001_core.sql`). A module that needs a new key adds it to its own seed with `insert into public.permissions … on conflict do nothing` and grants it in `role_permissions`. admin gets every key automatically.
 - Guarded page shows `<NoAccess />` ("You don't have access to this page").
 
 ## Database
@@ -110,7 +110,7 @@ Env vars (in `.env.local`, see `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`, `NEX
 | `public.is_staff()` | active staff member |
 | `public.my_client_id()` | the client a client login belongs to, else null |
 | `public.in_my_team(member_id)` | me, my reports, or my department |
-| `public.is_super_admin()` | super admin |
+| `public.is_admin()` | admin |
 
 Pattern:
 ```sql

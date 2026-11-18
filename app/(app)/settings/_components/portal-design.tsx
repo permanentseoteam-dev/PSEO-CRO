@@ -16,6 +16,7 @@ import {
   type PortalTheme,
 } from "@/lib/modules/portal-design/logic";
 import { savePortalDesign, savePortalLogo } from "../actions";
+import { ReadRows, SaveCancel, useEditing } from "./edit-mode";
 
 function Seg<T extends string>({ label, items, value, onChange }: { label: string; items: [T, string][]; value: T; onChange: (v: T) => void }) {
   return (
@@ -40,8 +41,55 @@ function subscribeDark(cb: () => void) {
   return () => q.removeEventListener("change", cb);
 }
 
-/** Admin form for the company-wide client portal look, with a live preview. */
+const THEME_LABEL: Record<PortalTheme, string> = { system: "System", light: "Light", dark: "Dark" };
+const DENSITY_LABEL: Record<PortalDensity, string> = { comfortable: "Comfortable", compact: "Compact" };
+
+/** Admin card for the company-wide client portal look: saved values, or the form while editing. */
 export function PortalDesignForm({ initial }: { initial: PortalDesign }) {
+  const { editing, setEditing } = useEditing();
+  const [saved, setSaved] = useState(initial);
+  if (!editing) {
+    return (
+      <ReadRows
+        rows={[
+          [
+            "Accent colour",
+            <span key="a" className="inline-flex items-center gap-2">
+              <span aria-hidden="true" className="h-4 w-4 rounded border border-line" style={{ background: saved.accent }} />
+              <span className="font-mono">{saved.accent}</span>
+            </span>,
+          ],
+          ["Default theme", THEME_LABEL[saved.theme]],
+          ["Density", DENSITY_LABEL[saved.density]],
+          // eslint-disable-next-line @next/next/no-img-element
+          ["Default logo", saved.logoUrl ? <img key="l" src={saved.logoUrl} alt="Default logo" className="h-7 w-auto max-w-[140px] object-contain" /> : "None"],
+        ]}
+      />
+    );
+  }
+  return (
+    <PortalForm
+      initial={saved}
+      // The logo saves on upload, so it is kept even if the rest is cancelled.
+      onLogo={(logoUrl) => setSaved((cur) => ({ ...cur, logoUrl }))}
+      onDone={(next) => {
+        if (next) setSaved((cur) => ({ ...cur, ...next }));
+        setEditing(false);
+      }}
+    />
+  );
+}
+
+/** The edit form, with a live preview. Unmounted on Cancel, which drops the draft. */
+function PortalForm({
+  initial,
+  onLogo,
+  onDone,
+}: {
+  initial: PortalDesign;
+  onLogo: (url: string | null) => void;
+  onDone: (saved?: Pick<PortalDesign, "accent" | "theme" | "density">) => void;
+}) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [accent, setAccent] = useState(initial.accent);
@@ -65,6 +113,7 @@ export function PortalDesignForm({ initial }: { initial: PortalDesign }) {
     start(async () => {
       const r = await savePortalDesign({ accent: hex, theme, density });
       toast(r.ok ? "Portal design saved" : r.error);
+      if (r.ok) onDone({ accent: hex.toLowerCase(), theme, density });
     });
   }
 
@@ -83,7 +132,9 @@ export function PortalDesignForm({ initial }: { initial: PortalDesign }) {
         await sb.storage.from(LOGO_BUCKET).remove([path]);
         return toast(r.error);
       }
-      setLogoUrl(sb.storage.from(LOGO_BUCKET).getPublicUrl(path).data.publicUrl);
+      const url = sb.storage.from(LOGO_BUCKET).getPublicUrl(path).data.publicUrl;
+      setLogoUrl(url);
+      onLogo(url);
       toast("Logo saved");
     });
     if (file.current) file.current.value = "";
@@ -94,6 +145,7 @@ export function PortalDesignForm({ initial }: { initial: PortalDesign }) {
       const r = await savePortalLogo(null);
       if (!r.ok) return toast(r.error);
       setLogoUrl(null);
+      onLogo(null);
       toast("Logo removed");
     });
   }
@@ -152,11 +204,7 @@ export function PortalDesignForm({ initial }: { initial: PortalDesign }) {
             ) : null}
           </div>
         </Field>
-        <div className="row">
-          <Button variant="primary" disabled={pending || !!problem} onClick={save}>
-            Save portal design
-          </Button>
-        </div>
+        <SaveCancel pending={pending} disabled={!!problem} onSave={save} onCancel={() => onDone()} />
         <p className="muted m-0">Branding set on a client page (colour and logo) overrides these defaults for that client.</p>
       </div>
 

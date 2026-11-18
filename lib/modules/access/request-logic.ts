@@ -1,7 +1,7 @@
 // Pure helpers for "Request access" on the no-access screen. Shared by the server action and tests.
 
 /** Roles whose holders get access requests and show up as "who can help". */
-export const ADMIN_ROLES = ["admin", "super_admin"] as const;
+export const ADMIN_ROLES = ["admin"] as const;
 
 export const REQUEST_ACTION = "asked for access to";
 export const DEDUPE_MS = 24 * 60 * 60 * 1000;

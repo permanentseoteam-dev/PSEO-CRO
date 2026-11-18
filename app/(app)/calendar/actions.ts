@@ -6,11 +6,14 @@ import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { listBusy } from "@/lib/modules/calendar/queries";
 import { notify } from "@/lib/modules/calendar/notify";
+import { findConflicts, type Conflict } from "@/lib/modules/calendar/conflicts";
 import {
   DATE_RE,
+  MIDNIGHT_ERROR,
   REPEATS,
   TIME_RE,
   addDays,
+  endsByMidnight,
   fmtT,
   freeSlots,
   fromLocal,
@@ -49,6 +52,7 @@ const MeetingIn = z
     repeat: z.enum(REPEATS),
     visibility: z.enum(["team", "private", "client"]),
     invite: z.boolean().default(true),
+    force: z.boolean().default(false),
   })
   .refine((v) => v.visibility !== "client" || !!v.clientId, { message: "Pick a client to share it in their portal." });
 
@@ -64,12 +68,17 @@ function normaliseLink(s: string): string | null {
   }
 }
 
-export async function saveMeeting(raw: unknown): Promise<{ ok: true; date: string } | Fail> {
+/** Not saved because people are already booked; re-submit with force: true to book anyway. */
+type Clash = { ok: false; error: string; conflicts: Conflict[] };
+const CLASH = "Some people are already booked at that time.";
+
+export async function saveMeeting(raw: unknown): Promise<{ ok: true; date: string } | Fail | Clash> {
   const parsed = MeetingIn.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues.find((i) => i.code === "custom")?.message ?? "Check the form and try again.");
   const me = await calendarUser();
   if (!me) return fail(NO);
   const v = parsed.data;
+  if (!endsByMidnight(v.start, v.minutes)) return fail(MIDNIGHT_ERROR);
 
   const guests = parseGuests(v.guests);
   if (!guests) return fail("Guests must be email addresses, separated by commas.");
@@ -97,11 +106,15 @@ export async function saveMeeting(raw: unknown): Promise<{ ok: true; date: strin
     if (!ev) return fail("That meeting no longer exists.");
     const organiser = (ev as { created_by: string }).created_by;
     if (organiser !== me.id && !can(me, "calendar.use", "all")) return fail(NO);
+    const keep = new Set([organiser, ...team]);
+    if (!v.force) {
+      const conflicts = await findConflicts(supabase, { dates: [v.date], time: v.start, minutes: v.minutes, memberIds: [...keep], excludeEventId: v.id });
+      if (conflicts.length) return { ok: false, error: CLASH, conflicts };
+    }
 
     const { error } = await supabase.from("events").update({ ...fields, starts_at: fromLocal(v.date, v.start) }).eq("id", v.id);
     if (error) return fail(error.message);
 
-    const keep = new Set([organiser, ...team]);
     const { data: cur } = await supabase.from("event_attendees").select("member_id").eq("event_id", v.id);
     const current = new Set(((cur ?? []) as { member_id: string }[]).map((a) => a.member_id));
     const remove = [...current].filter((id) => !keep.has(id));
@@ -119,6 +132,11 @@ export async function saveMeeting(raw: unknown): Promise<{ ok: true; date: strin
   }
 
   const dates = occurrences(v.date, v.repeat);
+  const people = [me.id, ...team];
+  if (!v.force) {
+    const conflicts = await findConflicts(supabase, { dates, time: v.start, minutes: v.minutes, memberIds: people });
+    if (conflicts.length) return { ok: false, error: CLASH, conflicts };
+  }
   const seriesId = dates.length > 1 ? crypto.randomUUID() : null;
   const rows = dates.map((d) => ({
     ...fields,
@@ -130,7 +148,6 @@ export async function saveMeeting(raw: unknown): Promise<{ ok: true; date: strin
   }));
   const { error } = await supabase.from("events").insert(rows);
   if (error) return fail(error.message);
-  const people = [me.id, ...team];
   const { error: e2 } = await supabase
     .from("event_attendees")
     .insert(rows.flatMap((r) => people.map((id) => ({ event_id: r.id, member_id: id, rsvp: id === me.id ? "yes" : "pending" }))));

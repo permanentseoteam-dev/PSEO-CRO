@@ -23,7 +23,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   // What the roles alone give; the table shows the override on top.
   const fromRoles = resolvePerms({ keys, roles: person.roles, grants, overrides: [] });
   const st = MEMBER_STATUS[person.status] ?? MEMBER_STATUS.active;
-  const isSuper = person.roles.includes("super_admin");
+  const isAdmin = person.roles.includes("admin");
 
   return (
     <div className="page">
@@ -49,7 +49,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           roles={roles.filter((r) => r.kind === person.kind).map((r) => ({ key: r.key, name: r.name, description: r.description }))}
           initialRoles={person.roles}
           initialStatus={person.status === "invited" ? "active" : person.status}
-          canGrantSuper={me.roles.includes("super_admin")}
+          canGrantAdmin={me.roles.includes("admin")}
         />
       </Card>
 
@@ -58,7 +58,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         <OverridesTable
           memberId={person.id}
           isSelf={person.id === me.id}
-          isSuper={isSuper}
+          isAdmin={isAdmin}
           rows={perms.map((p) => ({
             key: p.key,
             label: p.label,

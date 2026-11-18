@@ -3,10 +3,7 @@ import {
   canArchive,
   canSetAdminsOnly,
   downsamplePeaks,
-  duplicateTargets,
   formatDuration,
-  importProgress,
-  importSince,
   inQuietHours,
   meetingMessage,
   meetingWhen,
@@ -107,19 +104,5 @@ describe("quiet hours and push", () => {
   });
   it("decodes a base64url key", () => {
     expect([...urlBase64ToBytes("AQID_w")]).toEqual([1, 2, 3, 255]);
-  });
-});
-
-describe("Slack", () => {
-  it("computes the import window", () => {
-    expect(importSince(new Date("2026-11-04T00:00:00Z"), 90)).toBe("2026-08-06T00:00:00.000Z");
-  });
-  it("finds portal channels mapped twice", () => {
-    expect(duplicateTargets([{ channelId: "a" }, { channelId: "b" }, { channelId: "a" }, { channelId: null }, { channelId: null }])).toEqual(["a"]);
-  });
-  it("reports progress", () => {
-    expect(importProgress(642, 1284)).toBe(50);
-    expect(importProgress(10, null)).toBeNull();
-    expect(importProgress(2000, 1284)).toBe(100);
   });
 });

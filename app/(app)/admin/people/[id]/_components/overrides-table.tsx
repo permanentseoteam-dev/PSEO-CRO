@@ -8,7 +8,7 @@ import { setOverride } from "../../../actions";
 type Row = { key: string; label: string; fromRoles: Scope; override: Scope | "default" };
 
 /** One select per permission; a change saves straight away. "From roles" removes the override. */
-export function OverridesTable({ memberId, isSelf, isSuper, rows }: { memberId: string; isSelf: boolean; isSuper: boolean; rows: Row[] }) {
+export function OverridesTable({ memberId, isSelf, isAdmin, rows }: { memberId: string; isSelf: boolean; isAdmin: boolean; rows: Row[] }) {
   const toast = useToast();
   const [values, setValues] = useState(() => Object.fromEntries(rows.map((r) => [r.key, r.override])));
   const [pending, start] = useTransition();
@@ -26,8 +26,8 @@ export function OverridesTable({ memberId, isSelf, isSuper, rows }: { memberId: 
       <tbody>
         {rows.map((r) => {
           const v = values[r.key];
-          const effective = isSuper ? "all" : v === "default" ? r.fromRoles : v;
-          const locked = isSuper || (isSelf && r.key === "admin.access.manage");
+          const effective = isAdmin ? "all" : v === "default" ? r.fromRoles : v;
+          const locked = isAdmin || (isSelf && r.key === "admin.access.manage");
           return (
             <tr key={r.key}>
               <Td>
@@ -40,7 +40,7 @@ export function OverridesTable({ memberId, isSelf, isSuper, rows }: { memberId: 
                   aria-label={`Override for ${r.key}`}
                   value={v}
                   disabled={locked || pending}
-                  title={isSuper ? "Super admin has every permission" : undefined}
+                  title={isAdmin ? "Admin has every permission" : undefined}
                   onChange={(e) => {
                     const next = e.target.value as Scope | "default";
                     const prev = v;
@@ -59,7 +59,7 @@ export function OverridesTable({ memberId, isSelf, isSuper, rows }: { memberId: 
                   <option value="all">all</option>
                 </Select>
               </Td>
-              <Td className={v !== "default" && !isSuper ? "font-semibold" : undefined}>{effective}</Td>
+              <Td className={v !== "default" && !isAdmin ? "font-semibold" : undefined}>{effective}</Td>
             </tr>
           );
         })}
