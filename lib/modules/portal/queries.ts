@@ -1,5 +1,5 @@
 import "server-only";
-import type { Me } from "@/lib/auth/perms";
+import { can, type Me } from "@/lib/auth/perms";
 import { getPortalView, inPreview, portalDb } from "./viewer";
 import type {
   Activity,
@@ -385,8 +385,12 @@ export async function listPreviewMessages(
       .is("archived_at", null)
       .order("last_message_at", { ascending: false, nullsFirst: false }),
   );
-  const mine = chans.filter((c) => ((c.channel_members ?? []) as Row[]).some((m) => m.member_id === ownerId));
-  const ch = (mine.length ? mine : chans)[0];
+  const inChan = (c: Row, id: string) => ((c.channel_members ?? []) as Row[]).some((m) => m.member_id === id);
+  // Like is_chat_member: the previewing staff member only reads channels they are in, unless chat.use is "all".
+  const { me } = await getPortalView();
+  const open = can(me, "chat.use", "all") ? chans : chans.filter((c) => inChan(c, me.id));
+  const mine = open.filter((c) => inChan(c, ownerId));
+  const ch = (mine.length ? mine : open)[0];
   if (!ch) return null;
   const msgs = rows(
     await supabase

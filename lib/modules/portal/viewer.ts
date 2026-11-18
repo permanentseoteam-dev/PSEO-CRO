@@ -7,7 +7,7 @@ import { getMe, requireMe } from "@/lib/auth/can";
 import { can, resolvePerms, type Me, type Scope } from "@/lib/auth/perms";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PREVIEW_COOKIE, resolvePortalScope, verifyPreview, type PortalScope } from "./preview";
+import { PREVIEW_COOKIE, resolvePortalScope, staffMayPreview, verifyPreview, type PortalScope } from "./preview";
 
 export type PortalView = {
   /** The signed-in member. */
@@ -46,14 +46,15 @@ export async function inPreview(): Promise<boolean> {
 /**
  * Supabase client for a portal read of `clientId`.
  * Client login: the user's own client (RLS). Preview: the service client, only for the previewed client,
- * and null when the client's owner login lacks `perm` (callers then return nothing, as RLS would).
+ * and null when the client's owner login lacks `perm` or the previewing staff member lacks its staff equivalent
+ * (staffMayPreview); callers then return nothing, as RLS would.
  * Callers must keep their client_id and "shared / client-visible" filters: the service client bypasses RLS.
  */
 export async function portalDb(clientId: string, perm?: string): Promise<SupabaseClient | null> {
-  const { scope, viewer } = await getPortalView();
+  const { scope, viewer, me } = await getPortalView();
   if (scope.mode !== "preview") return createClient();
   if (clientId !== scope.clientId) throw new Error("Portal preview read for another client");
-  if (perm && !can(viewer, perm)) return null;
+  if (perm && (!can(viewer, perm) || !staffMayPreview(me, perm))) return null;
   return createAdminClient();
 }
 

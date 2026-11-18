@@ -2,8 +2,8 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Cycle, Department, KpiDef, KpiRow, Objective, Person, Presence, ReviewStatus } from "./types";
 
-// Reads public.attendance (0113_personal): member_id, clock_in, clock_out. An open session
-// (clock_out is null) means clocked in. A missing table reads as nobody clocked in.
+// Clock-in state comes from clocked_in_member_ids() (0223): ids of open attendance sessions only,
+// since attendance rows themselves are private. A failed call reads as nobody clocked in.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
@@ -21,7 +21,7 @@ export async function listPeople(): Promise<{ people: Person[]; departments: Dep
       .order("name"),
     supabase.from("departments").select("id, name, head_id").order("name"),
     supabase.from("member_profiles").select("member_id, status_note, skills, phone, joined_on, shift"),
-    supabase.from("attendance").select("member_id").is("clock_out", null),
+    supabase.rpc("clocked_in_member_ids"),
   ]);
   const departments: Department[] = rows(d).map((r) => ({ id: r.id, name: r.name, headId: r.head_id }));
   const deptName = new Map(departments.map((x) => [x.id, x.name]));

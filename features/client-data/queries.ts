@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   AdBudget,
   AdCampaign,
@@ -56,9 +57,9 @@ export async function listSubAccounts(parentId: string): Promise<SubAccount[]> {
   });
 }
 
-/** Every link, for the one-level check when linking. */
+/** Every link, for the one-level check when linking. Service role: RLS would hide links on clients you don't manage. */
 export async function listAllSubAccountLinks(): Promise<Pick<SubAccount, "parentClientId" | "childClientId">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data } = await supabase.from("client_sub_accounts").select("parent_client_id, child_client_id");
   return (data ?? []).map((r) => ({ parentClientId: r.parent_client_id, childClientId: r.child_client_id }));
 }

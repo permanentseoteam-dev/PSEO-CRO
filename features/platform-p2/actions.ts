@@ -228,7 +228,7 @@ export async function summarizeCall(raw: unknown): Promise<Result> {
   const p = z.object({ id }).safeParse(raw);
   if (!p.success) return bad;
   const me = await staff();
-  if (!me || !can(me, "clients.view")) return no;
+  if (!me || !can(me, "clients.manage")) return no;
   const supabase = await createClient();
   const { data: call } = await supabase.from("fireflies_calls").select("id, title").eq("id", p.data.id).maybeSingle();
   if (!call) return no;
@@ -238,11 +238,13 @@ export async function summarizeCall(raw: unknown): Promise<Result> {
     await logRun(supabase, "ai", null, "summary", adapterError("ai", r), r.reason === "not_configured");
     return { ok: false, error: adapterError("ai", r)! };
   }
-  const { error } = await supabase
+  const { data: saved, error } = await supabase
     .from("fireflies_calls")
     .update({ summary: r.data, summary_status: "ready", summarized_at: new Date().toISOString() })
-    .eq("id", call.id);
+    .eq("id", call.id)
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  if (!saved?.length) return no;
   revalidatePath("/meetings");
   return { ok: true };
 }
@@ -251,7 +253,7 @@ export async function assignCallClient(raw: unknown): Promise<Result> {
   const p = z.object({ id, clientId: id.nullable() }).safeParse(raw);
   if (!p.success) return bad;
   const me = await staff();
-  if (!me || !can(me, "clients.view")) return no;
+  if (!me || !can(me, "clients.manage")) return no;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("fireflies_calls")

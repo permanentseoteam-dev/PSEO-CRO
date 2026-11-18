@@ -68,3 +68,25 @@ export function resolvePortalScope(me: Pick<Me, "id" | "kind" | "clientId" | "pe
   }
   return { mode: "none" };
 }
+
+/**
+ * The staff perm (and scope) a preview reader needs for each portal perm used with portalDb. The preview
+ * reads with the service client, so without this a staff member could read what the client's owner can,
+ * not what they can. Scopes follow the staff RLS: "all" where the policy narrows "own"/"team" to rows the
+ * preview's service client would not narrow (invoices by owner/manager, tickets by assignee).
+ * portal.approve: approvals_select lets any staff who sees the client read them (clients.view, already
+ * required by resolvePortalScope). chat.use: listPreviewMessages also keeps to the staff member's channels
+ * unless chat.use is "all". Unknown perms fail closed.
+ */
+const STAFF_EQUIVALENT: Record<string, { perm: string; scope: "own" | "all" }> = {
+  "finance.invoices.view": { perm: "finance.invoices.view", scope: "all" },
+  "tickets.view": { perm: "tickets.view", scope: "all" },
+  "portal.approve": { perm: "clients.view", scope: "own" },
+  "chat.use": { perm: "chat.use", scope: "own" },
+};
+
+/** True when the previewing staff member may read data the portal gates behind `portalPerm`. */
+export function staffMayPreview(staff: Pick<Me, "perms">, portalPerm: string): boolean {
+  const eq = STAFF_EQUIVALENT[portalPerm];
+  return !!eq && can(staff, eq.perm, eq.scope);
+}

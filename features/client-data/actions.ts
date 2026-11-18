@@ -35,14 +35,16 @@ export async function linkSubAccount(raw: unknown): Promise<ActionResult> {
   if (!input.success) return BAD_INPUT;
   const me = await manager();
   if (!me) return NO_ACCESS;
-  const { parentId, childId, billing } = input.data;
+  const { parentId, childId } = input.data;
+  // Billing under the parent changes invoices: only finance (billing.edit at 'all') may choose it.
+  const billing = can(me, "clients.billing.edit", "all") ? input.data.billing : "own";
   const problem = checkSubAccountLink(parentId, childId, await listAllSubAccountLinks());
   if (problem) return { ok: false, error: problem };
   const supabase = await createClient();
   const { error } = await supabase
     .from("client_sub_accounts")
     .insert({ parent_client_id: parentId, child_client_id: childId, billing, linked_by: me.id });
-  if (error) return { ok: false, error: error.message };
+  if (error) return error.code === "42501" ? { ok: false, error: "You can only link clients you manage." } : { ok: false, error: error.message };
   revalidatePath(`/clients/${childId}`);
   return done(parentId);
 }
@@ -54,8 +56,15 @@ export async function unlinkSubAccount(raw: unknown): Promise<ActionResult> {
   if (!input.success) return BAD_INPUT;
   if (!(await manager())) return NO_ACCESS;
   const supabase = await createClient();
-  const { error } = await supabase.from("client_sub_accounts").delete().eq("id", input.data.id).eq("parent_client_id", input.data.parentId);
+  const { data, error } = await supabase
+    .from("client_sub_accounts")
+    .delete()
+    .eq("id", input.data.id)
+    .eq("parent_client_id", input.data.parentId)
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  // RLS hides rows you can't remove (other clients, or billed under the parent without billing.edit).
+  if (!data?.length) return { ok: false, error: "You can't remove this sub-account. Billing links are changed in Finance." };
   return done(input.data.parentId);
 }
 
