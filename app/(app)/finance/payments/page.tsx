@@ -9,6 +9,8 @@ import {
   daysBetween,
   fmtDay,
   inRange,
+  missingRates,
+  missingRatesNote,
   money,
   periodRange,
   type Currency,
@@ -20,6 +22,7 @@ import { RecordPaymentButton } from "./_components/record-payment";
 import { ReceiptsTable } from "./_components/receipts-table";
 import { UrlSelect } from "./_components/url-select";
 import s from "./_components/ops.module.css";
+import fs from "../_core/finance.module.css";
 
 export const metadata = { title: "Payments" };
 
@@ -83,6 +86,18 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
   }
   const owing = new Set(open.map((i) => i.clientId));
 
+  const rateNote = missingRatesNote(
+    missingRates(
+      [
+        ...live.map((r) => ({ currency: r.currency, rate: r.rate })),
+        ...refunds.map((r) => ({ currency: r.currency, rate: r.rate })),
+        ...d.credits.map((c) => ({ currency: c.currency })),
+        ...open.map((i) => ({ currency: i.currency, rate: i.rate })),
+      ],
+      d.rates,
+    ),
+  );
+
   const recordProps = {
     clients: d.clients,
     channels: d.channels,
@@ -110,6 +125,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
           { value: "owed", label: "Still owed", href: href({ tab: "owed" }) },
         ]}
       />
+
+      {rateNote ? <div className={fs.banner}>{rateNote}</div> : null}
 
       {tab === "recv" ? (
         <>

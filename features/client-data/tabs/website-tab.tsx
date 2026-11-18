@@ -7,7 +7,7 @@ import { WebsiteEditor } from "../components/website-editor";
 import { dataAccess } from "./access";
 
 const fmtDay = (d: string | null) => (d ? format(new Date(`${d.slice(0, 10)}T00:00:00Z`), "d MMM yyyy") : null);
-const fmtTime = (d: string | null) => (d ? format(new Date(d), "d MMM HH:mm") : null);
+const fmtTime = (d: string | null) => (d ? format(new Date(d), "d MMM h:mm a") : null);
 
 function Fact({ label, value }: { label: string; value: ReactNode }) {
   return (

@@ -4,6 +4,7 @@ import { EndedClientsCard } from "@/features/client-admin/sections";
 import { StatusReviewButton } from "@/features/client-success/components/status-review";
 import { byOwner, fmtMeeting, money } from "@/lib/modules/clients/logic";
 import { getPortfolio } from "@/lib/modules/clients/queries";
+import { listServiceNames } from "@/lib/modules/services/queries";
 import { ClientFormButton } from "./_components/client-form";
 import { PortfolioGrid } from "./_components/portfolio-grid";
 
@@ -13,7 +14,7 @@ export default async function ClientsPage() {
   const me = await requireMe();
   if (me.kind !== "staff" || !can(me, "clients.view")) return <NoAccess />;
   const now = new Date();
-  const { data, people } = await getPortfolio(now);
+  const [{ data, people }, services] = await Promise.all([getPortfolio(now), listServiceNames()]);
   const { stats } = data;
   const owners = byOwner(data.byOwner);
   const canManage = can(me, "clients.manage");
@@ -26,7 +27,7 @@ export default async function ClientsPage() {
         {canManage ? (
           <div className="row">
             <StatusReviewButton clients={data.cards.filter((c) => c.status !== "paused").map((c) => ({ id: c.id, name: c.name, band: c.band }))} />
-            <ClientFormButton people={people} showFee={showFee} label="Add client" variant="primary" />
+            <ClientFormButton people={people} services={services} showFee={showFee} label="Add client" variant="primary" />
           </div>
         ) : null}
       </div>
@@ -48,7 +49,7 @@ export default async function ClientsPage() {
         />
       </Stats>
 
-      <PortfolioGrid cards={data.cards} owners={data.owners} reportMonth={data.reportMonth} />
+      <PortfolioGrid cards={data.cards} owners={data.owners} services={services} reportMonth={data.reportMonth} />
 
       <div className="grid-2">
         <Card>

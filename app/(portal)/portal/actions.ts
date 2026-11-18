@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
+import { fmt12 } from "@/lib/format-time";
 import { previewActive } from "@/lib/modules/portal/viewer";
 import { READ_ONLY } from "@/lib/modules/portal/preview";
 
@@ -89,7 +90,7 @@ export async function bookMeeting(raw: unknown): Promise<Result<{ key: string }>
   const { topic, day, time, attendees, note } = p.data;
   const what = [
     `Meeting request: ${topic}`,
-    `Preferred: ${day} at ${time} (Dubai time)`,
+    `Preferred: ${day} at ${fmt12(time)} (Dubai time)`,
     attendees.length ? `Attendees: ${attendees.join(", ")}` : "",
     note ? `Note: ${note}` : "",
   ]

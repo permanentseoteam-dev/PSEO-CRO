@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, FileText, Image as ImageIcon, X } from "lucide-react";
 import { Avatar, Button, Checkbox, IconButton } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { fmt12 } from "@/lib/format-time";
 import { dubai, formatSize } from "@/lib/modules/chat/logic";
 import type { Person } from "@/lib/modules/chat/types";
 import { Composer } from "./composer";
@@ -86,7 +87,7 @@ export function Pane({ pane, label, mentionPeople, canPost, onClose, onReply }: 
                     <div className="small">
                       <b>{nameOf(m.authorId)}</b>{" "}
                       <span className="muted num">
-                        {d.day.slice(5)} {d.time}
+                        {d.day.slice(5)} {fmt12(d.time)}
                       </span>
                     </div>
                     <div className={s.paneTxt}>{m.body ? <RichText text={m.body} /> : m.files[0]?.name}</div>
@@ -122,7 +123,7 @@ export function Pane({ pane, label, mentionPeople, canPost, onClose, onReply }: 
               <div>
                 <b className="small">{f.name}</b>
                 <div className="small muted">
-                  {formatSize(f.size)} · {nameOf(m.authorId)} · {dubai(m.createdAt).time}
+                  {formatSize(f.size)} · {nameOf(m.authorId)} · {fmt12(dubai(m.createdAt).time)}
                 </div>
                 <div className="row">
                   <Button size="sm" variant="ghost" onClick={() => c.jumpTo(m.parentId ?? m.id)}>

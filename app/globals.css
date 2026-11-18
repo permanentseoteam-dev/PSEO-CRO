@@ -50,14 +50,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0b1430;
-    --surface: #111d40;
-    --surface-2: #18264f;
-    --ink: #e6ebf5;
-    --ink-2: #b3bdd6;
-    --ink-3: #8f9bbd;
-    --line: #22305a;
-    --line-2: #2b3a66;
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-2: #1c1c1c;
+    --ink: #ededed;
+    --ink-2: #b4b4b4;
+    --ink-3: #8f8f8f;
+    --line: #262626;
+    --line-2: #2e2e2e;
     --accent: #3aa2ff;
     --accent-ink: #6bb8ff;
     --accent-soft: color-mix(in srgb, #3aa2ff 16%, transparent);
@@ -72,23 +72,28 @@
     --blue-soft: color-mix(in srgb, #3aa2ff 15%, transparent);
     --violet: #a78bfa;
     --violet-soft: color-mix(in srgb, #a78bfa 16%, transparent);
-    --muted-soft: color-mix(in srgb, #8f9bbd 14%, transparent);
+    --muted-soft: color-mix(in srgb, #8f8f8f 14%, transparent);
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 16px rgba(0, 0, 0, .3);
     --shadow-lg: 0 12px 44px rgba(0, 0, 0, .55);
+    /* Dark mode: neutral black sidebar instead of navy. */
+    --side-bg: #0f0f0f;
+    --side-ink: #ededed;
+    --side-ink-2: #8f8f8f;
+    --side-active: #262626;
   }
 }
 
 /* ---------- Tokens: dark (forced) ---------- */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b1430;
-  --surface: #111d40;
-  --surface-2: #18264f;
-  --ink: #e6ebf5;
-  --ink-2: #b3bdd6;
-  --ink-3: #8f9bbd;
-  --line: #22305a;
-  --line-2: #2b3a66;
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-2: #1c1c1c;
+  --ink: #ededed;
+  --ink-2: #b4b4b4;
+  --ink-3: #8f8f8f;
+  --line: #262626;
+  --line-2: #2e2e2e;
   --accent: #3aa2ff;
   --accent-ink: #6bb8ff;
   --accent-soft: color-mix(in srgb, #3aa2ff 16%, transparent);
@@ -103,9 +108,14 @@
   --blue-soft: color-mix(in srgb, #3aa2ff 15%, transparent);
   --violet: #a78bfa;
   --violet-soft: color-mix(in srgb, #a78bfa 16%, transparent);
-  --muted-soft: color-mix(in srgb, #8f9bbd 14%, transparent);
+  --muted-soft: color-mix(in srgb, #8f8f8f 14%, transparent);
   --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 16px rgba(0, 0, 0, .3);
   --shadow-lg: 0 12px 44px rgba(0, 0, 0, .55);
+  /* Dark mode: neutral black sidebar instead of navy. */
+  --side-bg: #0f0f0f;
+  --side-ink: #ededed;
+  --side-ink-2: #8f8f8f;
+  --side-active: #262626;
 }
 
 /* Tailwind theme: utilities like bg-surface, text-ink-3, border-line, text-danger read the CSS variables. */

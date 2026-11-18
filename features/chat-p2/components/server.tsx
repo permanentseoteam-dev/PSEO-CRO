@@ -1,4 +1,5 @@
 import { can, getMe } from "@/lib/auth/can";
+import { dubaiTomorrow } from "../logic";
 import { getChannelExtras, getSlackSetup } from "../queries";
 import { ChannelSettingsP2 } from "./channel-settings";
 import { Huddle } from "./huddle";
@@ -6,9 +7,6 @@ import { ScheduleMeeting } from "./schedule-meeting";
 import { SlackImport } from "./slack-import";
 
 // Server entry points for the Phase 1 chat page. See ../WIRING.md.
-
-/** Tomorrow as YYYY-MM-DD (default meeting date). */
-const tomorrow = () => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
 
 /** Huddle + Schedule meeting buttons for the conversation header. */
 export async function ChatHeaderExtras({ channelId }: { channelId: string }) {
@@ -21,8 +19,8 @@ export async function ChatHeaderExtras({ channelId }: { channelId: string }) {
   return (
     <>
       <Huddle channelId={channelId} me={{ id: me.id, name: me.name }} huddle={archived ? null : x.huddle} canStart={mayPost} />
-      {me.kind === "staff" && can(me, "calendar.use") && !archived ? (
-        <ScheduleMeeting channelId={channelId} meId={me.id} people={x.staff} defaultDate={tomorrow()} />
+      {me.kind === "staff" && can(me, "calendar.use") && mayPost ? (
+        <ScheduleMeeting channelId={channelId} meId={me.id} people={x.staff} defaultDate={dubaiTomorrow()} />
       ) : null}
     </>
   );

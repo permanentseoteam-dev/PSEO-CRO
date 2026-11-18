@@ -3,6 +3,7 @@ import type { NavGroup } from "@/lib/nav";
 import { STAFF_NAV, PORTAL_NAV } from "@/lib/nav";
 import { can, type Me } from "@/lib/auth/perms";
 import type { ClockSession, Presence, Theme } from "./types";
+import { time12 } from "@/lib/format-time";
 
 export const MAX_PINS = 12;
 export const WORKDAY_MIN = 8 * 60;
@@ -138,10 +139,10 @@ export function runningMinutes(s: ClockSession, now: Date): number {
   return Math.max(0, Math.floor((now.getTime() - new Date(s.clockIn).getTime()) / 60000));
 }
 
-/** When a session started, relative to `now` (local time): "09:02", "yesterday 18:00", "Tue 18:00", "28 Oct 18:00". */
+/** When a session started, relative to `now` (local time): "9:02 AM", "yesterday 6:00 PM", "Tue 6:00 PM", "28 Oct 6:00 PM". */
 export function sinceLabel(iso: string, now: Date): string {
   const at = new Date(iso);
-  const time = at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const time = time12(at);
   const days = Math.round((localDay(now).start.getTime() - localDay(at).start.getTime()) / 86400000);
   if (days <= 0) return time;
   if (days === 1) return `yesterday ${time}`;

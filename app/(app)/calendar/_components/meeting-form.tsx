@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type TransitionStartFunction } from "react";
 import { useRouter } from "next/navigation";
+import { fmt12 } from "@/lib/format-time";
 import { Button, Checkbox, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
 import { REPEATS, REPEAT_LABEL, calHref, fmtShort, fmtT, isWeekend, toMin, type Repeat, type View } from "@/lib/modules/calendar/logic";
 import type { CalEvent, ClientOption, Person, Visibility } from "@/lib/modules/calendar/types";
@@ -199,7 +200,9 @@ function FormBody({
             <Field label="Start" htmlFor="cf-start">
               <Select id="cf-start" value={v.start} onChange={(e) => set("start", e.target.value)}>
                 {(STARTS.includes(v.start) ? STARTS : [v.start, ...STARTS]).map((t) => (
-                  <option key={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {fmt12(t)}
+                  </option>
                 ))}
               </Select>
             </Field>
@@ -233,11 +236,20 @@ function FormBody({
             <div className={`field full ${s.findbox}`}>
               <div className="row between">
                 <strong>Find a time</strong>
-                <Button size="sm" disabled={pending} onClick={find}>
-                  Find a time
-                </Button>
+                <div className="row" style={{ gap: 8 }}>
+                  <Input
+                    type="time"
+                    aria-label="Pick your own start time"
+                    value={v.start}
+                    onChange={(e) => e.target.value && set("start", e.target.value)}
+                    style={{ width: "auto" }}
+                  />
+                  <Button size="sm" disabled={pending} onClick={find}>
+                    Find a time
+                  </Button>
+                </div>
               </div>
-              <div className="small muted">{slots?.note ?? "Checks your calendar and the team members you pick, 09:00–18:00."}</div>
+              <div className="small muted">{slots?.note ?? "Checks your calendar and the team members you pick, 9:00 AM–6:00 PM."}</div>
               {slots?.times.length ? (
                 <div className={s.slots}>
                   {slots.times.map((t) => (
@@ -247,10 +259,10 @@ function FormBody({
                       variant={v.start === t ? "primary" : "default"}
                       onClick={() => {
                         set("start", t);
-                        toast(`Start set to ${t}`);
+                        toast(`Start set to ${fmt12(t)}`);
                       }}
                     >
-                      {t}–{fmtT(toMin(t) + v.minutes)}
+                      {fmt12(t)}–{fmt12(fmtT(toMin(t) + v.minutes))}
                     </Button>
                   ))}
                 </div>

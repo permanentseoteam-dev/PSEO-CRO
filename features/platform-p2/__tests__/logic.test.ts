@@ -32,7 +32,7 @@ describe("dates", () => {
     expect(syncLabel("2026-11-04T10:39:40Z", now)).toBe("Just now");
     expect(syncLabel("2026-11-04T10:28:00Z", now)).toBe("12 min ago");
     expect(syncLabel("2026-11-04T07:40:00Z", now)).toBe("3 h ago");
-    expect(syncLabel("2026-11-02T09:05:00Z", now)).toBe("2 Nov 09:05");
+    expect(syncLabel("2026-11-02T09:05:00Z", now)).toBe("2 Nov 9:05 AM");
   });
 });
 
@@ -192,5 +192,8 @@ describe("inbox counts and money", () => {
     expect(money(42500, "AED")).toBe("AED 42,500");
     expect(money(1500.5, "USD")).toBe("USD 1,500.50");
     expect(money(450000.4, "PKR")).toBe("PKR 450,000");
+    expect(money(1500.5, "GBP")).toBe("GBP 1,500.50");
+    expect(money(2000, "EUR")).toBe("EUR 2,000");
+    expect(money(9375.25, "SAR")).toBe("SAR 9,375.25");
   });
 });

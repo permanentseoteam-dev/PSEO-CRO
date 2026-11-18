@@ -1,5 +1,6 @@
 // Pure helpers for the client portal. No I/O.
 import type { Tone } from "@/components/ui/tone";
+import { time12 } from "@/lib/format-time";
 
 export type TicketStatus = "todo" | "in_progress" | "in_review" | "blocked" | "done";
 export type Label = { label: string; tone: Tone };
@@ -127,14 +128,14 @@ export function fmtDate(date: string): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short" }).format(new Date(`${date}T00:00:00Z`));
 }
 
-/** "3 Nov, 16:20" in Dubai time. */
+/** "3 Nov, 4:20 PM" in Dubai time. */
 export function fmtDayTime(iso: string): string {
   const d = new Date(iso);
-  const time = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
+  const time = time12(d, TZ);
   return `${fmtDay(iso)}, ${time}`;
 }
 
-/** "Thu 6 Nov, 11:00" in Dubai time. */
+/** "Thu 6 Nov, 11:00 AM" in Dubai time. */
 export function fmtWhen(iso: string): string {
   const wd = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short" }).format(new Date(iso));
   return `${wd} ${fmtDayTime(iso)}`;

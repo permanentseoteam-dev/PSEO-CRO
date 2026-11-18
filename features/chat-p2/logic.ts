@@ -1,4 +1,6 @@
 // Pure logic for the chat extras. No I/O.
+import { fmt12 } from "@/lib/format-time";
+import { addDays, toLocal } from "@/lib/modules/calendar/logic";
 import type { BridgeState, ChannelKind } from "./types";
 
 // ---------------------------------------------------------------- voice notes
@@ -75,12 +77,15 @@ export const canSetAdminsOnly = (kind: ChannelKind) => kind !== "dm" && kind !==
 // ---------------------------------------------------------------- schedule meeting
 export const MEETING_MINUTES = [15, 30, 45, 60] as const;
 
-/** "Thu 5 Nov at 15:00" from a local date and time. */
+/** "Thu 5 Nov at 3:00 PM" from a local date and time. */
 export function meetingWhen(date: string, time: string): string {
   const d = new Date(`${date}T00:00:00Z`);
   const day = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-  return `${day} at ${time}`;
+  return `${day} at ${fmt12(time)}`;
 }
+
+/** Tomorrow's office date (Asia/Dubai) as YYYY-MM-DD: the default meeting date. */
+export const dubaiTomorrow = (now: Date = new Date()) => addDays(toLocal(now).date, 1);
 
 export function meetingMessage(by: string, title: string, when: string, minutes: number, people: number): string {
   return `${by} scheduled "${title}" for ${when} (${minutes} min) with ${people} ${people === 1 ? "person" : "people"}.`;

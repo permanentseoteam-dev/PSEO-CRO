@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Checkbox, Dialog, Field, FormGrid, Input, Seg, Select, Textarea, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { fmt12 } from "@/lib/format-time";
 import { convLabel, dubai, slugChannel } from "@/lib/modules/chat/logic";
 import type { BrowseRow, ClientOption, Conversation, Message, Notify, Person } from "@/lib/modules/chat/types";
 import {
@@ -303,7 +304,7 @@ export function SearchDialog({
                   <span className="small">
                     <b>{who}</b>{" "}
                     <span className="muted">
-                      in {c ? convLabel(c, people, meId) : "a conversation"} · {d.day === today ? "Today" : d.day} {d.time}
+                      in {c ? convLabel(c, people, meId) : "a conversation"} · {d.day === today ? "Today" : d.day} {fmt12(d.time)}
                     </span>
                   </span>
                   <span style={{ display: "block" }}>

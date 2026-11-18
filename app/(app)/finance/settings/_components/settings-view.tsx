@@ -186,9 +186,14 @@ export function SettingsView({ entities, channels, rates, salaries, today, email
   );
 }
 
+const RATE_CURRENCIES = CURRENCIES.filter((c) => c !== "USD");
+/** AED and PKR have always had a rate; newer currencies can stay blank until the admin adds one. */
+const REQUIRED_RATES: Currency[] = ["AED", "PKR"];
+
 function RatesForm({ rates, today }: { rates: Rates; today: string }) {
-  const [aed, setAed] = useState(String(rates.AED?.rate ?? ""));
-  const [pkr, setPkr] = useState(String(rates.PKR?.rate ?? ""));
+  const [vals, setVals] = useState<Partial<Record<Currency, string>>>(() =>
+    Object.fromEntries(RATE_CURRENCIES.map((c) => [c, String(rates[c]?.rate ?? "")])),
+  );
   const { busy, error, save } = useSave();
   return (
     <form
@@ -199,22 +204,27 @@ function RatesForm({ rates, today }: { rates: Rates; today: string }) {
           () =>
             saveRates({
               date: today,
-              rates: [
-                { currency: "AED", rate: Number(aed) },
-                { currency: "PKR", rate: Number(pkr) },
-              ],
+              rates: RATE_CURRENCIES.filter((c) => vals[c]).map((c) => ({ currency: c, rate: Number(vals[c]) })),
             }),
           "Rates saved",
         );
       }}
     >
       <FormGrid>
-        <Field label="1 AED in USD" htmlFor="fx-aed">
-          <input id="fx-aed" className="num" type="number" step="0.0001" min="0" value={aed} onChange={(e) => setAed(e.target.value)} required />
-        </Field>
-        <Field label="1 PKR in USD" htmlFor="fx-pkr">
-          <input id="fx-pkr" className="num" type="number" step="0.00001" min="0" value={pkr} onChange={(e) => setPkr(e.target.value)} required />
-        </Field>
+        {RATE_CURRENCIES.map((c) => (
+          <Field key={c} label={`1 ${c} in USD`} htmlFor={`fx-${c.toLowerCase()}`}>
+            <input
+              id={`fx-${c.toLowerCase()}`}
+              className="num"
+              type="number"
+              step={c === "PKR" ? "0.00001" : "0.0001"}
+              min="0"
+              value={vals[c] ?? ""}
+              onChange={(e) => setVals((v) => ({ ...v, [c]: e.target.value }))}
+              required={REQUIRED_RATES.includes(c)}
+            />
+          </Field>
+        ))}
       </FormGrid>
       <p className="small muted">Payments keep the rate saved when they were recorded. New rates only affect new payments and reports.</p>
       <div className="row">

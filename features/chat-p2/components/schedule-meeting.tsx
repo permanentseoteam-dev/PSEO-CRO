@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CalendarPlus } from "lucide-react";
 import { Button, Checkbox, Dialog, Field, FormGrid, IconButton, Input, Select, useToast } from "@/components/ui";
 import { scheduleChannelMeeting } from "../actions";
-import { MEETING_MINUTES, meetingWhen } from "../logic";
+import { MEETING_MINUTES } from "../logic";
 import type { Person } from "../types";
 
 type Props = {
@@ -30,8 +30,7 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
     const f = new FormData(form);
     const date = String(f.get("date"));
     const time = String(f.get("time"));
-    const startsAt = new Date(`${date}T${time}`);
-    if (Number.isNaN(startsAt.getTime())) {
+    if (!date || !time) {
       toast("Pick a date and time");
       return;
     }
@@ -39,8 +38,8 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
       const res = await scheduleChannelMeeting({
         channelId,
         title: f.get("title"),
-        startsAt: startsAt.toISOString(),
-        when: meetingWhen(date, time),
+        date,
+        time,
         minutes: f.get("minutes"),
         attendees: picked,
       });
@@ -48,7 +47,7 @@ export function ScheduleMeeting({ channelId, meId, people, defaultDate }: Props)
         toast(res.error);
         return;
       }
-      toast("Meeting scheduled and invites sent");
+      toast(res.data?.warning ?? (picked.length ? "Meeting scheduled and invites sent" : "Meeting scheduled"));
       setOpen(false);
       setPicked([]);
       router.refresh();

@@ -6,6 +6,7 @@ import { Check, CheckCheck, Clock, FileText, Forward, Image as ImageIcon, Link2,
 import { Avatar, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { fmt12 } from "@/lib/format-time";
 import { dubai, formatSize, mentionState, reactionSummary, threadInfo, tokenize } from "@/lib/modules/chat/logic";
 import type { FileRef, Message } from "@/lib/modules/chat/types";
 import { VoiceNote } from "@/features/chat-p2/components/voice-note";
@@ -223,7 +224,7 @@ export function MessageItem({ m, grouped, inPane, status, flash }: Props) {
   const c = useChat();
   const author = m.authorId ? c.people.get(m.authorId) : undefined;
   const name = author?.name ?? "Someone";
-  const time = dubai(m.createdAt).time;
+  const time = fmt12(dubai(m.createdAt).time);
   const mention = mentionState(m, c.messages, c.reactions, c.me.id);
   const editing = c.editingId === m.id;
   const menuOpen = c.menuId === m.id;
@@ -292,7 +293,7 @@ export function MessageItem({ m, grouped, inPane, status, flash }: Props) {
             <span>
               {thread.count} {thread.count === 1 ? "reply" : "replies"}
             </span>
-            <span className="muted small">Last reply {dubai(thread.last!).time}</span>
+            <span className="muted small">Last reply {fmt12(dubai(thread.last!).time)}</span>
           </button>
         ) : null}
         {m.pending ? (

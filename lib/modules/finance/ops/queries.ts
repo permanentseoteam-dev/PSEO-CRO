@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { balance, fmtDay, isOverdue, settledOutside, type Currency, type Rates } from "../core/logic";
+import { balance, fmtDay, isOverdue, missingRates, settledOutside, type Currency, type Rates } from "../core/logic";
 import { listInvoices, settledByInvoice } from "../core/queries";
 import { computeProfitability, monthRange, monthlyAgreedFee, type FeeBasis, type ProfClient, type Stage } from "./logic";
 import type {
@@ -415,6 +415,14 @@ export async function getProfitability(months: string[], workingHours: number) {
   }));
   const invRows = (invoices.data ?? []) as Raw[];
   const teamRows = ((team.data ?? []) as Raw[]).map((t) => ({ clientId: t.client_id as string, memberId: t.member_id as string }));
+  const missing = missingRates(
+    [
+      ...salRows.map((x) => ({ currency: x.currency as Currency })),
+      ...[...prof.values()].map((x) => ({ currency: x.currency as Currency })),
+      ...invRows.map((i) => ({ currency: i.currency as Currency, rate: i.fx_rate_usd == null ? null : Number(i.fx_rate_usd) })),
+    ],
+    rateNow,
+  );
 
   return months.map((ym) => {
     const { from: mFrom, to: mTo } = monthRange(ym);
@@ -450,6 +458,7 @@ export async function getProfitability(months: string[], workingHours: number) {
       });
     return {
       month: ym,
+      missingRates: missing,
       ...computeProfitability({ members: profMembers, entries: monthEntries, team: teamRows, clients: profClients, workingHours }),
     };
   });

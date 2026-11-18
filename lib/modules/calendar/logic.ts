@@ -1,7 +1,11 @@
 // Pure calendar helpers. Dates are "YYYY-MM-DD" strings in office time (Asia/Dubai, UTC+4, no DST);
 // times of day are minutes after midnight.
+import { fmt12 } from "@/lib/format-time";
 
 export const TZ_OFFSET_MIN = 240;
+/** Form input shapes: office date "YYYY-MM-DD" and 24h time "HH:MM". */
+export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const VIEWS = ["month", "week", "day", "agenda"] as const;
 export type View = (typeof VIEWS)[number];
 export const REPEATS = ["none", "daily", "weekly", "biweekly", "monthly"] as const;
@@ -35,7 +39,7 @@ export const toMin = (t: string) => {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 };
-export const timeRange = (start: number, mins: number) => `${fmtT(start)}–${fmtT(start + mins)}`;
+export const timeRange = (start: number, mins: number) => `${fmt12(fmtT(start))}–${fmt12(fmtT(start + mins))}`;
 export const fmtShort = (s: string) => `${DAYS[dow(s)]} ${dnum(s)} ${MON[D(s).getUTCMonth()]}`;
 export const fmtLong = (s: string) => `${DAYS_L[dow(s)]}, ${dnum(s)} ${MON_L[D(s).getUTCMonth()]} ${D(s).getUTCFullYear()}`;
 export const dayHead = (s: string) => `${DAYS[dow(s)]} ${dnum(s)}`;

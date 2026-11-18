@@ -619,7 +619,7 @@ export function RelationshipView(p: Props) {
           </Field>
           <Field label="Currency" htmlFor="cs-o-cur">
             <Select id="cs-o-cur" name="currency" defaultValue={editOpp?.currency ?? "AED"}>
-              {["AED", "USD", "PKR"].map((c) => (
+              {["AED", "USD", "PKR", "GBP", "EUR", "SAR"].map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </Select>

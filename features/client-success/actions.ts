@@ -230,7 +230,7 @@ const OpportunityInput = z.object({
   id: id.optional(),
   title: text(200).min(1),
   value: z.number().min(0).nullable(),
-  currency: z.enum(["AED", "USD", "PKR"]),
+  currency: z.enum(["AED", "USD", "PKR", "GBP", "EUR", "SAR"]),
   billing: z.enum(["monthly", "once"]),
   stage: z.enum(OPPORTUNITY_STAGES),
   stage_note: optText(120),

@@ -13,20 +13,20 @@ export type JobDef = { name: string; label: string; schedule: string; via: JobVi
 
 /** Every job scheduled in supabase/migrations/0210_scheduled_jobs.sql, in display order. */
 export const JOBS = [
-  { name: "recurring-tickets", label: "Recurring tickets", schedule: "Daily 06:00", via: "database" },
-  { name: "reminders-sync", label: "Payment reminders: sync", schedule: "Daily 07:00", via: "database" },
-  { name: "reminders-autosend", label: "Payment reminders: auto-send", schedule: "Daily 08:00", via: "app" },
-  { name: "monthly-drafts", label: "Monthly draft invoices", schedule: "1st of the month 06:00", via: "app" },
-  { name: "report-autosend", label: "Monthly client reports: auto-send", schedule: "Daily 09:00", via: "app" },
-  { name: "title-changes", label: "Future-dated title changes", schedule: "Daily 00:05", via: "database" },
-  { name: "health-recalc", label: "Client health recalculation", schedule: "Daily 01:30", via: "app" },
+  { name: "recurring-tickets", label: "Recurring tickets", schedule: "Daily 6:00 AM", via: "database" },
+  { name: "reminders-sync", label: "Payment reminders: sync", schedule: "Daily 7:00 AM", via: "database" },
+  { name: "reminders-autosend", label: "Payment reminders: auto-send", schedule: "Daily 8:00 AM", via: "app" },
+  { name: "monthly-drafts", label: "Monthly draft invoices", schedule: "1st of the month 6:00 AM", via: "app" },
+  { name: "report-autosend", label: "Monthly client reports: auto-send", schedule: "Daily 9:00 AM", via: "app" },
+  { name: "title-changes", label: "Future-dated title changes", schedule: "Daily 12:05 AM", via: "database" },
+  { name: "health-recalc", label: "Client health recalculation", schedule: "Daily 1:30 AM", via: "app" },
   { name: "calendar-sync", label: "Google Calendar sync", schedule: "Every 15 min", via: "app" },
   { name: "inbox-poll", label: "Client inbox poll (Gmail)", schedule: "Every 10 min", via: "app" },
   { name: "fireflies-import", label: "Fireflies import", schedule: "Hourly", via: "app" },
   { name: "huddle-cleanup", label: "End stale huddles", schedule: "Every 15 min", via: "database" },
   { name: "sla-alerts", label: "Response time alerts", schedule: "Every 15 min", via: "app" },
   { name: "timer-cleanup", label: "Stop timers with no heartbeat", schedule: "Every 10 min", via: "database" },
-  { name: "profitability-alert", label: "Monthly profitability alert", schedule: "2nd of the month 09:00", via: "app" },
+  { name: "profitability-alert", label: "Monthly profitability alert", schedule: "2nd of the month 9:00 AM", via: "app" },
 ] as const satisfies readonly JobDef[];
 
 export type JobName = (typeof JOBS)[number]["name"];

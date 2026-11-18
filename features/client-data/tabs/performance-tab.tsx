@@ -43,7 +43,7 @@ export async function PerformanceTab({ clientId }: { clientId: string }) {
                   <StatusDot tone={SOURCE_STATUS[s.status].tone}>{SOURCE_STATUS[s.status].label}</StatusDot>
                   {s.status === "error" && s.lastError ? <div className="small muted">{s.lastError}</div> : null}
                 </Td>
-                <Td hideSm>{s.lastRefreshAt ? format(new Date(s.lastRefreshAt), "d MMM HH:mm") : <span className="muted">Never</span>}</Td>
+                <Td hideSm>{s.lastRefreshAt ? format(new Date(s.lastRefreshAt), "d MMM h:mm a") : <span className="muted">Never</span>}</Td>
                 {manage ? (
                   <Td right>
                     <SourceActions clientId={clientId} source={s.source} status={s.status} />

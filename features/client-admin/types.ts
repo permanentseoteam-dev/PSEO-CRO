@@ -2,7 +2,7 @@
 
 export type Result = { ok: true } | { ok: false; error: string };
 
-export const CURRENCIES = ["AED", "USD", "PKR"] as const;
+export const CURRENCIES = ["AED", "USD", "PKR", "GBP", "EUR", "SAR"] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
 export type Agreement = {

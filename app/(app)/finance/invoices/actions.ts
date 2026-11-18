@@ -73,7 +73,7 @@ const SaveInput = z.object({
   id: id.optional(),
   client_id: id,
   entity_id: id,
-  currency: z.enum(["AED", "USD", "PKR"]),
+  currency: z.enum(["AED", "USD", "PKR", "GBP", "EUR", "SAR"]),
   issued_on: date,
   due_on: date,
   po_ref: text(100).default(""),

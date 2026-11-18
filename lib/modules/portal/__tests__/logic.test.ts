@@ -100,7 +100,7 @@ describe("formatting", () => {
   });
   it("dates", () => {
     expect(fmtDate("2026-11-10")).toBe("10 Nov");
-    expect(fmtWhen("2026-11-06T07:00:00Z")).toBe("Fri 6 Nov, 11:00");
+    expect(fmtWhen("2026-11-06T07:00:00Z")).toBe("Fri 6 Nov, 11:00 AM");
   });
   it("meeting links", () => {
     expect(meetHref("meet.google.com/abc")).toBe("https://meet.google.com/abc");

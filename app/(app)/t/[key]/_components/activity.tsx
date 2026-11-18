@@ -6,13 +6,14 @@ import { CheckCheck } from "lucide-react";
 import { Avatar, Button, Card, CardBody, CardHead, Checkbox, Tabs, Textarea, useToast } from "@/components/ui";
 import { deleteComment, editComment, postComment } from "@/lib/modules/tickets/actions";
 import { historyText } from "@/lib/modules/tickets/logic";
+import { time12 } from "@/lib/format-time";
 import type { Comment, HistoryItem } from "@/lib/modules/tickets/types";
 import s from "./ticket.module.css";
 
 type Props = { ticketId: string; comments: Comment[]; history: HistoryItem[]; names: Record<string, string>; meId: string; canModerate: boolean };
 
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Dubai" });
+  `${new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Dubai" })}, ${time12(iso, "Asia/Dubai")}`;
 
 export function Activity({ ticketId, comments, history, names, meId, canModerate }: Props) {
   const toast = useToast();

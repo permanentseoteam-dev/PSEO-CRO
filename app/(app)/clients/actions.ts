@@ -6,7 +6,7 @@ import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeHealth } from "@/lib/modules/clients/queries";
-import { addWorkingHours, CHANNELS, CLIENT_STATUSES, CURRENCIES, dubaiDate, isEnded, LOG_KINDS, SERVICES, SEVERITY, TEAM_ROLES, type Severity } from "@/lib/modules/clients/logic";
+import { addWorkingHours, CHANNELS, CLIENT_STATUSES, CURRENCIES, dubaiDate, isEnded, LOG_KINDS, SEVERITY, TEAM_ROLES, type Severity } from "@/lib/modules/clients/logic";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 const FORM_ERROR = { ok: false as const, error: "Check the form and try again." };
@@ -30,7 +30,7 @@ const ClientInput = z
     id: optUuid,
     name: z.string().trim().min(1).max(120),
     site: optText(200),
-    services: z.array(z.enum(SERVICES)).max(6),
+    services: z.array(z.string().trim().min(1).max(40)).max(50),
     country: optText(60),
     start_date: optDate,
     channel: z.enum(keys(CHANNELS)),

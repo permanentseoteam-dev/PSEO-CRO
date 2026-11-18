@@ -1,5 +1,6 @@
 // Pure logic for the platform extras. No I/O.
 import type { Tone } from "@/components/ui";
+import { fmt12 } from "@/lib/format-time";
 import {
   API_SCOPES,
   INBOX_OUTCOMES,
@@ -40,7 +41,7 @@ export function workdaysElapsed(today: string) {
   return n;
 }
 
-/** "Never", "Just now", "12 min ago", "3 h ago", or "4 Nov 10:40" (UTC formatting kept simple and stable). */
+/** "Never", "Just now", "12 min ago", "3 h ago", or "4 Nov 10:40 AM" (UTC formatting kept simple and stable). */
 export function syncLabel(lastIso: string | null, now: Date) {
   if (!lastIso) return "Never";
   const mins = Math.floor((now.getTime() - new Date(lastIso).getTime()) / 60000);
@@ -49,7 +50,7 @@ export function syncLabel(lastIso: string | null, now: Date) {
   if (mins < 24 * 60) return `${Math.floor(mins / 60)} h ago`;
   const d = new Date(lastIso);
   const mon = d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
-  return `${d.getUTCDate()} ${mon} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  return `${d.getUTCDate()} ${mon} ${fmt12(`${d.getUTCHours()}:${String(d.getUTCMinutes()).padStart(2, "0")}`)}`;
 }
 
 // ---------------------------------------------------------------- announcements
@@ -105,7 +106,7 @@ export function balancesByCurrency(invoices: OpenInvoice[], today: string) {
     }
     map.set(inv.currency, row);
   }
-  const order = ["AED", "USD", "PKR"];
+  const order = ["AED", "USD", "PKR", "GBP", "EUR", "SAR"];
   const rows = [...map.values()].sort((a, b) => order.indexOf(a.currency) - order.indexOf(b.currency));
   return { rows, overdueCount };
 }

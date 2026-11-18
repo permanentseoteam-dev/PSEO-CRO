@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Avatar, Avatars, Card, CardHead, StatusDot } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { fmt12 } from "@/lib/format-time";
 import {
   RSVP,
   calHref,
@@ -70,7 +71,7 @@ function MonthView(p: ViewProps) {
               </Link>
               {evs.slice(0, 3).map((e) => (
                 <button key={e.id} type="button" className={cn(s.ev, kindClass(e))} title={e.title} onClick={() => p.onOpen(e.id)}>
-                  {fmtT(e.start)} {e.title}
+                  {fmt12(fmtT(e.start))} {e.title}
                 </button>
               ))}
               {evs.length > 3 ? (
@@ -103,7 +104,7 @@ function TimeGrid(p: ViewProps & { days: string[] }) {
         ))}
         <div className={s.hours}>
           {hours.map((h) => (
-            <div key={h}>{h}</div>
+            <div key={h}>{fmt12(h)}</div>
           ))}
         </div>
         {p.days.map((d) => (

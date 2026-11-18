@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button, Checkbox, Dialog, Field, FormGrid, useToast } from "@/components/ui";
-import { CHANNELS, COUNTRIES, CURRENCIES, END_REASONS, isEnded, SERVICES } from "@/lib/modules/clients/logic";
+import { CHANNELS, COUNTRIES, CURRENCIES, END_REASONS, isEnded } from "@/lib/modules/clients/logic";
+import { withCurrent } from "@/lib/modules/services/logic";
 import type { ClientRow, Person } from "@/lib/modules/clients/types";
 import { saveClient } from "../actions";
 
 type Props = {
   people: Person[];
+  /** Service names from the services table, in list order. */
+  services: string[];
   client?: ClientRow;
   fee?: { monthly_fee: number | null; hours_per_month: number | null } | null;
   showFee: boolean;
@@ -28,7 +31,7 @@ const STATUS_OPTS = [
 ] as const;
 
 /** Add client (no `client`) or Edit client. Ending a client needs an end date and a reason. */
-export function ClientFormButton({ people, client, fee, showFee, label, variant = "default", subAccountsSlot, deleteSlot }: Props) {
+export function ClientFormButton({ people, services, client, fee, showFee, label, variant = "default", subAccountsSlot, deleteSlot }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [status, setStatus] = useState(client?.status === "terminated" ? "churned" : (client?.status ?? "onboarding"));
@@ -99,7 +102,7 @@ export function ClientFormButton({ people, client, fee, showFee, label, variant 
             </Field>
             <Field label="Services" full>
               <div className="row">
-                {SERVICES.map((sv) => (
+                {withCurrent(services, client?.services ?? []).map((sv) => (
                   <Checkbox key={sv} name="services" value={sv} label={sv} defaultChecked={client?.services.includes(sv)} />
                 ))}
               </div>

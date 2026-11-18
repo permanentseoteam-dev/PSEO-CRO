@@ -167,7 +167,7 @@ export function InvoiceEditor({ initial, issued, readOnly, paid, billTo, entitie
               </Field>
               <Field label="Currency" htmlFor="iv-cur">
                 <select id="iv-cur" value={cur} disabled={readOnly || issued} onChange={(e) => set("currency", e.target.value as Currency)}>
-                  {(["AED", "USD", "PKR"] as Currency[]).map((c) => (
+                  {(["AED", "USD", "PKR", "GBP", "EUR", "SAR"] as Currency[]).map((c) => (
                     <option key={c}>{c}</option>
                   ))}
                 </select>

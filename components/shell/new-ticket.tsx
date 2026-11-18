@@ -54,7 +54,7 @@ export function NewTicketDialog({ open, onClose, options }: { open: boolean; onC
     start(async () => {
       const r = await createTicket({
         title,
-        projectId: f.get("project"),
+        projectId: f.get("project") || null,
         assigneeId: f.get("assignee") || null,
         priority,
         due: due || null,
@@ -70,8 +70,6 @@ export function NewTicketDialog({ open, onClose, options }: { open: boolean; onC
     });
   };
 
-  const noProjects = options != null && options.projects.length === 0;
-
   return (
     <Dialog
       open={open}
@@ -82,10 +80,10 @@ export function NewTicketDialog({ open, onClose, options }: { open: boolean; onC
           <Button variant="ghost" onClick={close}>
             Cancel
           </Button>
-          <Button type="submit" form="nt-form" disabled={pending || noProjects} onClick={() => (openAfter.current = true)}>
+          <Button type="submit" form="nt-form" disabled={pending} onClick={() => (openAfter.current = true)}>
             Create and open
           </Button>
-          <Button type="submit" form="nt-form" variant="primary" disabled={pending || noProjects}>
+          <Button type="submit" form="nt-form" variant="primary" disabled={pending}>
             Create ticket
           </Button>
         </>
@@ -109,8 +107,9 @@ export function NewTicketDialog({ open, onClose, options }: { open: boolean; onC
             <Field label="Title" htmlFor="nt-title" full>
               <Input id="nt-title" required minLength={2} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Fix crawl errors on service pages" />
             </Field>
-            <Field label="Project" htmlFor="nt-proj" hint={noProjects ? "Create a project first." : undefined}>
-              <Select id="nt-proj" name="project" required value={selectedProject?.id ?? ""} onChange={(event) => setProjectId(event.target.value)}>
+            <Field label="Project" htmlFor="nt-proj">
+              <Select id="nt-proj" name="project" value={selectedProject?.id ?? ""} onChange={(event) => setProjectId(event.target.value)}>
+                <option value="">No project</option>
                 {options.projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.key} · {p.name}

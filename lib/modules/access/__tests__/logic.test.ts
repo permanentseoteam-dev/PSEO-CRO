@@ -41,10 +41,10 @@ describe("roleDiff", () => {
 
 describe("formatWhen (Dubai time)", () => {
   const now = new Date("2026-11-04T10:00:00Z"); // 14:00 in Dubai
-  it("today", () => expect(formatWhen("2026-11-04T05:14:00Z", now)).toBe("Today 09:14"));
-  it("earlier this year", () => expect(formatWhen("2026-11-03T13:40:00Z", now)).toBe("3 Nov 17:40"));
-  it("another year", () => expect(formatWhen("2025-12-31T06:00:00Z", now)).toBe("31 Dec 2025 10:00"));
-  it("uses Dubai date, not UTC date", () => expect(formatWhen("2026-11-03T21:30:00Z", now)).toBe("Today 01:30"));
+  it("today", () => expect(formatWhen("2026-11-04T05:14:00Z", now)).toBe("Today 9:14 AM"));
+  it("earlier this year", () => expect(formatWhen("2026-11-03T13:40:00Z", now)).toBe("3 Nov 5:40 PM"));
+  it("another year", () => expect(formatWhen("2025-12-31T06:00:00Z", now)).toBe("31 Dec 2025 10:00 AM"));
+  it("uses Dubai date, not UTC date", () => expect(formatWhen("2026-11-03T21:30:00Z", now)).toBe("Today 1:30 AM"));
   it("formatDay", () => expect(formatDay("2026-11-02T04:30:00Z")).toBe("2 Nov 2026"));
 });
 

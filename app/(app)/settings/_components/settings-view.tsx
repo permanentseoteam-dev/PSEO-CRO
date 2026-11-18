@@ -6,6 +6,7 @@ import { Button, Card, CardBody, CardHead, Field, FormGrid, Input, Table, Td, Th
 import { PushToggle } from "@/features/chat-p2/components/push-toggle";
 import { createClient } from "@/lib/supabase/client";
 import { EMAIL_HINT } from "@/lib/modules/personal/logic";
+import { fmt12 } from "@/lib/format-time";
 import type { NotifEvent } from "@/lib/modules/personal/types";
 import { saveDesign, saveEmail, saveNotif, saveProfile, saveQuiet } from "../actions";
 import { TwoStep } from "./two-step";
@@ -138,7 +139,7 @@ export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, a
     setQTo(to);
     start(async () => {
       const r = await saveQuiet({ from, to });
-      toast(r.ok ? (from ? `Quiet hours set to ${from} to ${to}` : "Quiet hours off") : r.error);
+      toast(r.ok ? (from ? `Quiet hours set to ${fmt12(from)} to ${fmt12(to)}` : "Quiet hours off") : r.error);
     });
   }
 
@@ -275,7 +276,7 @@ export function SettingsView({ email, name, isStaff, isAdmin, twoStepRequired, a
             <Field label="To" htmlFor="pf-qto">
               <Input id="pf-qto" type="time" value={qTo} onChange={(e) => setQTo(e.currentTarget.value)} onBlur={() => (qFrom && qTo) || (!qFrom && !qTo) ? quiet(qFrom, qTo) : undefined} />
             </Field>
-            <Button disabled={pending} onClick={() => quiet("22:00", "08:00")}>Use 22:00 to 08:00</Button>
+            <Button disabled={pending} onClick={() => quiet("22:00", "08:00")}>Use 10:00 PM to 8:00 AM</Button>
           </div>
           <p className="muted m-0">No phone alerts in these hours, except urgent client escalations.</p>
         </Section>

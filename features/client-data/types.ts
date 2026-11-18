@@ -9,7 +9,7 @@ export type SourceStatus = (typeof SOURCE_STATUSES)[number];
 export const METRICS = ["sessions", "organic_clicks", "impressions", "leads", "gbp_calls", "ad_spend", "ad_clicks", "ad_leads"] as const;
 export type Metric = (typeof METRICS)[number];
 
-export const CURRENCIES = ["AED", "USD", "PKR"] as const;
+export const CURRENCIES = ["AED", "USD", "PKR", "GBP", "EUR", "SAR"] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
 export const LEAD_SOURCES = ["google_ads", "meta_lead_form", "website_form", "whatsapp", "phone", "gbp", "other"] as const;

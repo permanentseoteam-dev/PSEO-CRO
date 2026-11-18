@@ -30,7 +30,7 @@ const Entity = z.object({
   prefix: z.string().trim().regex(/^[A-Z0-9]{1,6}$/, "Prefix is 1 to 6 capital letters or digits."),
   taxLabel: z.string().trim().min(1).max(20),
   taxRate: z.coerce.number().min(0).max(100),
-  currency: z.enum(["AED", "USD", "PKR"]),
+  currency: z.enum(["AED", "USD", "PKR", "GBP", "EUR", "SAR"]),
   taxId: opt(60),
   address: opt(500),
   active: z.boolean(),
@@ -86,7 +86,7 @@ export async function saveChannel(raw: unknown): Promise<Result> {
 
 const Rates = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  rates: z.array(z.object({ currency: z.enum(["AED", "PKR"]), rate: z.coerce.number().gt(0, "Rates must be above 0.").max(1000) })).min(1),
+  rates: z.array(z.object({ currency: z.enum(["AED", "PKR", "GBP", "EUR", "SAR"]), rate: z.coerce.number().gt(0, "Rates must be above 0.").max(1000) })).min(1),
 });
 
 /** Save today's rates. Payments keep the rate saved when they were recorded, so this only affects new ones. */
@@ -109,7 +109,7 @@ export async function saveRates(raw: unknown): Promise<Result> {
 const Salary = z.object({
   memberId: z.string().uuid(),
   amount: z.coerce.number().min(0).max(1e9),
-  currency: z.enum(["AED", "USD", "PKR"]),
+  currency: z.enum(["AED", "USD", "PKR", "GBP", "EUR", "SAR"]),
   validFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 

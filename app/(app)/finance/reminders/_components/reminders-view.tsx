@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Checkbox, Dialog, EmptyState, Field, FormGrid, StatusDot, Table, Tabs, Td, Th, useToast } from "@/components/ui";
+import { fmt12 } from "@/lib/format-time";
 import { daysBetween, fmtDate, fmtDay, money } from "@/lib/modules/finance/core/logic";
 import { STAGES, STAGE_LABEL, firstName, resultTone, type Stage } from "@/lib/modules/finance/ops/logic";
 import type { OpsSettings, ReminderRow } from "@/lib/modules/finance/ops/types";
@@ -66,7 +67,7 @@ export function RemindersView({ lists, settings, today, canSend }: Props) {
         ) : null}
       </div>
       <p className="muted small">
-        Reminders go 3 days before due, then 1, 7, 14 and 30 days late. Clients on auto get them in the {settings.reminderRunTime} daily run.
+        Reminders go 3 days before due, then 1, 7, 14 and 30 days late. Clients on auto get them in the {fmt12(settings.reminderRunTime)} daily run.
       </p>
 
       <Tabs

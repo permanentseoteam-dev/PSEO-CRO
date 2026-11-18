@@ -1,9 +1,11 @@
 import { Card, CardHead, EmptyState, StatusDot, Table, Td, Th } from "@/components/ui";
-import { DELIVERY_TONE, shortDate } from "../logic";
+import { DELIVERY_TONE } from "../logic";
 import type { DeliveryRow } from "../types";
+import { time12 } from "@/lib/format-time";
 
 const CHANNEL = { push: "Phone", email: "Email", in_app: "In app" } as const;
-const time = (iso: string) => `${shortDate(iso)} ${new Date(iso).toISOString().slice(11, 16)}`;
+const time = (iso: string) =>
+  `${new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Dubai" })} ${time12(iso, "Asia/Dubai")}`;
 
 /** Settings → Notifications log. Admins see everyone's deliveries; others see their own (RLS). */
 export function NotificationsLog({ rows }: { rows: DeliveryRow[] }) {

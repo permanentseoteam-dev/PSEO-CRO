@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button, Dialog, Field, FormGrid, Input, Select, Table, Td, Th, useToast } from "@/components/ui";
 import { formatBytes } from "@/lib/modules/clientops/logic";
+import { time12 } from "@/lib/format-time";
 import type { ClientFile, Folder } from "@/lib/modules/clientops/types";
 import { downloadUrl, moveFile, removeFile, renameFile, restoreVersion, setShared } from "../actions";
 import s from "./files.module.css";
@@ -14,9 +15,8 @@ const fmtDate = (iso: string, withTime = false) =>
     day: "numeric",
     month: "short",
     year: new Date(iso).getFullYear() === new Date().getFullYear() && !withTime ? undefined : "numeric",
-    ...(withTime ? { hour: "2-digit", minute: "2-digit", hour12: false } : {}),
     timeZone: "Asia/Dubai",
-  });
+  }) + (withTime ? `, ${time12(iso, "Asia/Dubai")}` : "");
 
 export function FileTable({ files, folders, folderId }: { files: ClientFile[]; folders: Folder[]; folderId: string }) {
   const [open, setOpen] = useState<Open>(null);

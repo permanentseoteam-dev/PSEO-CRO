@@ -1,6 +1,7 @@
 // Pure helpers for auth and access admin. No I/O.
 import type { Scope } from "@/lib/auth/perms";
 import type { Tone } from "@/components/ui/tone";
+import { fmt12 } from "@/lib/format-time";
 
 /** Only same-site paths are allowed as a post-login target. */
 export function safeNext(next: string | null | undefined, fallback = "/home"): string {
@@ -50,10 +51,10 @@ function parts(d: Date, tz: string) {
       .formatToParts(d)
       .map((x) => [x.type, x.value]),
   );
-  return { y: p.year, m: p.month, d: p.day, time: `${p.hour}:${p.minute}` };
+  return { y: p.year, m: p.month, d: p.day, time: fmt12(`${p.hour}:${p.minute}`) };
 }
 
-/** Audit-log time: "Today 09:14", "3 Nov 17:40", or "3 Nov 2025 17:40" for another year. */
+/** Audit-log time: "Today 9:14 AM", "3 Nov 5:40 PM", or "3 Nov 2025 5:40 PM" for another year. */
 export function formatWhen(iso: string, now: Date = new Date(), tz = TZ): string {
   const a = parts(new Date(iso), tz);
   const b = parts(now, tz);

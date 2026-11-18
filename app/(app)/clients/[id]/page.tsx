@@ -8,6 +8,7 @@ import { CommitmentsTab, RatingsTab, RelationshipTab, ReportsTab } from "@/featu
 import { SubAccountsSection } from "@/features/finance-p2/sections";
 import { CHANNELS, daysAgo, daysBetween, dubaiDate, fmtDay, fmtMeeting, fmtMonth, money, statusLabel, statusTone } from "@/lib/modules/clients/logic";
 import { getClient, listPeople } from "@/lib/modules/clients/queries";
+import { listServiceNames } from "@/lib/modules/services/queries";
 import { BandDot, HealthRing } from "../_components/health-ring";
 import { ClientFormButton } from "../_components/client-form";
 import s from "../_components/clients.module.css";
@@ -45,7 +46,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const now = new Date();
-  const [page, people] = await Promise.all([getClient(id, now), listPeople()]);
+  const [page, people, services] = await Promise.all([getClient(id, now), listPeople(), listServiceNames()]);
   if (!page) notFound();
   const { client, terms } = page;
   const today = dubaiDate(now);
@@ -118,6 +119,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
             {canManage ? (
               <ClientFormButton
                 people={people}
+                services={services}
                 client={client}
                 fee={terms ? { monthly_fee: terms.monthly_fee, hours_per_month: terms.hours_per_month } : null}
                 showFee={showTerms && canEditTerms}

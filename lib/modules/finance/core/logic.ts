@@ -1,8 +1,8 @@
 // Pure finance maths and status rules. No I/O.
 import type { Tone } from "@/components/ui";
 
-export type Currency = "AED" | "USD" | "PKR";
-export const CURRENCIES: Currency[] = ["USD", "AED", "PKR"];
+export type Currency = "AED" | "USD" | "PKR" | "GBP" | "EUR" | "SAR";
+export const CURRENCIES: Currency[] = ["USD", "AED", "PKR", "GBP", "EUR", "SAR"];
 
 export type InvoiceStatus =
   | "draft"
@@ -126,6 +126,20 @@ export function convert(amount: number, from: Currency, to: Currency, rates: Rat
   if (from === to) return amount;
   const usd = amount * (fromRate ?? rates[from] ?? 1);
   return usd / (rates[to] ?? 1);
+}
+
+/** Currencies that `convert` would count 1:1 with USD: no rate saved on the row and none in `rates`. Sorted, no USD. */
+export function missingRates(rows: { currency: Currency; rate?: number | null }[], rates: Rates): Currency[] {
+  const out = new Set<Currency>();
+  for (const r of rows) if (r.currency !== "USD" && r.rate == null && rates[r.currency] == null) out.add(r.currency);
+  return CURRENCIES.filter((c) => out.has(c));
+}
+
+/** One line for pages that convert: names the missing rates and where to add them. Null when nothing is missing. */
+export function missingRatesNote(missing: Currency[]) {
+  if (!missing.length) return null;
+  const list = missing.join(", ");
+  return `No USD rate for ${list} yet, so ${list} amounts count 1:1 with USD. Add a rate for ${list} in Finance → Settings.`;
 }
 
 // ---------------------------------------------------------------- periods

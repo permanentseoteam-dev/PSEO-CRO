@@ -7,6 +7,7 @@ import { ChevronDown, CircleUser, LogOut, PanelLeftClose, PanelLeftOpen } from "
 import { Avatar, Seg, StatusDot, useToast } from "@/components/ui";
 import type { NavGroup } from "@/lib/nav";
 import { cn } from "@/lib/utils";
+import { time12 } from "@/lib/format-time";
 import {
   LONG_SESSION_MIN, PRESENCE, WORKDAY_MIN, fmtMinutes, localDay, openSession, runningMinutes, sinceLabel, todaySessions, workedMinutes,
 } from "@/lib/modules/shell/logic";
@@ -43,7 +44,7 @@ type Props = {
 const iconFor = (groups: NavGroup[], href: string) =>
   groups.flatMap((g) => g.items).find((i) => i.href === href)?.icon ?? "Pin";
 
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const hhmm = (iso: string) => time12(iso);
 
 function NavLink({ href, title, icon, on }: { href: string; title: string; icon: string; on: boolean }) {
   return (

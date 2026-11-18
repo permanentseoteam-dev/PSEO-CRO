@@ -16,6 +16,7 @@ import {
 } from "@/components/ui";
 import { SkeletonPanel, SkeletonTable } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { fmt12 } from "@/lib/format-time";
 import {
   DEFAULT_CAPACITY,
   getDepartments,
@@ -60,7 +61,7 @@ function Due({ due, today }: { due: string | null; today: string }) {
 const money = (n: number, currency: string) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
 
-const when = (iso: string, today: string) => `${localDate(iso) === today ? "Today" : fmtShort(localDate(iso))}, ${localTime(iso)}`;
+const when = (iso: string, today: string) => `${localDate(iso) === today ? "Today" : fmtShort(localDate(iso))}, ${fmt12(localTime(iso))}`;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const me = await requireMe();
@@ -225,7 +226,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                       <Link href="/calendar">{e.title}</Link>
                     </div>
                     <div className="small muted">
-                      {when(e.startsAt, today)}–{localTime(e.endsAt)}
+                      {when(e.startsAt, today)}–{fmt12(localTime(e.endsAt))}
                       {e.clientName ? ` · ${e.clientName}` : ""}
                     </div>
                   </div>

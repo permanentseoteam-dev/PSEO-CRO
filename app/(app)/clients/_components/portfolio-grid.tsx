@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Avatar, Button, Card, Seg, StatusDot } from "@/components/ui";
-import { BAND_LABEL, changeLabel, daysAgo, fmtMeeting, matches, NO_FILTER, SERVICES, statusLabel, type Band, type PortfolioFilter } from "@/lib/modules/clients/logic";
+import { BAND_LABEL, changeLabel, daysAgo, fmtMeeting, matches, NO_FILTER, statusLabel, type Band, type PortfolioFilter } from "@/lib/modules/clients/logic";
 import type { PortfolioCard } from "@/lib/modules/clients/types";
+import { withCurrent } from "@/lib/modules/services/logic";
 import { BandDot, HealthRing } from "./health-ring";
 import s from "./clients.module.css";
 
 const BANDS: Band[] = ["at_risk", "watch", "healthy", "new", "no_data"];
 
-export function PortfolioGrid({ cards, owners, reportMonth }: { cards: PortfolioCard[]; owners: string[]; reportMonth: string }) {
+export function PortfolioGrid({ cards, owners, services, reportMonth }: { cards: PortfolioCard[]; owners: string[]; services: string[]; reportMonth: string }) {
   const [f, setF] = useState<PortfolioFilter>(NO_FILTER);
   const set = (patch: Partial<PortfolioFilter>) => setF((cur) => ({ ...cur, ...patch }));
   const shown = cards.filter((c) => matches(c, f));
@@ -32,7 +33,7 @@ export function PortfolioGrid({ cards, owners, reportMonth }: { cards: Portfolio
         </select>
         <select aria-label="Service" value={f.service} onChange={(e) => set({ service: e.target.value })}>
           <option value="">All services</option>
-          {SERVICES.map((o) => (
+          {withCurrent(services, cards.flatMap((c) => c.services)).map((o) => (
             <option key={o}>{o}</option>
           ))}
         </select>

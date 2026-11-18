@@ -1,9 +1,10 @@
 import { requireMe, can } from "@/lib/auth/can";
 import { NoAccess } from "@/components/ui";
-import { monthLabel } from "@/lib/modules/finance/core/logic";
+import { missingRatesNote, monthLabel } from "@/lib/modules/finance/core/logic";
 import { shiftMonth } from "@/lib/modules/finance/ops/logic";
 import { getOpsSettings, getProfitability, todayIso } from "@/lib/modules/finance/ops/queries";
 import { ProfitView } from "./_components/profit-view";
+import fs from "../_core/finance.module.css";
 
 export const metadata = { title: "Profitability" };
 
@@ -19,9 +20,11 @@ export default async function ProfitabilityPage({ searchParams }: { searchParams
   const settings = await getOpsSettings();
   const data = await getProfitability(months, settings.workingHours);
   const next = shiftMonth(month, 1);
+  const rateNote = missingRatesNote(data[0]?.missingRates ?? []);
 
   return (
     <div className="page">
+      {rateNote ? <div className={fs.banner}>{rateNote}</div> : null}
       <ProfitView
         months={data}
         settings={settings}

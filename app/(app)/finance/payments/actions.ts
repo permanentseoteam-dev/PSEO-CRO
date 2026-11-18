@@ -30,7 +30,7 @@ const RecordInput = z
     id: z.string().uuid(),
     clientId: z.string().uuid(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    currency: z.enum(["AED", "USD", "PKR"]),
+    currency: z.enum(["AED", "USD", "PKR", "GBP", "EUR", "SAR"]),
     amount: money.refine((n) => n > 0, "Enter the amount received."),
     fee: money,
     channelId: z.string().uuid().nullable(),

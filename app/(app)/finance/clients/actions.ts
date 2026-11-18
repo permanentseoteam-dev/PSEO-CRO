@@ -17,7 +17,7 @@ const Input = z.object({
   address: opt(500),
   taxId: opt(60),
   entityId: z.string().uuid().nullable(),
-  currency: z.enum(["AED", "USD", "PKR"]),
+  currency: z.enum(["AED", "USD", "PKR", "GBP", "EUR", "SAR"]),
   channelId: z.string().uuid().nullable(),
   termsDays: z.coerce.number().int().min(0).max(180),
   agreedFee: z.coerce.number().finite().min(0).max(1e11),

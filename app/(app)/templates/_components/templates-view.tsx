@@ -7,24 +7,25 @@ import { Button, Card, CardBody, Checkbox, Dialog, EmptyState, Field, FormGrid, 
 import { cn } from "@/lib/utils";
 import { fmtMinutes, PRIORITY_LABEL, PRIORITIES } from "@/lib/modules/tickets/logic";
 import { formatSubtasks, groupInOrder } from "@/lib/modules/work/logic";
+import { withCurrent } from "@/lib/modules/services/logic";
 import type { Option, Template } from "@/lib/modules/work/types";
 import { deleteTemplate, saveTemplate } from "../actions";
 
-const SERVICES = ["SEO", "Content", "PPC", "Web", "Social", "Design"];
 const code = "rounded bg-surface-2 px-1.5 py-px text-xs text-ink-2";
 
 type Props = {
   templates: Template[];
+  services: string[];
   departments: Option[];
   people: Option[];
   qaLists: (Option & { active: boolean })[];
   canManage: boolean;
 };
 
-export function TemplatesView({ templates, departments, people, qaLists, canManage }: Props) {
+export function TemplatesView({ templates, services, departments, people, qaLists, canManage }: Props) {
   const [editing, setEditing] = useState<Template | "new" | null>(null);
   const deptName = new Map(departments.map((d) => [d.id, d.name]));
-  const groups = groupInOrder(templates, (t) => t.service, SERVICES);
+  const groups = groupInOrder(templates, (t) => t.service, services);
 
   return (
     <div className="page">
@@ -81,6 +82,7 @@ export function TemplatesView({ templates, departments, people, qaLists, canMana
       {editing ? (
         <TemplateEditor
           template={editing === "new" ? null : editing}
+          services={services}
           departments={departments}
           people={people}
           qaLists={qaLists}
@@ -93,12 +95,14 @@ export function TemplatesView({ templates, departments, people, qaLists, canMana
 
 function TemplateEditor({
   template: t,
+  services: allServices,
   departments,
   people,
   qaLists,
   onClose,
 }: {
   template: Template | null;
+  services: string[];
   departments: Option[];
   people: Option[];
   qaLists: (Option & { active: boolean })[];
@@ -107,7 +111,7 @@ function TemplateEditor({
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const services = t && !SERVICES.includes(t.service) ? [...SERVICES, t.service] : SERVICES;
+  const services = withCurrent(allServices, t ? [t.service] : []);
 
   const finish = (msg: string) => (r: { ok: boolean; error?: string }) => {
     if (!r.ok) return toast(r.error ?? "Couldn't save");
@@ -179,7 +183,7 @@ function TemplateEditor({
             <Input id="tp-name" name="name" required minLength={2} maxLength={80} defaultValue={t?.name} />
           </Field>
           <Field label="Service" htmlFor="tp-service">
-            <Select id="tp-service" name="service" defaultValue={t?.service ?? "SEO"}>
+            <Select id="tp-service" name="service" defaultValue={t?.service ?? services[0]}>
               {services.map((s) => (
                 <option key={s}>{s}</option>
               ))}

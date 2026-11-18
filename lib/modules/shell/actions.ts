@@ -224,7 +224,7 @@ export async function newTicketOptions(): Promise<TicketOptions> {
 
 const NewTicket = z.object({
   title: z.string().trim().min(2).max(200),
-  projectId: z.string().uuid(),
+  projectId: z.string().uuid().nullable(),
   assigneeId: z.string().uuid().nullable().optional(),
   priority: z.enum(["urgent", "high", "normal", "low"]),
   due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),

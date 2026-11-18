@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireMe, can } from "@/lib/auth/can";
 import { ButtonLink, Card, CardBody, CardHead, NoAccess, Seg, StatCard, Stats, Table, Td, Th } from "@/components/ui";
 import { buildDashboard } from "@/lib/modules/finance/core/dashboard";
-import { AGING_LABELS, CURRENCIES, PERIOD_LABELS, fmtDay, invoiceLabel, money, type Currency, type PeriodKey } from "@/lib/modules/finance/core/logic";
+import { AGING_LABELS, CURRENCIES, PERIOD_LABELS, fmtDay, invoiceLabel, missingRatesNote, money, type Currency, type PeriodKey } from "@/lib/modules/finance/core/logic";
 import { getDashboardData, getRefData } from "@/lib/modules/finance/core/queries";
 import { EntityFilter } from "./_core/entity-filter";
 import { MonthChart } from "./_core/month-chart";
@@ -31,6 +31,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   };
   const agingMax = Math.max(1, ...d.aging);
   const st = d.stats;
+  const rateNote = missingRatesNote(d.missing);
 
   return (
     <div className="page">
@@ -52,13 +53,24 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         <Seg label="Currency" value={currency} items={CURRENCIES.map((cu) => ({ value: cu, label: cu, href: href({ cur: cu }) }))} />
       </div>
 
+      {rateNote ? (
+        <div className={s.banner}>
+          <span>{rateNote}</span>
+          {can(me, "finance.settings.manage") ? (
+            <ButtonLink href="/finance/settings" size="sm">
+              Add rates
+            </ButtonLink>
+          ) : null}
+        </div>
+      ) : null}
+
       {data.remindersToday && data.remindersToday.total > 0 ? (
         <div className={s.banner}>
           <div>
             <strong>
               {data.remindersToday.total} payment {data.remindersToday.total === 1 ? "reminder" : "reminders"} to send today.
             </strong>{" "}
-            <span className="muted">{data.remindersToday.auto} go out on auto at 10:00.</span>
+            <span className="muted">{data.remindersToday.auto} go out on auto at 10:00 AM.</span>
           </div>
           <ButtonLink href="/finance/reminders" variant="primary" size="sm">
             Review reminders

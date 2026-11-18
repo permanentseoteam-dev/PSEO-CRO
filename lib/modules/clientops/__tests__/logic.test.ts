@@ -184,9 +184,9 @@ describe("files", () => {
 describe("dates", () => {
   const now = new Date("2026-11-04T10:00:00+04:00");
   it("labels times relative to today in the zone", () => {
-    expect(whenLabel("2026-11-04T09:02:00+04:00", now, "Asia/Dubai")).toBe("Today 09:02");
-    expect(whenLabel("2026-11-03T15:40:00+04:00", now, "Asia/Dubai")).toBe("Yesterday 15:40");
-    expect(whenLabel("2026-11-02T16:05:00+04:00", now, "Asia/Dubai")).toBe("2 Nov 16:05");
+    expect(whenLabel("2026-11-04T09:02:00+04:00", now, "Asia/Dubai")).toBe("Today 9:02 AM");
+    expect(whenLabel("2026-11-03T15:40:00+04:00", now, "Asia/Dubai")).toBe("Yesterday 3:40 PM");
+    expect(whenLabel("2026-11-02T16:05:00+04:00", now, "Asia/Dubai")).toBe("2 Nov 4:05 PM");
     expect(shortDate("2025-02-01T11:00:00+04:00", now, "Asia/Dubai")).toBe("1 Feb 2025");
   });
   it("finds the week start and zone midnight", () => {

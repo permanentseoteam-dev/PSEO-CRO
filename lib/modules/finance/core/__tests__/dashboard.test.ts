@@ -51,6 +51,14 @@ describe("buildDashboard", () => {
     expect(d.chart.find((m) => m.ym === "2026-10")).toMatchObject({ invoiced: 250, collected: 100, inPeriod: false });
   });
 
+  it("flags currencies with no rate instead of hiding them", () => {
+    expect(buildDashboard({ ...base, invoices, receipts }).missing).toEqual([]);
+    const gbp = inv({ id: "g", currency: "GBP", fx_rate_usd: null, total: 200 });
+    expect(buildDashboard({ ...base, invoices: [...invoices, gbp], receipts }).missing).toEqual(["GBP"]);
+    expect(buildDashboard({ ...base, currency: "SAR", invoices, receipts }).missing).toEqual(["SAR"]);
+    expect(buildDashboard({ ...base, rates: { ...base.rates, GBP: 1.27 }, invoices: [...invoices, gbp], receipts }).missing).toEqual([]);
+  });
+
   it("filters by entity, mapping receipts by currency", () => {
     const d = buildDashboard({ ...base, entityId: "pu", invoices, receipts });
     expect(d.stats.invoiced).toBe(0);

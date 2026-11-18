@@ -126,7 +126,7 @@ describe("formats", () => {
     const { fmtDay, fmtMeeting, fmtMonth } = await import("../logic");
     expect(fmtDay("2026-11-03", "2026")).toBe("3 Nov");
     expect(fmtDay("2025-12-14", "2026")).toBe("14 Dec 2025");
-    expect(fmtMeeting("2026-11-05T10:30:00Z")).toBe("Thu 5 Nov, 14:30");
+    expect(fmtMeeting("2026-11-05T10:30:00Z")).toBe("Thu 5 Nov, 2:30 PM");
     expect(fmtMonth("2025-02-01")).toBe("Feb 2025");
   });
 });

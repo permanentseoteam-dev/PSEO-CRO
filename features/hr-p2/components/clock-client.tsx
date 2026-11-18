@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Button, Card, CardBody, CardHead, Dialog, StatusDot, useToast } from "@/components/ui";
+import { fmt12 } from "@/lib/format-time";
 import { clock } from "../actions";
 import { clockState, fmtMinutes, hm, isEarlyClockOut, localHm, workedMinutes } from "../logic";
 import type { ClockDay } from "../types";
@@ -42,9 +43,9 @@ export function ClockWidgetClient({ day: initial, shiftEnd }: { day: ClockDay | 
     ) : state === "break" ? (
       <StatusDot tone="warn">On break</StatusDot>
     ) : state === "done" ? (
-      <StatusDot tone="muted">{`Clocked out at ${localHm(day!.clock_out_at!)}`}</StatusDot>
+      <StatusDot tone="muted">{`Clocked out at ${fmt12(localHm(day!.clock_out_at!))}`}</StatusDot>
     ) : (
-      <StatusDot tone="ok">{`Clocked in at ${localHm(day!.clock_in_at)}`}</StatusDot>
+      <StatusDot tone="ok">{`Clocked in at ${fmt12(localHm(day!.clock_in_at))}`}</StatusDot>
     );
 
   return (
@@ -99,7 +100,7 @@ export function ClockWidgetClient({ day: initial, shiftEnd }: { day: ClockDay | 
           </>
         }
       >
-        <p>Your shift ends at {hm(shiftEnd)}. Clocking out now counts as leaving early.</p>
+        <p>Your shift ends at {fmt12(hm(shiftEnd))}. Clocking out now counts as leaving early.</p>
       </Dialog>
     </Card>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button, Checkbox, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
+import { fmt12 } from "@/lib/format-time";
 import { bookMeeting } from "../../actions";
 
 const TIMES = ["10:00", "11:00", "14:00", "16:00"];
@@ -61,7 +62,9 @@ export function BookMeeting({ team, today, readOnly = false }: { team: string[];
             <Field label="Time" htmlFor="pmb-time">
               <Select id="pmb-time" name="time" defaultValue="11:00">
                 {TIMES.map((t) => (
-                  <option key={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {fmt12(t)}
+                  </option>
                 ))}
               </Select>
             </Field>

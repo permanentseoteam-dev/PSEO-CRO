@@ -170,9 +170,9 @@ describe("today list", () => {
     const items = todayItems(tickets, events, now, TODAY);
     expect(items.map((i) => [i.time, i.tag])).toEqual([
       ["Late", "now"],
-      ["10:30", "now"],
-      ["11:00", "soon"],
-      ["14:00", "later"],
+      ["10:30 AM", "now"],
+      ["11:00 AM", "soon"],
+      ["2:00 PM", "later"],
       ["Due", "soon"],
       ["Due", "later"],
     ]);

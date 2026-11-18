@@ -1,5 +1,6 @@
 // Pure logic for Home and My work: dates, grouping, stats, Today list. No I/O.
 import type { Tone } from "@/components/ui";
+import { fmt12 } from "@/lib/format-time";
 import type { DueGroup, MyEvent, MyTicket, TodayItem, View } from "./types";
 
 export const TZ = "Asia/Dubai";
@@ -170,7 +171,7 @@ export function todayItems(mine: MyTicket[], events: MyEvent[], now: Date, today
     const st = new Date(e.startsAt).getTime();
     if (new Date(e.endsAt).getTime() <= nowMs) continue;
     const tag = st <= nowMs ? "now" : st - nowMs <= 30 * 60000 ? "soon" : "later";
-    items.push({ sort: st, time: localTime(e.startsAt), title: e.title, href: "/calendar", tag, join: e.meetLink });
+    items.push({ sort: st, time: fmt12(localTime(e.startsAt)), title: e.title, href: "/calendar", tag, join: e.meetLink });
   }
   const endOfDay = Number.MAX_SAFE_INTEGER;
   open

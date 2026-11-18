@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { listBusy } from "@/lib/modules/calendar/queries";
+import { notify } from "@/lib/modules/calendar/notify";
 import {
+  DATE_RE,
   REPEATS,
+  TIME_RE,
   addDays,
-  fmtShort,
   fmtT,
   freeSlots,
   fromLocal,
@@ -26,8 +28,8 @@ async function calendarUser() {
   return me && me.kind === "staff" && can(me, "calendar.use") ? me : null;
 }
 
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const time = z.string().regex(/^([01]\d|2[0-3]):(00|15|30|45)$/);
+const date = z.string().regex(DATE_RE);
+const time = z.string().regex(TIME_RE);
 const uuid = z.string().uuid();
 
 const MeetingIn = z
@@ -136,30 +138,6 @@ export async function saveMeeting(raw: unknown): Promise<{ ok: true; date: strin
   if (v.invite) await notify(supabase, me.id, team, "invited you to", v.title, v.date, v.start);
   revalidatePath("/calendar");
   return { ok: true, date: v.date };
-}
-
-/** In-app invite notices (0101_shell). Email invites wait for the email service. */
-async function notify(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  actorId: string,
-  memberIds: string[],
-  action: string,
-  title: string,
-  date: string,
-  start: string,
-) {
-  if (!memberIds.length) return;
-  await supabase.from("notifications").insert(
-    memberIds.map((id) => ({
-      member_id: id,
-      actor_id: actorId,
-      kind: "meeting",
-      action,
-      subject: title,
-      detail: `for ${fmtShort(date)} ${start}`,
-      href: `/calendar?view=day&d=${date}`,
-    })),
-  );
 }
 
 const RsvpIn = z.object({ eventId: uuid, rsvp: z.enum(["yes", "maybe", "no"]) });

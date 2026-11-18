@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageTitle } from "@/components/shell/page-title";
 import { requireMe, can } from "@/lib/auth/can";
+import { time12 } from "@/lib/format-time";
 import { Avatar, Card, CardHead, NoAccess, StatusDot } from "@/components/ui";
 import { balance, displayStatus, fmtDate, invoiceLabel, money, round2, settledOutside } from "@/lib/modules/finance/core/logic";
 import { getInvoice, getRefData, todayIso } from "@/lib/modules/finance/core/queries";
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 const stamp = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Dubai" });
+  `${new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Dubai" })}, ${time12(iso, "Asia/Dubai")}`;
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireMe();

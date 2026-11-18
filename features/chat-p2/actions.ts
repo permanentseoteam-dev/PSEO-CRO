@@ -4,9 +4,11 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { can, getMe } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
+import { DATE_RE, TIME_RE, fromLocal } from "@/lib/modules/calendar/logic";
+import { notify } from "@/lib/modules/calendar/notify";
 import { getSlackAdapter } from "./adapters";
 import { getChannelExtras } from "./queries";
-import { MAX_HUDDLE_PEOPLE, MAX_VOICE_SECONDS, MEETING_MINUTES, canArchive, canSetAdminsOnly, duplicateTargets, meetingMessage } from "./logic";
+import { MAX_HUDDLE_PEOPLE, MAX_VOICE_SECONDS, MEETING_MINUTES, canArchive, canSetAdminsOnly, duplicateTargets, meetingMessage, meetingWhen } from "./logic";
 import { BRIDGE_STATES, IMPORT_DAYS, type Huddle, type Result } from "./types";
 
 // Every action: zod parse -> can() check -> Supabase write (RLS is the real guard) -> revalidate.
@@ -22,9 +24,10 @@ async function chatter() {
 
 type DB = Awaited<ReturnType<typeof createClient>>;
 
-/** System-style note in the conversation. Best effort: an admins-only channel may refuse it. */
+/** System-style note in the conversation. Best effort: an admins-only channel may refuse it. Returns whether it posted. */
 async function postNote(supabase: DB, channelId: string, authorId: string, body: string) {
-  await supabase.from("messages").insert({ channel_id: channelId, author_id: authorId, body });
+  const { error } = await supabase.from("messages").insert({ channel_id: channelId, author_id: authorId, body });
+  return !error;
 }
 
 // ---------------------------------------------------------------- voice notes
@@ -146,16 +149,15 @@ export async function leaveHuddle(raw: unknown): Promise<Result> {
 const Meeting = z.object({
   channelId: id,
   title: z.string().trim().min(1).max(200),
-  /** Start as an ISO instant, built in the browser from the local date and time. */
-  startsAt: z.iso.datetime({ offset: true }),
-  /** Display text for the channel note, e.g. "Thu 5 Nov at 15:00". */
-  when: z.string().max(60),
+  /** Office date and 24h time (Asia/Dubai), turned into an instant here like the Calendar does. */
+  date: z.string().regex(DATE_RE),
+  time: z.string().regex(TIME_RE),
   minutes: z.coerce.number().refine((m) => (MEETING_MINUTES as readonly number[]).includes(m)),
   attendees: z.array(id).max(50),
 });
 
-/** Calendar event (0104_calendar) with the chosen channel members, plus a note in the conversation. */
-export async function scheduleChannelMeeting(raw: unknown): Promise<Result> {
+/** Calendar event (0104_calendar) with the chosen channel members, invites, plus a note in the conversation. */
+export async function scheduleChannelMeeting(raw: unknown): Promise<Result<{ warning: string | null }>> {
   const input = Meeting.safeParse(raw);
   if (!input.success) return bad;
   const me = await getMe();
@@ -167,20 +169,21 @@ export async function scheduleChannelMeeting(raw: unknown): Promise<Result> {
   if (!c) return no;
   const isClient = c.kind === "client" && c.client_id;
 
-  const { data: ev, error } = await supabase
+  // Id made here and no RETURNING: the events select policy can't see the row until attendees exist (same as saveMeeting).
+  const ev = { id: crypto.randomUUID() };
+  const { error } = await supabase
     .from("events")
     .insert({
+      id: ev.id,
       title: m.title,
       kind: isClient ? "client_meeting" : "internal",
       client_id: isClient ? c.client_id : null,
       visibility: isClient ? "client" : "team",
-      starts_at: m.startsAt,
+      starts_at: fromLocal(m.date, m.time),
       minutes: m.minutes,
       created_by: me.id,
-    })
-    .select("id")
-    .single();
-  if (error || !ev) return { ok: false, error: error?.message ?? "Couldn't create the meeting." };
+    });
+  if (error) return { ok: false, error: error.message };
 
   const people = [...new Set([me.id, ...m.attendees])];
   const { error: aErr } = await supabase
@@ -188,10 +191,14 @@ export async function scheduleChannelMeeting(raw: unknown): Promise<Result> {
     .insert(people.map((p) => ({ event_id: ev.id, member_id: p, rsvp: p === me.id ? "yes" : "pending" })));
   if (aErr) return { ok: false, error: aErr.message };
 
-  await postNote(supabase, m.channelId, me.id, meetingMessage(me.name, m.title, m.when, m.minutes, m.attendees.length));
+  await notify(supabase, me.id, people.filter((p) => p !== me.id), "invited you to", m.title, m.date, m.time);
+  const noted = await postNote(supabase, m.channelId, me.id, meetingMessage(me.name, m.title, meetingWhen(m.date, m.time), m.minutes, m.attendees.length));
   chatPage();
   revalidatePath("/calendar");
-  return { ok: true };
+  return {
+    ok: true,
+    data: { warning: noted ? null : "Meeting scheduled, but the note couldn't be posted in this conversation." },
+  };
 }
 
 // ---------------------------------------------------------------- channel settings

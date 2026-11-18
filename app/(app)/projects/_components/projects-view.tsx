@@ -147,7 +147,6 @@ function ProjectEditor({
       const r = await saveProject({
         id: p?.id ?? null,
         name: s("name"),
-        key: s("key"),
         departmentId: id("department"),
         clientId: id("client"),
         leadId: id("lead"),
@@ -195,17 +194,6 @@ function ProjectEditor({
         <FormGrid>
           <Field label="Name" htmlFor="pj-name">
             <Input id="pj-name" name="name" required minLength={2} maxLength={120} defaultValue={p?.name} />
-          </Field>
-          <Field label="Key" htmlFor="pj-key" hint={`Ticket numbers start with this, like ${p?.key ?? "CPD"}-142.`}>
-            <Input
-              id="pj-key"
-              name="key"
-              required
-              pattern="[A-Za-z]{2,8}"
-              title="2 to 8 letters"
-              defaultValue={p?.key}
-              className="uppercase"
-            />
           </Field>
           <Field label="Department" htmlFor="pj-dept">
             <Select id="pj-dept" name="department" defaultValue={p?.departmentId ?? ""}>

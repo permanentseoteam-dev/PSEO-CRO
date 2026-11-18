@@ -51,6 +51,7 @@ import type { Profile } from "@/lib/modules/personal/types";
 import { HrFormButtons, PayTab, PersonalTab, ProbationCard, ToolsTab } from "@/features/hr-p2";
 import { EditMyDetails } from "./_components/details-dialogs";
 import { ClockCard } from "./_components/clock-card";
+import { fmt12 } from "@/lib/format-time";
 import { RequestButton } from "./_components/request-button";
 import { AckReview, CancelLeave, OpenDoc, UploadDoc } from "./_components/doc-controls";
 
@@ -355,11 +356,11 @@ async function Attendance({ memberId, month: qMonth, shiftEnd }: { memberId: str
 
   return (
     <section className="stack">
-      <ClockCard clockedInAt={open ? localTime(open.clockIn) : null} onBreak={!!open?.breakStartedAt} shiftEnd={shiftEnd} />
+      <ClockCard clockedInAt={open ? fmt12(localTime(open.clockIn)) : null} onBreak={!!open?.breakStartedAt} shiftEnd={shiftEnd} />
       <Stats>
         <StatCard label="Days worked" value={<span className="num">{s.worked}</span>} sub={monthLabel(month)} />
         <StatCard label="Hours worked" value={<span className="num">{fmtMinutes(s.minutes)}</span>} sub="Breaks taken out" />
-        <StatCard label="Late arrivals" value={<span className="num">{s.late}</span>} tone={s.late ? "warn" : undefined} sub="After 09:15" />
+        <StatCard label="Late arrivals" value={<span className="num">{s.late}</span>} tone={s.late ? "warn" : undefined} sub="After 9:15 AM" />
         <StatCard label="Punctuality" value={<span className="num">{s.punctuality}%</span>} sub="On time days" />
         <StatCard label="Absent" value={<span className="num">{s.absent}</span>} sub={s.sick ? `${s.sick} sick ${s.sick === 1 ? "day" : "days"}` : "No sick days"} />
       </Stats>
@@ -388,8 +389,8 @@ async function Attendance({ memberId, month: qMonth, shiftEnd }: { memberId: str
                 <span className="small">{Number(a.date.slice(8))}</span>
                 {a.inTime ? (
                   <>
-                    <div className={`ev${a.late ? " text-warn" : ""}`}>In {a.inTime}{a.late ? " · late" : ""}</div>
-                    {a.outTime ? <div className="ev">Out {a.outTime}</div> : null}
+                    <div className={`ev${a.late ? " text-warn" : ""}`}>In {fmt12(a.inTime)}{a.late ? " · late" : ""}</div>
+                    {a.outTime ? <div className="ev">Out {fmt12(a.outTime)}</div> : null}
                     {a.wfh ? <div className="ev">WFH</div> : null}
                   </>
                 ) : a.absent ? (

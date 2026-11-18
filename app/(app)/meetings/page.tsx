@@ -1,4 +1,5 @@
 import { requireMe, can } from "@/lib/auth/can";
+import { time12 } from "@/lib/format-time";
 import { NoAccess, StatCard, Stats, Table, Tabs, Td, Th } from "@/components/ui";
 import { actionSummary, shortDate, zoneDate } from "@/lib/modules/clientops/logic";
 import { getMeetings, listClients } from "@/lib/modules/clientops/queries";
@@ -21,7 +22,7 @@ const TZ = "Asia/Dubai";
 function when(iso: string, durationMin: number | null, now: Date) {
   const d = new Date(iso);
   const day = d.toLocaleDateString("en-GB", { weekday: "short", timeZone: TZ });
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: TZ });
+  const time = time12(d, TZ);
   return `${day} ${shortDate(iso, now, TZ)}, ${time}${durationMin ? ` · ${durationMin} min` : ""}`;
 }
 

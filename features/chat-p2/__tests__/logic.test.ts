@@ -72,8 +72,8 @@ describe("channel settings", () => {
 describe("schedule meeting", () => {
   it("writes the channel message", () => {
     const when = meetingWhen("2026-11-05", "15:00");
-    expect(when).toBe("Thu 5 Nov at 15:00");
-    expect(meetingMessage("Sara Malik", "Q4 plan", when, 30, 1)).toBe('Sara Malik scheduled "Q4 plan" for Thu 5 Nov at 15:00 (30 min) with 1 person.');
+    expect(when).toBe("Thu 5 Nov at 3:00 PM");
+    expect(meetingMessage("Sara Malik", "Q4 plan", when, 30, 1)).toBe('Sara Malik scheduled "Q4 plan" for Thu 5 Nov at 3:00 PM (30 min) with 1 person.');
     expect(meetingMessage("Sara Malik", "Q4 plan", when, 30, 3)).toContain("3 people");
   });
 });

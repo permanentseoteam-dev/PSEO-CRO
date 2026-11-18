@@ -8,6 +8,7 @@ import {
   isOverdue,
   last12Months,
   lateDays,
+  missingRates,
   periodRange,
   round2,
   settledOutside,
@@ -103,5 +104,15 @@ export function buildDashboard(d: DashboardInput) {
   }
   const byChannel = [...chMap.values()].sort((a, b) => b.collected - a.collected);
 
-  return { range, stats, chart, aging, biggest, byEntity, byChannel };
+  const missing = missingRates(
+    [
+      ...invoices.map((i) => ({ currency: i.currency, rate: i.fx_rate_usd })),
+      ...receipts.map((r) => ({ currency: r.currency, rate: r.rate })),
+      ...refunds.map((r) => ({ currency: r.currency, rate: r.rate })),
+      { currency: to },
+    ],
+    d.rates,
+  );
+
+  return { range, stats, chart, aging, biggest, byEntity, byChannel, missing };
 }

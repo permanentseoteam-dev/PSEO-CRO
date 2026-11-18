@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { BellOff, ChevronLeft, FileText, Hash, Lock, MessagesSquare, Pencil, Pin, Plus, Search, Settings, Users } from "lucide-react";
 import { Avatar, Avatars, Button, EmptyState, IconButton, Seg, StatusDot, useToast } from "@/components/ui";
@@ -53,8 +53,6 @@ type Props = {
   maxId: number;
   today: string;
   focusId: number | null;
-  /** Sidebar "Slack import" (chat-p2 SlackImportButton, rendered on the server). */
-  slackImport?: ReactNode;
 };
 
 type DialogState =
@@ -657,7 +655,6 @@ export function ChatApp(props: Props) {
                 </Button>
               </div>
             ) : null}
-            {props.slackImport}
             <div className={s.liveRow}>
               <StatusDot tone={liveDot[live][1]}>{liveDot[live][0]}</StatusDot>
             </div>
@@ -708,7 +705,7 @@ export function ChatApp(props: Props) {
                     canStart={canPost}
                     onChange={() => void loadHuddle()}
                   />
-                  {isStaff && can(me, "calendar.use") && !archived ? (
+                  {isStaff && can(me, "calendar.use") && canPost ? (
                     <ScheduleMeeting
                       channelId={conv.id}
                       meId={me.id}

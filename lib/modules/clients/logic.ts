@@ -1,8 +1,8 @@
 // Pure client logic: health score, bands, escalation windows, portfolio grouping. No I/O.
 import type { Tone } from "@/components/ui";
+import { fmt12 } from "@/lib/format-time";
 
-export const SERVICES = ["SEO", "PPC", "Social", "Content", "Web", "Design"] as const;
-export const CURRENCIES = ["AED", "USD", "PKR"] as const;
+export const CURRENCIES = ["AED", "USD", "PKR", "GBP", "EUR", "SAR"] as const;
 export const COUNTRIES = ["UAE", "Saudi Arabia", "Pakistan", "UK", "USA"] as const;
 export const CHANNELS = { whatsapp: "WhatsApp", email: "Email", slack: "Slack", phone: "Phone" } as const;
 export const CLIENT_STATUSES = ["onboarding", "active", "paused", "churned", "terminated", "internal"] as const;
@@ -250,12 +250,12 @@ export function fmtDay(day: string, thisYear?: string): string {
   return `${Number(d)} ${MONTHS[Number(m) - 1]}${thisYear && y !== thisYear ? ` ${y}` : ""}`;
 }
 
-/** "Wed 5 Nov, 14:30" in Dubai time. */
+/** "Wed 5 Nov, 2:30 PM" in Dubai time. */
 export function fmtMeeting(iso: string): string {
   const d = new Date(Date.parse(iso) + DUBAI_MS);
   const hh = String(d.getUTCHours()).padStart(2, "0");
   const mm = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${hh}:${mm}`;
+  return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${fmt12(`${hh}:${mm}`)}`;
 }
 
 /** "Feb 2025". */

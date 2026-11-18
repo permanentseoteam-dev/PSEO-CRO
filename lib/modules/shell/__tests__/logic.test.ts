@@ -86,14 +86,14 @@ describe("overnight clock sessions", () => {
     const open = openSession(sessions)!;
     expect(open).toBe(sessions[1]);
     expect(runningMinutes(open, now)).toBe(14 * 60);
-    expect(sinceLabel(open.clockIn, now)).toBe("yesterday 18:00");
+    expect(sinceLabel(open.clockIn, now)).toBe("yesterday 6:00 PM");
   });
 
   it("labels older and same-day starts", () => {
     const now = new Date(2026, 10, 6, 8, 0); // Friday
-    expect(sinceLabel(at(6, 0, 11), now)).toBe("00:11");
-    expect(sinceLabel(at(3, 18, 0), now)).toBe("Tue 18:00");
-    expect(sinceLabel(new Date(2026, 9, 20, 18, 0).toISOString(), now)).toBe("20 Oct 18:00");
+    expect(sinceLabel(at(6, 0, 11), now)).toBe("12:11 AM");
+    expect(sinceLabel(at(3, 18, 0), now)).toBe("Tue 6:00 PM");
+    expect(sinceLabel(new Date(2026, 9, 20, 18, 0).toISOString(), now)).toBe("20 Oct 6:00 PM");
   });
 
   it("sums several sessions, including one that ended this morning", () => {

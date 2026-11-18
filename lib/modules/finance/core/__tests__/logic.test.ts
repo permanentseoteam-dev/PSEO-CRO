@@ -9,6 +9,9 @@ import {
   isOverdue,
   last12Months,
   lateDays,
+  missingRates,
+  missingRatesNote,
+  money,
   periodRange,
   statusFromAmounts,
   statusKeys,
@@ -124,6 +127,40 @@ describe("currency and periods", () => {
     expect(convert(272.3, "USD", "AED", rates)).toBeCloseTo(1000);
     expect(convert(1000, "AED", "USD", rates, 0.25)).toBe(250);
     expect(convert(5, "PKR", "PKR", rates)).toBe(5);
+  });
+
+  it("converts GBP, EUR and SAR once a rate is saved", () => {
+    const r = { ...rates, GBP: 1.27, EUR: 1.08, SAR: 0.2667 };
+    expect(convert(100, "GBP", "USD", r)).toBeCloseTo(127);
+    expect(convert(100, "EUR", "GBP", r)).toBeCloseTo(85.04, 2);
+    expect(convert(1000, "SAR", "AED", r)).toBeCloseTo(979.43, 2);
+  });
+
+  it("names currencies with no rate, ignoring USD and rows with a saved rate", () => {
+    const rows = [
+      { currency: "SAR" as const },
+      { currency: "GBP" as const, rate: null },
+      { currency: "EUR" as const, rate: 1.08 },
+      { currency: "AED" as const },
+      { currency: "USD" as const },
+      { currency: "GBP" as const },
+    ];
+    expect(missingRates(rows, rates)).toEqual(["GBP", "SAR"]);
+    expect(missingRates(rows, { ...rates, GBP: 1.27, SAR: 0.2667 })).toEqual([]);
+    expect(missingRates([{ currency: "PKR" }], { USD: 1 })).toEqual(["PKR"]);
+  });
+
+  it("explains missing rates in one line", () => {
+    expect(missingRatesNote([])).toBeNull();
+    expect(missingRatesNote(["GBP"])).toBe("No USD rate for GBP yet, so GBP amounts count 1:1 with USD. Add a rate for GBP in Finance → Settings.");
+    expect(missingRatesNote(["GBP", "SAR"])).toContain("Add a rate for GBP, SAR in Finance → Settings.");
+  });
+
+  it("formats GBP, EUR and SAR like the other currencies", () => {
+    expect(money(1500.25, "GBP")).toBe("GBP 1,500.25");
+    expect(money(2000, "EUR")).toBe("EUR 2,000");
+    expect(money(12345.678, "SAR", 0)).toBe("SAR 12,346");
+    expect(money(450000.4, "PKR", 0)).toBe("PKR 450,000");
   });
 
   it("builds period ranges", () => {

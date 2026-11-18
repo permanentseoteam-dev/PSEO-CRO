@@ -1,5 +1,6 @@
 // Pure logic for Response times, Meetings and Files. No I/O.
 import type { Tone } from "@/components/ui/tone";
+import { fmt12 } from "@/lib/format-time";
 
 // ---------------------------------------------------------------- working hours
 
@@ -340,11 +341,11 @@ export function shortDate(iso: string, now: Date, tz: string): string {
   return `${p.d} ${MONTHS[p.m - 1]}${p.y === y ? "" : ` ${p.y}`}`;
 }
 
-/** "Today 09:02", "Yesterday 15:40", "2 Nov 16:05". */
+/** "Today 9:02 AM", "Yesterday 3:40 PM", "2 Nov 4:05 PM". */
 export function whenLabel(iso: string, now: Date, tz: string): string {
   const t = new Date(iso);
   const p = localParts(t.getTime(), tz);
-  const time = `${String(p.h).padStart(2, "0")}:${String(p.min).padStart(2, "0")}`;
+  const time = fmt12(`${p.h}:${String(p.min).padStart(2, "0")}`);
   const today = zoneDate(now, tz);
   const day = zoneDate(t, tz);
   const y = new Date(`${today}T00:00:00Z`);

@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { Button, Card, CardBody, CardHead, StatusDot, useToast } from "@/components/ui";
+import { fmt12 } from "@/lib/format-time";
 import { clock } from "../actions";
 import { RequestButton } from "./request-button";
 
@@ -19,7 +20,7 @@ export function ClockCard({ clockedInAt, onBreak, shiftEnd }: { clockedInAt: str
   function clockOut() {
     const now = new Date();
     const local = new Date(now.getTime() + 4 * 3600 * 1000).toISOString().slice(11, 16);
-    run("out", shiftEnd && local < shiftEnd ? `Clocked out before your shift ends at ${shiftEnd}` : "Clocked out");
+    run("out", shiftEnd && local < shiftEnd ? `Clocked out before your shift ends at ${fmt12(shiftEnd)}` : "Clocked out");
   }
 
   const status = !clockedInAt ? (

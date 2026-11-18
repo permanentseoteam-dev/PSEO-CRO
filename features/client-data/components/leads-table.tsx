@@ -58,7 +58,7 @@ export function LeadsTable({ clientId, clientName, leads, canManage }: { clientI
           <tbody>
             {rows.map((l) => (
               <tr key={l.id}>
-                <Td num>{format(new Date(l.receivedAt), "d MMM HH:mm")}</Td>
+                <Td num>{format(new Date(l.receivedAt), "d MMM h:mm a")}</Td>
                 <Td>
                   <strong>{l.name}</strong>
                 </Td>
