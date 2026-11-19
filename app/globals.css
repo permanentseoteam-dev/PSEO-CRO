@@ -291,13 +291,16 @@ dialog:modal { margin: auto; }
 
 /* ---------- Top bar ---------- */
 .topbar {
-  position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 10px;
   min-height: 60px; padding: 10px 28px; background: var(--surface);
   border-bottom: 1px solid var(--line); box-shadow: 0 1px 3px rgba(17, 29, 64, .05);
 }
-.tb-title { display: flex; align-items: center; gap: 6px; min-width: 0; position: relative; }
+.tb-title { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; position: relative; }
 .tb-title h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tb-actions { display: flex; align-items: center; gap: 8px; position: relative; justify-self: end; }
+.tb-actions { display: flex; align-items: center; gap: 8px; position: relative; }
+/* Desktop: search sits in the exact centre of the bar, out of the flex flow. */
+.topbar > .search-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, 34vw); }
+@media (max-width: 1200px) { .topbar > .search-btn { position: static; transform: none; width: auto; } }
 .hamburger { display: none; }
 .search-btn {
   display: inline-flex; align-items: center; gap: 8px; height: var(--ctl-h); padding: 0 10px; min-width: 200px;
@@ -351,7 +354,7 @@ kbd {
   .backdrop { position: fixed; inset: 0; z-index: 70; background: rgba(5, 12, 15, .45); }
   .backdrop.open { display: block; }
   .hamburger { display: inline-flex; }
-  .topbar { padding: 8px 12px; gap: 6px; grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .topbar { padding: 8px 12px; gap: 6px; }
   .search-btn { min-width: 0; padding: 0 9px; }
   .search-btn .txt, .search-btn kbd { display: none; }
   .timer .tk { display: none; }
