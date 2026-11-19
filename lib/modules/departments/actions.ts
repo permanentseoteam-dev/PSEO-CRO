@@ -33,13 +33,32 @@ const done = (error: { message: string; code?: string } | null, name: string): R
 };
 
 /** Admins only (admin.access.manage 'all'). */
-export async function addDepartment(raw: unknown): Promise<Result> {
+export async function addDepartment(raw: unknown): Promise<Result<{ id: string }>> {
   const db = await adminDb();
   if (!db) return NO;
   const c = await checked(db, raw);
   if ("error" in c) return { ok: false, error: c.error! };
-  const { error } = await db.from("departments").insert(c.row);
-  return done(error, c.row.name);
+  const { data, error } = await db.from("departments").insert(c.row).select("id").single();
+  const r = done(error, c.row.name);
+  return r.ok ? { ok: true, data: { id: data!.id as string } } : r;
+}
+
+/** Makes exactly these staff the department's members: ticked people move in (leaving any other department), unticked ones leave. */
+export async function setDepartmentMembers(id: unknown, memberIds: unknown): Promise<Result> {
+  const i = Id.safeParse(id);
+  const m = z.array(Id).max(500).safeParse(memberIds);
+  if (!i.success || !m.success) return BAD;
+  const db = await adminDb();
+  if (!db) return NO;
+  const out = db.from("members").update({ department_id: null }).eq("department_id", i.data).eq("kind", "staff");
+  const left = m.data.length ? await out.not("id", "in", `(${m.data.join(",")})`) : await out;
+  if (left.error) return { ok: false, error: left.error.message };
+  if (m.data.length) {
+    const joined = await db.from("members").update({ department_id: i.data }).in("id", m.data).eq("kind", "staff");
+    if (joined.error) return { ok: false, error: joined.error.message };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 export async function updateDepartment(id: unknown, raw: unknown): Promise<Result> {

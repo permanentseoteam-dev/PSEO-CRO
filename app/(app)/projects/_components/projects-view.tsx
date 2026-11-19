@@ -10,14 +10,15 @@ import { cn } from "@/lib/utils";
 import { groupInOrder } from "@/lib/modules/work/logic";
 import type { Department, Option, ProjectCard } from "@/lib/modules/work/types";
 import { saveProject } from "../actions";
+import { saveClient } from "../../clients/actions";
 import { DepartmentChecks, useDepartmentsAndLead } from "./department-picker";
 
-type Props = { cards: ProjectCard[]; canCreate: boolean; people: Option[]; departments: Department[]; clients: Option[] };
+type Props = { cards: ProjectCard[]; canCreate: boolean; canAddClient: boolean; people: Option[]; departments: Department[]; clients: Option[] };
 type State = "active" | "archived" | "all";
 
 const DEPT_ORDER = ["SEO", "PPC", "Web", "Content", "Design", "Social", "Client Success"];
 
-export function ProjectsView({ cards, canCreate, people, departments, clients }: Props) {
+export function ProjectsView({ cards, canCreate, canAddClient, people, departments, clients }: Props) {
   const [q, setQ] = useState("");
   const [state, setState] = useState<State>("active");
   const [editing, setEditing] = useState<ProjectCard | "new" | null>(null);
@@ -112,6 +113,7 @@ export function ProjectsView({ cards, canCreate, people, departments, clients }:
           people={people}
           departments={departments}
           clients={clients}
+          canAddClient={canAddClient}
           onClose={() => setEditing(null)}
         />
       ) : null}
@@ -124,12 +126,14 @@ function ProjectEditor({
   people,
   departments,
   clients,
+  canAddClient,
   onClose,
 }: {
   project: ProjectCard | null;
   people: Option[];
   departments: Department[];
   clients: Option[];
+  canAddClient: boolean;
   onClose: () => void;
 }) {
   const toast = useToast();
@@ -138,6 +142,25 @@ function ProjectEditor({
   const p = project;
   const formRef = useRef<HTMLFormElement>(null);
   const team = useDepartmentsAndLead(departments, p?.departmentIds ?? [], p?.leadId ?? "");
+  const [clientList, setClientList] = useState(clients);
+  const [clientId, setClientId] = useState(p?.clientId ?? "");
+  const [newClient, setNewClient] = useState<string | null>(null);
+
+  function addClient() {
+    const name = newClient?.trim() ?? "";
+    if (!name) return;
+    start(async () => {
+      const r = await saveClient({
+        id: "", name, site: "", services: [], country: "", start_date: "", channel: "whatsapp", currency: "AED",
+        owner_id: "", manager_id: "", notes: "", monthly_fee: "", hours_per_month: "",
+      });
+      if (!r.ok) return toast(r.error);
+      setClientList((l) => [...l, { id: r.id, name }].sort((a, b) => a.name.localeCompare(b.name)));
+      setClientId(r.id);
+      setNewClient(null);
+      toast(`Client "${name}" added`);
+    });
+  }
 
   function save(status: "active" | "archived") {
     const form = formRef.current;
@@ -215,14 +238,52 @@ function ProjectEditor({
             <DepartmentChecks departments={departments} value={team.ids} onToggle={team.toggle} />
           </Field>
           <Field label="Client" htmlFor="pj-client">
-            <Select id="pj-client" name="client" defaultValue={p?.clientId ?? ""}>
-              <option value="">Internal (no client)</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
+            {newClient !== null ? (
+              <div className="flex gap-2">
+                <Input
+                  id="pj-client"
+                  placeholder="New client name"
+                  aria-label="New client name"
+                  className="min-w-0 flex-1"
+                  value={newClient}
+                  maxLength={120}
+                  autoFocus
+                  onChange={(e) => setNewClient(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addClient();
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setNewClient(null);
+                    }
+                  }}
+                />
+                <Button disabled={pending || !newClient.trim()} onClick={addClient}>
+                  Add
+                </Button>
+                <Button variant="ghost" onClick={() => setNewClient(null)}>
+                  Cancel
+                </Button>
+                <input type="hidden" name="client" value={clientId} />
+              </div>
+            ) : (
+              <Select
+                id="pj-client"
+                name="client"
+                value={clientId}
+                onChange={(e) => (e.target.value === "__new" ? setNewClient("") : setClientId(e.target.value))}
+              >
+                <option value="">Internal (no client)</option>
+                {canAddClient ? <option value="__new">+ New client…</option> : null}
+                {clientList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <Field label="Lead" htmlFor="pj-lead">
             <Select id="pj-lead" name="lead" value={team.lead} onChange={(e) => team.setLead(e.target.value)}>

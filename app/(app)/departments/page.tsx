@@ -10,11 +10,11 @@ export const metadata = { title: "Departments" };
 export default async function DepartmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();
   if (me.kind !== "staff" || !can(me, "admin.access.manage", "all")) return <NoAccess />;
-  const view = (await searchParams).view === "board" ? "board" : "list";
+  const view = (await searchParams).view === "list" ? "list" : "board";
   const db = await createClient();
   const [depts, staff] = await Promise.all([
     db.from("departments").select("id, name, head_id").order("name"),
-    db.from("members").select("id, name").eq("kind", "staff").eq("status", "active").order("name"),
+    db.from("members").select("id, name, department_id").eq("kind", "staff").eq("status", "active").order("name"),
   ]);
   const departments = (depts.data ?? []).map((d) => ({ id: d.id as string, name: d.name as string, headId: (d.head_id as string | null) ?? null }));
   const stats = view === "board" ? await listDepartmentStats(departments.map((d) => d.id), todayIn()) : undefined;
@@ -26,11 +26,11 @@ export default async function DepartmentsPage({ searchParams }: { searchParams: 
         className="self-start"
         value={view}
         items={[
-          { value: "list", label: "List", href: "/departments" },
-          { value: "board", label: "Board", href: "/departments?view=board" },
+          { value: "list", label: "List", href: "/departments?view=list" },
+          { value: "board", label: "Board", href: "/departments" },
         ]}
       />
-      <DepartmentsManager departments={departments} staff={(staff.data ?? []) as { id: string; name: string }[]} view={view} stats={stats} />
+      <DepartmentsManager departments={departments} staff={(staff.data ?? []).map((m) => ({ id: m.id as string, name: m.name as string, departmentId: (m.department_id as string | null) ?? null }))} view={view} stats={stats} />
     </div>
   );
 }

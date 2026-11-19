@@ -3,11 +3,11 @@
 import { useState, useTransition } from "react";
 import { Button, Card, CardBody, Dialog, Field, Input, Select, Table, Td, Th, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { addDepartment, deleteDepartment, departmentUsage, updateDepartment } from "@/lib/modules/departments/actions";
+import { addDepartment, deleteDepartment, departmentUsage, setDepartmentMembers, updateDepartment } from "@/lib/modules/departments/actions";
 import { DepartmentName, deleteWarning, duplicateError, isDuplicateName, type Department, type DepartmentStats } from "@/lib/modules/departments/logic";
 
-type Staff = { id: string; name: string };
-type Draft = { id?: string; name: string; headId: string };
+type Staff = { id: string; name: string; departmentId?: string | null };
+type Draft = { id?: string; name: string; headId: string; memberIds: string[] };
 
 type Props = { departments: Department[]; staff: Staff[]; view?: "list" | "board"; stats?: Record<string, DepartmentStats> };
 
@@ -17,6 +17,11 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft | null>(null);
   const names = new Map(staff.map((s) => [s.id, s.name]));
+  const deptNames = new Map(departments.map((d) => [d.id, d.name]));
+  const membersOf = (deptId: string) => staff.filter((s) => s.departmentId === deptId).map((s) => s.id);
+  const edit = (d: Department) => setDraft({ id: d.id, name: d.name, headId: d.headId ?? "", memberIds: membersOf(d.id) });
+  const toggleMember = (id: string) =>
+    draft && setDraft({ ...draft, memberIds: draft.memberIds.includes(id) ? draft.memberIds.filter((m) => m !== id) : [...draft.memberIds, id] });
 
   const parsed = draft ? DepartmentName.safeParse(draft.name) : null;
   const problem = !draft
@@ -32,8 +37,12 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
     const input = { name: draft.name, headId: draft.headId || null };
     start(async () => {
       const r = draft.id ? await updateDepartment(draft.id, input) : await addDepartment(input);
-      toast(r.ok ? (draft.id ? "Department saved" : "Department added") : r.error);
-      if (r.ok) setDraft(null);
+      if (!r.ok) return toast(r.error);
+      const id = draft.id ?? (r.data as { id: string } | undefined)?.id;
+      const m = id ? await setDepartmentMembers(id, draft.memberIds) : { ok: true as const };
+      if (!m.ok) return toast(m.error);
+      toast(draft.id ? "Department saved" : "Department added");
+      setDraft(null);
     });
   }
 
@@ -76,7 +85,7 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
                       </span>
                     </div>
                     <div className="row">
-                      <Button size="sm" disabled={pending} onClick={() => setDraft({ id: d.id, name: d.name, headId: d.headId ?? "" })}>
+                      <Button size="sm" disabled={pending} onClick={() => edit(d)}>
                         Edit
                       </Button>
                       <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(d)}>
@@ -105,7 +114,7 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
                 <Td className="muted">{(d.headId && names.get(d.headId)) || "None"}</Td>
                 <Td right>
                   <div className="row justify-end">
-                    <Button size="sm" disabled={pending} onClick={() => setDraft({ id: d.id, name: d.name, headId: d.headId ?? "" })}>
+                    <Button size="sm" disabled={pending} onClick={() => edit(d)}>
                       Edit
                     </Button>
                     <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(d)}>
@@ -126,7 +135,7 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
         </Table>
       )}
       <div className="row">
-        <Button variant="primary" disabled={pending} onClick={() => setDraft({ name: "", headId: "" })}>
+        <Button variant="primary" disabled={pending} onClick={() => setDraft({ name: "", headId: "", memberIds: [] })}>
           Add department
         </Button>
       </div>
@@ -165,6 +174,21 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
                   </option>
                 ))}
               </Select>
+            </Field>
+            <Field label="Members">
+              <div className="max-h-48 overflow-y-auto rounded-[var(--radius-ctl)] border border-line p-2">
+                {staff.length === 0 ? <p className="muted m-0 small">No active staff yet.</p> : null}
+                {staff.map((s) => {
+                  const other = s.departmentId && s.departmentId !== draft.id ? deptNames.get(s.departmentId) : null;
+                  return (
+                    <label key={s.id} className="flex items-center gap-2 py-1 text-[13px]">
+                      <input type="checkbox" checked={draft.memberIds.includes(s.id)} onChange={() => toggleMember(s.id)} />
+                      {s.name}
+                      {other ? <span className="muted small">in {other}</span> : null}
+                    </label>
+                  );
+                })}
+              </div>
             </Field>
             {problem && draft.name.trim() ? (
               <p role="alert" className="m-0 text-danger">

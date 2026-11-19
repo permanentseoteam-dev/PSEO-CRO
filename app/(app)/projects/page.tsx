@@ -45,6 +45,7 @@ export default async function ProjectsPage() {
     <ProjectsView
       cards={cards}
       canCreate={manageTeam}
+      canAddClient={can(me, "clients.manage")}
       people={staff.map(({ id, name }) => ({ id, name }))}
       departments={departments}
       clients={clients}

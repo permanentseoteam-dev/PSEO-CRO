@@ -8,7 +8,7 @@ export const metadata = { title: "Services" };
 export default async function ServicesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();
   if (!can(me, "admin.access.manage", "all")) return <NoAccess />;
-  const view = (await searchParams).view === "board" ? "board" : "list";
+  const view = (await searchParams).view === "list" ? "list" : "board";
   const services = await listServices();
   const usage = view === "board" ? await listServiceUsage(services) : undefined;
   return (
@@ -19,8 +19,8 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
         className="self-start"
         value={view}
         items={[
-          { value: "list", label: "List", href: "/services" },
-          { value: "board", label: "Board", href: "/services?view=board" },
+          { value: "list", label: "List", href: "/services?view=list" },
+          { value: "board", label: "Board", href: "/services" },
         ]}
       />
       <ServicesManager services={services} view={view} usage={usage} />
