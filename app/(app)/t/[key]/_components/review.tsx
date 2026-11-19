@@ -86,7 +86,7 @@ export function Review({ ticketId, status, round, rounds, reviewerId, meId, peop
         {isReviewer ? (
           <div className={`stack ${s.reviewer}`}>
             <div className="row">
-              <Button variant="primary" disabled={pending} onClick={() => start(async () => done("Approved. Ticket marked done")(await approveReview(ticketId)))}>
+              <Button variant="primary" disabled={pending} onClick={() => start(async () => done("Approved. Task marked done")(await approveReview(ticketId)))}>
                 Approve
               </Button>
               <Button onClick={() => setBackOpen((v) => !v)}>Send back with changes</Button>

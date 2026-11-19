@@ -3,7 +3,7 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getMe, can } from "@/lib/auth/can";
+import { getMe } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_PINS, timerMinutes } from "./logic";
 import { newTicketAssignee } from "@/lib/modules/tickets/assignment";
@@ -185,18 +185,9 @@ export async function paletteData(): Promise<PaletteItem[]> {
   const me = await getMe();
   if (!me || me.kind !== "staff") return [];
   const supabase = await createClient();
-  const [tickets, clients] = await Promise.all([
-    supabase.from("tickets").select("key, title").order("created_at", { ascending: false }).limit(300),
-    can(me, "clients.view")
-      ? supabase.from("clients").select("id, name").order("name").limit(300)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const tickets = await supabase.from("tickets").select("key, title").order("created_at", { ascending: false }).limit(300);
   const t = tickets.error ? [] : ((tickets.data ?? []) as { key: string; title: string }[]);
-  const c = clients.error ? [] : ((clients.data ?? []) as { id: string; name: string }[]);
-  return [
-    ...t.map((x): PaletteItem => ({ section: "Task", label: `${x.key} ${x.title}`, href: `/t/${x.key}`, meta: "", icon: "Ticket" })),
-    ...c.map((x): PaletteItem => ({ section: "Clients", label: x.name, href: `/clients/${x.id}`, meta: "", icon: "Building2" })),
-  ];
+  return t.map((x): PaletteItem => ({ section: "Task", label: `${x.key} ${x.title}`, href: `/t/${x.key}`, meta: "", icon: "Ticket" }));
 }
 
 // ---------------------------------------------------------------- new ticket

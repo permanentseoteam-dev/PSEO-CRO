@@ -9,13 +9,12 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { activeHref, nextTheme, pageFor, visibleNav } from "@/lib/modules/shell/logic";
 import { DEFAULT_AGENCY, type AgencySettings } from "@/lib/modules/agency/logic";
-import { newTicketOptions, paletteData, saveSidebar, setTheme, togglePin } from "@/lib/modules/shell/actions";
-import type { PaletteItem, ShellData, Theme, TicketOptions } from "@/lib/modules/shell/types";
+import { paletteData, saveSidebar, setTheme, togglePin } from "@/lib/modules/shell/actions";
+import type { PaletteItem, ShellData, Theme } from "@/lib/modules/shell/types";
 import type { SidebarProjects } from "@/lib/modules/work/space-types";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { Palette } from "./palette";
-import { NewTicketDialog } from "./new-ticket";
 import { PageTitleContext } from "./page-title";
 import { PushPrompt } from "@/features/platform-p2/components/push-prompt";
 
@@ -38,8 +37,8 @@ export type ShellProps = {
 };
 
 const SHORTCUTS: [string, string[]][] = [
-  ["Search pages, tickets and clients", ["Ctrl K", "/"]],
-  ["New ticket", ["C"]],
+  ["Search pages and tasks", ["Ctrl K", "/"]],
+  ["New task", ["C"]],
   ["Collapse or expand the sidebar", ["["]],
   ["Show shortcuts", ["?"]],
   ["Close a menu or dialog", ["Esc"]],
@@ -63,8 +62,6 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
   const [theme, setThemeState] = useState<Theme>(initialTheme);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [extra, setExtra] = useState<PaletteItem[]>([]);
-  const [newOpen, setNewOpen] = useState(false);
-  const [options, setOptions] = useState<TicketOptions | null>(null);
   const [keysOpen, setKeysOpen] = useState(false);
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
 
@@ -124,13 +121,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
   const openNew = () => {
     setMenu(null);
     setDrawer(false);
-    if (portal) {
-      toast("Send requests to your account team in Messages");
-      router.push("/portal/messages");
-      return;
-    }
-    setNewOpen(true);
-    start(async () => setOptions(await newTicketOptions()));
+    router.push("/tickets?new=1");
   };
 
   // Keyboard shortcuts.
@@ -153,7 +144,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
       if (e.key === "/") {
         e.preventDefault();
         openPalette();
-      } else if (e.key === "c" || e.key === "C") {
+      } else if (!portal && (e.key === "c" || e.key === "C")) {
         e.preventDefault();
         openNew();
       } else if (e.key === "[") {
@@ -227,8 +218,8 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
           onDrawer={() => setDrawer(true)}
           drawerOpen={drawer}
           onPalette={openPalette}
-          onNew={openNew}
-          newLabel={portal ? "New request" : "New ticket"}
+          onNew={portal ? undefined : openNew}
+          newLabel="New task"
           menu={menu === "me" ? null : menu}
           onMenu={setMenu}
           notifications={data.notifications}
@@ -245,7 +236,6 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
 
       <PushPrompt />
       <Palette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={[...pages, ...extra]} />
-      {!portal ? <NewTicketDialog open={newOpen} onClose={() => setNewOpen(false)} options={options} meId={me.id} /> : null}
       <Dialog
         open={keysOpen}
         onClose={() => setKeysOpen(false)}

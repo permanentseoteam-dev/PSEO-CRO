@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getMe, can, type Me } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
-import { saveProject } from "@/app/(app)/projects/actions";
+import { saveProject, setProjectDepartments } from "@/app/(app)/projects/actions";
 import { createTicket } from "@/lib/modules/tickets/actions";
 import { normalizeKey } from "./logic";
 import { suggestKey } from "./space-logic";
@@ -91,7 +91,7 @@ export async function createSpaceProject(raw: unknown): Promise<{ ok: true; key:
   const key = suggestKey(p.data.name, (keys ?? []).map((k) => k.key as string));
 
   const saved = await saveProject({
-    id: null, name: p.data.name, key, departmentId: me.departmentId, clientId: null, leadId: me.id, reviewerId: null,
+    id: null, name: p.data.name, key, departmentIds: me.departmentId ? [me.departmentId] : [], clientId: null, leadId: me.id, reviewerId: null,
     description: "", reviewRequired: false, status: "active",
   });
   if (!saved.ok) return saved;
@@ -130,6 +130,25 @@ export async function updateProjectDetails(raw: unknown): Promise<Result> {
   if (error?.code === "23505") return { ok: false, error: `The key ${key} is already used by another project.` };
   if (error) return fail(error);
   if (!data?.length) return { ok: false, error: "You can only manage projects led by your team." };
+  refresh();
+  return { ok: true };
+}
+
+/** Sets a project's departments (first = projects.department_id) and lead. */
+export async function updateProjectDepartments(raw: unknown): Promise<Result> {
+  const p = z.object({ projectId: uuid, departmentIds: z.array(uuid).max(50), leadId: uuid.nullable() }).safeParse(raw);
+  if (!p.success) return BAD;
+  if (!(await projectManager())) return NO;
+  const db = await createClient();
+  const { data, error } = await db
+    .from("projects")
+    .update({ department_id: p.data.departmentIds[0] ?? null, lead_id: p.data.leadId })
+    .eq("id", p.data.projectId)
+    .select("id");
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: "You can only manage projects led by your team." };
+  const depErr = await setProjectDepartments(p.data.projectId, p.data.departmentIds);
+  if (depErr) return { ok: false, error: depErr };
   refresh();
   return { ok: true };
 }

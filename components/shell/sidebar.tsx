@@ -105,6 +105,8 @@ export function Sidebar(p: Props) {
   const toast = useToast();
   const [, start] = useTransition();
   const status = PRESENCE.find((s) => s.value === p.me.presence) ?? PRESENCE[0];
+  const navHrefs = new Set(p.groups.flatMap((g) => g.items.map((i) => i.href)));
+  const pins = p.pins.filter((pin) => navHrefs.has(pin.href));
 
   const pickStatus = (value: Presence, label: string) =>
     start(async () => {
@@ -145,11 +147,11 @@ export function Sidebar(p: Props) {
 
       {!p.portal && p.clock ? <ClockWidget sessions={p.clock} workdayMin={p.workdayMin ?? WORKDAY_MIN} /> : null}
 
-      {p.pins.length ? (
+      {pins.length ? (
         <nav className="nav-group" aria-label="Pinned">
           <span className="side-sec-title">Pinned</span>
           <div className="pinned">
-            {p.pins.map((pin) => (
+            {pins.map((pin) => (
               <NavLink key={pin.href} href={pin.href} title={pin.title} icon={iconFor(p.groups, pin.href)} on={pin.href === p.active} />
             ))}
           </div>
@@ -183,7 +185,7 @@ export function Sidebar(p: Props) {
             label="Preview as"
             value={p.portal || pathname === "/clients/preview" ? "client" : "team"}
             items={[
-              { value: "team", label: "Team view", href: "/home" },
+              { value: "team", label: "Team view", href: "/tickets" },
               { value: "client", label: "Client view", href: "/clients/preview" },
             ]}
           />
@@ -218,9 +220,9 @@ export function Sidebar(p: Props) {
                 <hr />
               </>
             ) : null}
-            <Link role="menuitem" href={p.portal ? "/portal" : "/me"} onClick={p.onMenu}>
+            <Link role="menuitem" href={p.portal ? "/portal" : "/account"} onClick={p.onMenu}>
               <CircleUser className="size-4" aria-hidden="true" />
-              {p.portal ? "My account" : "My profile"}
+              My account
             </Link>
             <form action={signOut}>
               <button type="submit" role="menuitem">

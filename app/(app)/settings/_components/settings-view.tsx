@@ -14,17 +14,19 @@ import { TwoStep } from "./two-step";
 
 type Notif = { event: NotifEvent; label: string; inApp: boolean; email: boolean; phone: boolean };
 type Props = {
-  email: string;
-  name: string;
-  isAdmin: boolean;
+  /** "account" = my personal settings; "general" = admin-only agency settings. */
+  mode: "account" | "general";
+  email?: string;
+  name?: string;
   /** The admin requires 2-step sign-in for one of my roles, so I can't turn it off. */
-  twoStepRequired: boolean;
+  twoStepRequired?: boolean;
   /** Server-rendered platform-p2 sections; pass only when the user may see them. */
   apiKeys?: ReactNode;
   notifLog?: ReactNode;
   /** Extra admin-only sections, listed under "Admin" in the nav. Pass only when the user may see them. `editable` adds the pencil. */
   adminSections?: { id: string; label: string; node: ReactNode; editable?: boolean }[];
-  initial: {
+  /** Personal settings; needed in "account" mode. */
+  initial?: {
     theme: "system" | "light" | "dark";
     density: "comfortable" | "compact";
     email: "daily" | "urgent" | "off";
@@ -75,9 +77,10 @@ function Section({ id, domId, title, editable, children }: { id: string; domId?:
   );
 }
 
-type Theme = Props["initial"]["theme"];
-type Density = Props["initial"]["density"];
-type Mail = Props["initial"]["email"];
+type Initial = NonNullable<Props["initial"]>;
+type Theme = Initial["theme"];
+type Density = Initial["density"];
+type Mail = Initial["email"];
 const THEMES: [Theme, string][] = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];
 const DENSITIES: [Density, string][] = [["comfortable", "Comfortable"], ["compact", "Compact"]];
 const MAILS: [Mail, string][] = [["daily", "Daily digest"], ["urgent", "Urgent only"], ["off", "Off"]];
@@ -186,10 +189,12 @@ function ProfileCard({ initial }: { initial: string }) {
   );
 }
 
-export function SettingsView({ email, name, isAdmin, twoStepRequired, apiKeys, notifLog, adminSections, initial }: Props) {
+export function SettingsView({ mode, email = "", name = "", twoStepRequired = false, apiKeys, notifLog, adminSections, initial }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
-  const [active, setActive] = useState("design");
+  const account = mode === "account" && initial;
+  const general = mode === "general";
+  const [active, setActive] = useState(account ? "design" : "admin");
   const root = useRef<HTMLDivElement>(null);
 
   // scroll-spy
@@ -213,7 +218,7 @@ export function SettingsView({ email, name, isAdmin, twoStepRequired, apiKeys, n
   };
 
   // ---------------------------------------------------------------- notifications
-  const [notif, setNotif] = useState(initial.notif);
+  const [notif, setNotif] = useState(initial?.notif ?? []);
   function toggle(i: number, ch: "inApp" | "email" | "phone", on: boolean) {
     const row = { ...notif[i], [ch]: on };
     setNotif((cur) => cur.map((r, j) => (j === i ? row : r)));
@@ -277,11 +282,10 @@ export function SettingsView({ email, name, isAdmin, twoStepRequired, apiKeys, n
   return (
     <div ref={root} className="grid items-start gap-6 min-[901px]:grid-cols-[200px_1fr]">
       <nav aria-label="Settings sections" className="flex gap-1 overflow-x-auto min-[901px]:sticky min-[901px]:top-3 min-[901px]:flex-col min-[901px]:gap-0.5">
-        {SECTIONS.map(([id, l]) => navLink(id, l))}
-        {notifLog ? navLink("nlog", "Notifications log") : null}
-        {isAdmin ? (
+        {account ? SECTIONS.map(([id, l]) => navLink(id, l)) : null}
+        {account && notifLog ? navLink("nlog", "Notifications log") : null}
+        {general ? (
           <>
-            <h4 className="mx-2.5 mb-1 mt-3.5 text-[13px] font-semibold text-ink-3 max-[900px]:hidden">Admin</h4>
             {navLink("admin", "Admin pages")}
             {adminSections?.map((s) => navLink(s.id, s.label))}
             {apiKeys ? navLink("api", "API keys") : null}
@@ -290,86 +294,90 @@ export function SettingsView({ email, name, isAdmin, twoStepRequired, apiKeys, n
       </nav>
 
       <div className="flex min-w-0 flex-col gap-4">
-        <Section id="design" title="Design" editable>
-          <DesignCard initial={{ theme: initial.theme, density: initial.density }} />
-        </Section>
+        {account ? (
+          <>
+            <Section id="design" title="Design" editable>
+              <DesignCard initial={{ theme: account.theme, density: account.density }} />
+            </Section>
 
-        <Section id="notif" title="Notifications">
-          <Table>
-            <thead>
-              <tr>
-                <Th>When</Th>
-                <Th>In app</Th>
-                <Th>Email</Th>
-                <Th>Phone</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {notif.map((r, i) => (
-                <tr key={r.event}>
-                  <Td>{r.label}</Td>
-                  {(["inApp", "email", "phone"] as const).map((ch) => (
-                    <Td key={ch}>
-                      <input type="checkbox" aria-label={`${r.label}: ${ch === "inApp" ? "in app" : ch}`} checked={r[ch]} onChange={(e) => toggle(i, ch, e.currentTarget.checked)} />
-                    </Td>
+            <Section id="notif" title="Notifications">
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>When</Th>
+                    <Th>In app</Th>
+                    <Th>Email</Th>
+                    <Th>Phone</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {notif.map((r, i) => (
+                    <tr key={r.event}>
+                      <Td>{r.label}</Td>
+                      {(["inApp", "email", "phone"] as const).map((ch) => (
+                        <Td key={ch}>
+                          <input type="checkbox" aria-label={`${r.label}: ${ch === "inApp" ? "in app" : ch}`} checked={r[ch]} onChange={(e) => toggle(i, ch, e.currentTarget.checked)} />
+                        </Td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Section>
+                </tbody>
+              </Table>
+            </Section>
 
-        <Section id="email" title="Email" editable>
-          <EmailCard initial={initial.email} />
-        </Section>
+            <Section id="email" title="Email" editable>
+              <EmailCard initial={account.email} />
+            </Section>
 
-        <Section id="quiet" title="Quiet hours" editable>
-          <QuietCard initial={{ from: initial.quietFrom, to: initial.quietTo }} />
-        </Section>
+            <Section id="quiet" title="Quiet hours" editable>
+              <QuietCard initial={{ from: account.quietFrom, to: account.quietTo }} />
+            </Section>
 
-        <Section id="profile" title="Profile" editable>
-          <ProfileCard initial={name} />
-        </Section>
+            <Section id="profile" title="Profile" editable>
+              <ProfileCard initial={name} />
+            </Section>
 
-        <Section id="push" domId="push" title="Phone alerts">
-          <PushToggle />
-        </Section>
+            <Section id="push" domId="push" title="Phone alerts">
+              <PushToggle />
+            </Section>
 
-        <Section id="security" title="Sign-in & security">
-          <form onSubmit={password} className="stack">
-            <FormGrid>
-              <Field label="Current password" htmlFor="pf-cur">
-                <Input id="pf-cur" name="current" type="password" autoComplete="current-password" required />
-              </Field>
-              <Field label="New password" htmlFor="pf-new" hint="At least 10 characters">
-                <Input id="pf-new" name="next" type="password" autoComplete="new-password" minLength={10} required />
-              </Field>
-              {twoStep ? (
-                <Field label="6-digit code from your authenticator app" htmlFor="pf-code">
-                  <Input id="pf-code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />
-                </Field>
-              ) : null}
-            </FormGrid>
-            <div className="row">
-              <Button type="submit" disabled={pending}>Change password</Button>
-            </div>
-          </form>
-          <h4 className="mt-3">Sessions</h4>
-          <div className="row between">
-            <span>Signed in on this device</span>
-            <Button size="sm" variant="ghost" disabled={pending} onClick={signOutOthers}>Sign out everywhere else</Button>
-          </div>
-          <h4 className="mt-3">2-step sign-in</h4>
-          <TwoStep required={twoStepRequired} onChange={setTwoStep} />
-        </Section>
+            <Section id="security" title="Sign-in & security">
+              <form onSubmit={password} className="stack">
+                <FormGrid>
+                  <Field label="Current password" htmlFor="pf-cur">
+                    <Input id="pf-cur" name="current" type="password" autoComplete="current-password" required />
+                  </Field>
+                  <Field label="New password" htmlFor="pf-new" hint="At least 10 characters">
+                    <Input id="pf-new" name="next" type="password" autoComplete="new-password" minLength={10} required />
+                  </Field>
+                  {twoStep ? (
+                    <Field label="6-digit code from your authenticator app" htmlFor="pf-code">
+                      <Input id="pf-code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />
+                    </Field>
+                  ) : null}
+                </FormGrid>
+                <div className="row">
+                  <Button type="submit" disabled={pending}>Change password</Button>
+                </div>
+              </form>
+              <h4 className="mt-3">Sessions</h4>
+              <div className="row between">
+                <span>Signed in on this device</span>
+                <Button size="sm" variant="ghost" disabled={pending} onClick={signOutOthers}>Sign out everywhere else</Button>
+              </div>
+              <h4 className="mt-3">2-step sign-in</h4>
+              <TwoStep required={twoStepRequired} onChange={setTwoStep} />
+            </Section>
 
-        {notifLog ? (
-          <div data-sec="nlog" className="scroll-mt-4">
-            {notifLog}
-          </div>
+            {notifLog ? (
+              <div data-sec="nlog" className="scroll-mt-4">
+                {notifLog}
+              </div>
+            ) : null}
+          </>
         ) : null}
 
-        {isAdmin ? (
+        {general ? (
           <Section id="admin" title="Admin">
             <div className="list">
               {ADMIN.map(([id, label, href]) => (
@@ -384,7 +392,7 @@ export function SettingsView({ email, name, isAdmin, twoStepRequired, apiKeys, n
           </Section>
         ) : null}
 
-        {isAdmin
+        {general
           ? adminSections?.map((s) => (
               <Section key={s.id} id={s.id} title={s.label} editable={s.editable}>
                 {s.node}
@@ -392,7 +400,7 @@ export function SettingsView({ email, name, isAdmin, twoStepRequired, apiKeys, n
             ))
           : null}
 
-        {isAdmin && apiKeys ? (
+        {general && apiKeys ? (
           <div data-sec="api" className="scroll-mt-4">
             {apiKeys}
           </div>

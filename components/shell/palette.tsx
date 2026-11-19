@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { PaletteItem } from "@/lib/modules/shell/types";
 import { NavIcon } from "./icons";
 
-/** Ctrl/Cmd+K command palette. `items` = pages plus tickets and clients loaded when it opens. */
+/** Ctrl/Cmd+K command palette. `items` = pages plus tasks loaded when it opens. */
 export function Palette({ open, onClose, items }: { open: boolean; onClose: () => void; items: PaletteItem[] }) {
   const ref = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -72,7 +72,7 @@ export function Palette({ open, onClose, items }: { open: boolean; onClose: () =
               go(list[cur]);
             }
           }}
-          placeholder="Search pages, tickets and clients"
+          placeholder="Search pages and tasks"
           autoComplete="off"
           aria-controls="pal-list"
           aria-label="Search"

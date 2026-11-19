@@ -35,8 +35,8 @@ export default async function TicketPage({ params }: Params) {
     return (
       <div className="page">
         <EmptyState
-          title="Ticket not found"
-          action={<Link className="btn" href="/tickets">Back to tickets</Link>}
+          title="Task not found"
+          action={<Link className="btn" href="/tickets">Back to tasks</Link>}
         >
           It may have been deleted, or you don&apos;t have access to it.
         </EmptyState>

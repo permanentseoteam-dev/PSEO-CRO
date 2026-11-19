@@ -110,6 +110,7 @@ export async function saveTwoStepPolicy(raw: unknown): Promise<Result> {
   const { error } = await db.from("security_settings").upsert({ id: true, mfa_required_roles: roles, updated_by: me!.id }, { onConflict: "id" });
   if (error) return fail(error);
   revalidatePath("/settings");
+  revalidatePath("/account");
   return { ok: true };
 }
 

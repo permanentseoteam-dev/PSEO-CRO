@@ -23,11 +23,11 @@ export async function readPreviewCookie() {
   return verifyPreview(jar.get(PREVIEW_COOKIE)?.value, process.env.SUPABASE_SECRET_KEY);
 }
 
-/** Resolves the portal's client and viewer once per request. Staff without a valid preview go to /home. */
+/** Resolves the portal's client and viewer once per request. Staff without a valid preview go to /tickets. */
 export const getPortalView = cache(async (): Promise<PortalView> => {
   const me = await requireMe();
   const scope = resolvePortalScope(me, me.kind === "staff" ? await readPreviewCookie() : null);
-  if (scope.mode === "none") redirect("/home");
+  if (scope.mode === "none") redirect("/tickets");
   const viewer = scope.mode === "preview" ? await ownerViewer(scope.clientId, me) : me;
   return { me, viewer, scope };
 });

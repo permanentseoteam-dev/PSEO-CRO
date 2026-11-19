@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
 import { addDays, parseTags, PRIORITIES, PRIORITY_LABEL } from "@/lib/modules/tickets/logic";
@@ -9,9 +9,9 @@ import { uploadTicketFiles } from "@/lib/modules/tickets/upload";
 import type { Person, ProjectOpt } from "@/lib/modules/tickets/types";
 
 type Template = { id: string; title: string; priority: string | null; dueInDays: number | null };
-type Props = { meId: string; people: Person[]; projects: ProjectOpt[]; templates: Template[]; today: string; defaultProject?: string };
+type Props = { meId: string; people: Person[]; projects: ProjectOpt[]; templates: Template[]; today: string; defaultProject?: string; openOnMount?: boolean };
 
-export function NewTicketButton({ people, projects, templates, today, defaultProject }: Props) {
+export function NewTicketButton({ people, projects, templates, today, defaultProject, openOnMount }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -23,6 +23,16 @@ export function NewTicketButton({ people, projects, templates, today, defaultPro
   const creatorId = projects.find((project) => project.id === selectedProjectId)?.createdBy;
   const defaultAssignee = people.some((person) => person.id === creatorId) ? creatorId ?? "" : "";
   const chosen = templates.find((t) => t.id === tpl);
+
+  // /tickets?new=1 (top bar "New task") opens the dialog, then drops new=1 so a refresh doesn't reopen it.
+  useEffect(() => {
+    if (!openOnMount) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    router.replace(url.pathname + url.search, { scroll: false });
+  }, [openOnMount, router]);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,7 +51,7 @@ export function NewTicketButton({ people, projects, templates, today, defaultPro
         tags: parseTags(v("tags")),
         templateId: tpl || null,
       });
-      if (!r.ok || !r.data) return toast(r.ok ? "Couldn't create the ticket." : r.error);
+      if (!r.ok || !r.data) return toast(r.ok ? "Couldn't create the task." : r.error);
       const up = files.length ? await uploadTicketFiles(r.data.id, files) : { problems: [] as string[] };
       setOpen(false);
       setTpl("");
@@ -52,16 +62,16 @@ export function NewTicketButton({ people, projects, templates, today, defaultPro
 
   return (
     <>
-      <Button variant="primary" onClick={() => { setProjectId(null); setAssignee(null); setOpen(true); }}>New ticket</Button>
+      <Button variant="primary" onClick={() => { setProjectId(null); setAssignee(null); setOpen(true); }}>New task</Button>
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="New ticket"
+        title="New task"
         wide
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="tk-new" disabled={pending}>{pending ? "Creating…" : "Create ticket"}</Button>
+            <Button variant="primary" type="submit" form="tk-new" disabled={pending}>{pending ? "Creating…" : "Create task"}</Button>
           </>
         }
       >
@@ -70,7 +80,7 @@ export function NewTicketButton({ people, projects, templates, today, defaultPro
             {templates.length ? (
               <Field label="Start from template" htmlFor="tk-new-tpl" full>
                 <Select id="tk-new-tpl" value={tpl} onChange={(e) => setTpl(e.target.value)}>
-                  <option value="">Blank ticket</option>
+                  <option value="">Blank task</option>
                   {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
                 </Select>
               </Field>

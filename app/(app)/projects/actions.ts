@@ -14,7 +14,7 @@ const Input = z.object({
   name: z.string().trim().min(2).max(120),
   // Optional: new projects get one from the name; edits keep the current key.
   key: z.string().trim().max(8).optional(),
-  departmentId: uuid.nullable(),
+  departmentIds: z.array(uuid).max(50),
   clientId: uuid.nullable(),
   leadId: uuid.nullable(),
   reviewerId: uuid.nullable(),
@@ -42,7 +42,7 @@ export async function saveProject(raw: unknown): Promise<Result> {
   const row = {
     ...(newKey ? { key: newKey } : {}),
     name: d.name,
-    department_id: d.departmentId,
+    department_id: d.departmentIds[0] ?? null,
     client_id: d.clientId,
     lead_id: d.leadId,
     reviewer_id: d.reviewerId,
@@ -57,6 +57,22 @@ export async function saveProject(raw: unknown): Promise<Result> {
     return { ok: false, error: res.error.message };
   }
   if (!res.data?.length) return { ok: false, error: "You can only manage projects led by your team." };
+  const depErr = await setProjectDepartments(res.data[0].id as string, d.departmentIds);
+  if (depErr) return { ok: false, error: depErr };
   revalidatePath("/projects");
   return { ok: true };
+}
+
+/** Replaces a project's department rows. Returns an error message, or null. */
+export async function setProjectDepartments(projectId: string, departmentIds: string[]): Promise<string | null> {
+  if (!uuid.safeParse(projectId).success || !z.array(uuid).safeParse(departmentIds).success) return "Check the form and try again.";
+  const me = await getMe();
+  if (!me || me.kind !== "staff" || !can(me, "work.projects.manage", "team")) return "You don't have access to do that.";
+  const db = await createClient();
+  const del = await db.from("project_departments").delete().eq("project_id", projectId);
+  if (del.error) return del.error.message;
+  const unique = [...new Set(departmentIds)];
+  if (!unique.length) return null;
+  const ins = await db.from("project_departments").insert(unique.map((department_id) => ({ project_id: projectId, department_id })));
+  return ins.error ? ins.error.message : null;
 }

@@ -23,6 +23,8 @@ export type ProjectSpace = {
   name: string;
   description: string | null;
   folderId: string | null;
+  leadId: string | null;
+  departmentId: string | null;
   configMode: ConfigMode;
   /** Effective config: workspace config, with the project's own merged over it in custom mode. */
   config: WorkConfig;

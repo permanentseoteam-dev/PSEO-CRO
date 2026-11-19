@@ -82,3 +82,14 @@ export function suggestKey(name: string, taken: string[]): string {
   for (const a of A) for (const b of A) if (!used.has(stem + a + b)) return stem + a + b;
   return stem; // 702 clashes on one stem: give up and let the unique index report it
 }
+
+/**
+ * Lead to auto-fill after the department ticks change, or null to leave it alone.
+ * `heads` are the ticked departments' heads in tick order; the first one set wins.
+ * Only replaces "No lead" ("") or the value we auto-filled last time; a hand-picked lead stays.
+ */
+export function autoLead(heads: (string | null)[], current: string, lastAuto: string): string | null {
+  const head = heads.find((h): h is string => !!h);
+  if (!head || head === current) return null;
+  return current === "" || current === lastAuto ? head : null;
+}

@@ -5,9 +5,9 @@ import { hashInviteToken, newInviteToken } from "../token";
 describe("safeNext", () => {
   it("keeps same-site paths", () => expect(safeNext("/tickets?view=board")).toBe("/tickets?view=board"));
   it("rejects other sites and empty values", () => {
-    expect(safeNext("https://evil.test")).toBe("/home");
-    expect(safeNext("//evil.test")).toBe("/home");
-    expect(safeNext("/\\evil.test")).toBe("/home");
+    expect(safeNext("https://evil.test")).toBe("/tickets");
+    expect(safeNext("//evil.test")).toBe("/tickets");
+    expect(safeNext("/\\evil.test")).toBe("/tickets");
     expect(safeNext(null, "/portal")).toBe("/portal");
   });
 });

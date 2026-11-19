@@ -285,13 +285,13 @@ export function historyText(h: { actor: string; field: string; oldValue: string 
   const pr = (v: string | null) => (v && v in PRIORITY_LABEL ? PRIORITY_LABEL[v as PriorityLevel] : v ?? "none");
   const a = h.actor;
   switch (h.field) {
-    case "created": return h.newValue ? `${a} created this ticket (${h.newValue})` : `${a} created this ticket`;
+    case "created": return h.newValue ? `${a} created this task (${h.newValue})` : `${a} created this task`;
     case "status": return `${a} changed status from ${st(h.oldValue)} to ${st(h.newValue)}`;
     case "priority": return `${a} changed priority from ${pr(h.oldValue)} to ${pr(h.newValue)}`;
     case "assignee": return h.newValue ? `${a} assigned ${name(h.newValue)}` : `${a} removed the assignee`;
     case "due": return h.newValue ? `${a} set the due date to ${fmtDate(h.newValue)}` : `${a} cleared the due date`;
-    case "title": return `${a} renamed this ticket to "${h.newValue ?? ""}"`;
-    case "project": return `${a} moved this ticket to another project`;
+    case "title": return `${a} renamed this task to "${h.newValue ?? ""}"`;
+    case "project": return `${a} moved this task to another project`;
     case "checklist": return `${a} checked "${h.newValue ?? ""}"`;
     case "time": return `${a} logged ${fmtMinutes(Number(h.newValue) || 0)}`;
     case "file": return `${a} added ${h.newValue ?? "a file"}`;

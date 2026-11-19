@@ -8,10 +8,11 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { groupInOrder } from "@/lib/modules/work/logic";
-import type { Option, ProjectCard } from "@/lib/modules/work/types";
+import type { Department, Option, ProjectCard } from "@/lib/modules/work/types";
 import { saveProject } from "../actions";
+import { DepartmentChecks, useDepartmentsAndLead } from "./department-picker";
 
-type Props = { cards: ProjectCard[]; canCreate: boolean; people: Option[]; departments: Option[]; clients: Option[] };
+type Props = { cards: ProjectCard[]; canCreate: boolean; people: Option[]; departments: Department[]; clients: Option[] };
 type State = "active" | "archived" | "all";
 
 const DEPT_ORDER = ["SEO", "PPC", "Web", "Content", "Design", "Social", "Client Success"];
@@ -52,7 +53,7 @@ export function ProjectsView({ cards, canCreate, people, departments, clients }:
 
       {groups.length === 0 ? (
         <EmptyState icon={<FolderKanban />} title={cards.length ? "No projects match" : "No projects yet"}>
-          {cards.length ? "Try another search or switch to All." : "Projects group tickets for a client and give them their key."}
+          {cards.length ? "Try another search or switch to All." : "Projects group tasks for a client and give them their key."}
         </EmptyState>
       ) : (
         groups.map(([dept, list]) => (
@@ -88,8 +89,8 @@ export function ProjectsView({ cards, canCreate, people, departments, clients }:
                       <ButtonLink size="sm" href={`/tickets?view=board&proj=${p.id}`}>
                         Board
                       </ButtonLink>
-                      <ButtonLink size="sm" href={`/tickets?view=cal&proj=${p.id}`}>
-                        Calendar
+                      <ButtonLink size="sm" href={`/tickets?view=list&proj=${p.id}`}>
+                        List
                       </ButtonLink>
                       {p.canEdit ? (
                         <Button size="sm" variant="ghost" onClick={() => setEditing(p)}>
@@ -127,7 +128,7 @@ function ProjectEditor({
 }: {
   project: ProjectCard | null;
   people: Option[];
-  departments: Option[];
+  departments: Department[];
   clients: Option[];
   onClose: () => void;
 }) {
@@ -136,6 +137,7 @@ function ProjectEditor({
   const [pending, start] = useTransition();
   const p = project;
   const formRef = useRef<HTMLFormElement>(null);
+  const team = useDepartmentsAndLead(departments, p?.departmentIds ?? [], p?.leadId ?? "");
 
   function save(status: "active" | "archived") {
     const form = formRef.current;
@@ -147,7 +149,7 @@ function ProjectEditor({
       const r = await saveProject({
         id: p?.id ?? null,
         name: s("name"),
-        departmentId: id("department"),
+        departmentIds: team.ids,
         clientId: id("client"),
         leadId: id("lead"),
         reviewerId: id("reviewer"),
@@ -195,15 +197,8 @@ function ProjectEditor({
           <Field label="Name" htmlFor="pj-name">
             <Input id="pj-name" name="name" required minLength={2} maxLength={120} defaultValue={p?.name} />
           </Field>
-          <Field label="Department" htmlFor="pj-dept">
-            <Select id="pj-dept" name="department" defaultValue={p?.departmentId ?? ""}>
-              <option value="">None</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </Select>
+          <Field label="Departments">
+            <DepartmentChecks departments={departments} value={team.ids} onToggle={team.toggle} />
           </Field>
           <Field label="Client" htmlFor="pj-client">
             <Select id="pj-client" name="client" defaultValue={p?.clientId ?? ""}>
@@ -216,7 +211,7 @@ function ProjectEditor({
             </Select>
           </Field>
           <Field label="Lead" htmlFor="pj-lead">
-            <Select id="pj-lead" name="lead" defaultValue={p?.leadId ?? ""}>
+            <Select id="pj-lead" name="lead" value={team.lead} onChange={(e) => team.setLead(e.target.value)}>
               <option value="">No lead</option>
               {people.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -238,7 +233,7 @@ function ProjectEditor({
           <Field label="What it covers" htmlFor="pj-desc" full>
             <Textarea id="pj-desc" name="description" rows={2} maxLength={2000} defaultValue={p?.description ?? ""} />
           </Field>
-          <Checkbox name="review" label="Tickets need review before done" defaultChecked={p?.reviewRequired ?? true} />
+          <Checkbox name="review" label="Tasks need review before done" defaultChecked={p?.reviewRequired ?? true} />
         </FormGrid>
       </form>
     </Dialog>

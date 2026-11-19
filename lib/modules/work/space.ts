@@ -42,7 +42,7 @@ export async function getWorkConfig(): Promise<WorkConfig> {
 export async function getProjectSpace(key: string): Promise<ProjectSpace | null> {
   const db = await createClient();
   const [{ data: p }, workspace, me] = await Promise.all([
-    db.from("projects").select("id, key, name, description, folder_id, lead_id, config_mode, config").eq("key", key.toUpperCase()).maybeSingle(),
+    db.from("projects").select("id, key, name, description, folder_id, department_id, lead_id, config_mode, config").eq("key", key.toUpperCase()).maybeSingle(),
     getWorkConfig(),
     getMe(),
   ]);
@@ -59,6 +59,8 @@ export async function getProjectSpace(key: string): Promise<ProjectSpace | null>
     name: p.name,
     description: p.description,
     folderId: p.folder_id,
+    leadId: p.lead_id,
+    departmentId: p.department_id,
     configMode: mode,
     config: effectiveConfig(workspace, mode, p.config),
     canManage,

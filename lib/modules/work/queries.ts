@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { PriorityLevel } from "@/components/ui";
-import type { Option, Project, QaChecklist, QueueRow, ReviewFact, Subtask, Template } from "./types";
+import type { Department, Option, Project, QaChecklist, QueueRow, ReviewFact, Subtask, Template } from "./types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
@@ -16,9 +16,28 @@ export async function listStaff(): Promise<Member[]> {
   return rows(res).map((m) => ({ id: m.id, name: m.name, departmentId: m.department_id, managerId: m.manager_id }));
 }
 
-export async function listDepartments(): Promise<Option[]> {
+export async function listDepartments(): Promise<Department[]> {
   const db = await createClient();
-  return rows(await db.from("departments").select("id, name").order("name")) as Option[];
+  return rows(await db.from("departments").select("id, name, head_id").order("name")).map((d) => ({ id: d.id, name: d.name, headId: d.head_id }));
+}
+
+/** Project id -> department ids, primary (projects.department_id) first; falls back to it when no join rows. */
+export async function projectDepartmentIds(projects: { id: string; department_id: string | null }[]): Promise<Map<string, string[]>> {
+  const db = await createClient();
+  const ids = projects.map((p) => p.id);
+  const extra = new Map<string, string[]>();
+  for (let i = 0; i < ids.length; i += 200) {
+    for (const r of rows(await db.from("project_departments").select("project_id, department_id").in("project_id", ids.slice(i, i + 200)))) {
+      extra.set(r.project_id, [...(extra.get(r.project_id) ?? []), r.department_id]);
+    }
+  }
+  return new Map(
+    projects.map((p) => {
+      const list = extra.get(p.id) ?? [];
+      const first = p.department_id ? [p.department_id] : [];
+      return [p.id, [...first, ...list.filter((d) => d !== p.department_id)]];
+    }),
+  );
 }
 
 /** Clients (owned by 0108_clients). Empty if that table isn't there yet. */
@@ -33,12 +52,15 @@ export async function listProjects(): Promise<Project[]> {
     .from("projects")
     .select("id, key, name, description, department_id, client_id, lead_id, reviewer_id, review_required, status")
     .order("name");
-  return rows(res).map((p) => ({
+  const list = rows(res);
+  const depts = await projectDepartmentIds(list as { id: string; department_id: string | null }[]);
+  return list.map((p) => ({
     id: p.id,
     key: p.key,
     name: p.name,
     description: p.description,
     departmentId: p.department_id,
+    departmentIds: depts.get(p.id) ?? [],
     clientId: p.client_id,
     leadId: p.lead_id,
     reviewerId: p.reviewer_id,

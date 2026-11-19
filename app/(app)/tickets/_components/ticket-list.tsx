@@ -41,14 +41,14 @@ export function TicketList({ groups, names, people, projects, today, canEdit, cl
       const r = await bulkUpdate({ ids: [...picked], patch });
       if (!r.ok) return toast(r.error);
       const n = r.data?.updated ?? 0;
-      toast(n === picked.size ? `Updated ${n} tickets` : `Updated ${n} of ${picked.size} tickets. You can't edit the rest.`);
+      toast(n === picked.size ? `Updated ${n} tasks` : `Updated ${n} of ${picked.size} tasks. You can't edit the rest.`);
       setPicked(new Set());
       router.refresh();
     });
   }
 
   if (!all.length) {
-    return <EmptyState title="No tickets match these filters" action={<Link className="btn sm" href={clearHref}>Clear filters</Link>} />;
+    return <EmptyState title="No tasks match these filters" action={<Link className="btn sm" href={clearHref}>Clear filters</Link>} />;
   }
 
   return (

@@ -8,6 +8,9 @@ import {
 describe("pageFor", () => {
   it("uses nav titles, overrides and detail routes", () => {
     expect(pageFor("/tickets").title).toBe("Task");
+    expect(pageFor("/settings").title).toBe("General Settings");
+    expect(pageFor("/account").title).toBe("My account");
+    expect(pageFor("/my").title).toBe("My work");
     expect(pageFor("/clients").title).toBe("Clients");
     expect(pageFor("/finance").title).toBe("Finance");
     expect(pageFor("/finance/invoices").title).toBe("Invoices");
@@ -35,12 +38,13 @@ describe("activeHref", () => {
 
 describe("visibleNav", () => {
   it("hides items without permission and drops empty groups", () => {
-    const groups = visibleNav(STAFF_NAV, { perms: {} });
-    const names = groups.map((g) => g.name);
-    expect(names).not.toContain("Finance");
-    expect(groups.find((g) => g.name === "Core")?.items.map((i) => i.href)).toEqual(["/home", "/my"]);
-    const fin = visibleNav(STAFF_NAV, { perms: { "finance.invoices.view": "own" } }).find((g) => g.name === "Finance");
-    expect(fin?.items.map((i) => i.href)).toEqual(["/finance/invoices"]);
+    const hrefs = (perms: Parameters<typeof visibleNav>[1]["perms"]) =>
+      visibleNav(STAFF_NAV, { perms }).flatMap((g) => g.items.map((i) => i.href));
+    expect(hrefs({})).toEqual(["/tickets", "/projects"]);
+    expect(hrefs({ "admin.access.manage": "own" })).toEqual(["/tickets", "/projects"]);
+    expect(hrefs({ "admin.access.manage": "all" })).toEqual(["/tickets", "/projects", "/departments", "/services", "/settings"]);
+    const groups = [{ name: "G", label: "G", items: [{ href: "/x", title: "X", icon: "Pin", perm: "p" }] }];
+    expect(visibleNav(groups, { perms: {} })).toEqual([]);
   });
 });
 

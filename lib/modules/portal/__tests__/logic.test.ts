@@ -10,6 +10,7 @@ import {
   fmtWhen,
   greeting,
   greetName,
+  groupTasks,
   invoiceTotals,
   invoiceView,
   meetHref,
@@ -155,5 +156,18 @@ describe("invoiceTotals", () => {
   });
   it("handles no invoices", () => {
     expect(invoiceTotals([], [], today)).toMatchObject({ currency: "AED", open: 0, openCount: 0, overdue: 0, oldest: null, paidYear: 0 });
+  });
+});
+
+describe("groupTasks", () => {
+  const t = (id: string, status: "todo" | "in_progress" | "in_review" | "blocked" | "done") => ({ id, status });
+  it("splits open tasks into current, to-do and processing", () => {
+    const g = groupTasks([t("a", "todo"), t("b", "in_progress"), t("c", "in_review"), t("d", "blocked"), t("e", "done")]);
+    expect(g.current.map((x) => x.id)).toEqual(["a", "b", "c", "d"]);
+    expect(g.todo.map((x) => x.id)).toEqual(["a"]);
+    expect(g.processing.map((x) => x.id)).toEqual(["b", "c"]);
+  });
+  it("handles no tasks", () => {
+    expect(groupTasks([])).toEqual({ current: [], todo: [], processing: [] });
   });
 });

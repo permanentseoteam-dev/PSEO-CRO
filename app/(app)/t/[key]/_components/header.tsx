@@ -33,7 +33,7 @@ export function TicketTitle({ id, title, canEdit }: { id: string; title: string;
       <input
         className={s.titleInput}
         defaultValue={title}
-        aria-label="Ticket title"
+        aria-label="Task title"
         autoFocus
         maxLength={200}
         onFocus={(e) => e.currentTarget.select()}
@@ -87,7 +87,7 @@ export function HeaderActions(p: ActionsProps) {
   function watch() {
     start(async () => {
       const r = await setWatching({ ticketId: p.id, on: !p.watching });
-      toast(!r.ok ? r.error : p.watching ? "Stopped watching" : "You will get updates on this ticket");
+      toast(!r.ok ? r.error : p.watching ? "Stopped watching" : "You will get updates on this task");
       router.refresh();
     });
   }
@@ -113,7 +113,7 @@ export function HeaderActions(p: ActionsProps) {
         subtasks: fd.get("subtasks") === "on",
         assignees: fd.get("assignees") === "on",
       });
-      if (!r.ok || !r.data) return toast(r.ok ? "Couldn't copy the ticket." : r.error);
+      if (!r.ok || !r.data) return toast(r.ok ? "Couldn't copy the task." : r.error);
       setDlg("");
       toast(`Copied as ${r.data.key}`);
       router.push(`/t/${r.data.key}`);
@@ -166,11 +166,11 @@ export function HeaderActions(p: ActionsProps) {
       <Dialog
         open={dlg === "copy"}
         onClose={() => setDlg("")}
-        title="Copy ticket"
+        title="Copy task"
         footer={
           <>
             <Button variant="ghost" onClick={() => setDlg("")}>Cancel</Button>
-            <Button variant="primary" type="submit" form="tk-copy" disabled={pending}>Copy ticket</Button>
+            <Button variant="primary" type="submit" form="tk-copy" disabled={pending}>Copy task</Button>
           </>
         }
       >
@@ -195,7 +195,7 @@ export function HeaderActions(p: ActionsProps) {
       <Dialog
         open={dlg === "repeat"}
         onClose={() => setDlg("")}
-        title="Repeat this ticket"
+        title="Repeat this task"
         footer={
           <>
             <Button variant="ghost" onClick={() => setDlg("")}>Cancel</Button>
@@ -205,7 +205,7 @@ export function HeaderActions(p: ActionsProps) {
       >
         <form id="tk-repeat" onSubmit={onRepeat}>
           <FormGrid>
-            <Field label="Ticket title" htmlFor="tk-repeat-title" hint="Use {client}, {project}, {month} or {date}" full>
+            <Field label="Task title" htmlFor="tk-repeat-title" hint="Use {client}, {project}, {month} or {date}" full>
               <Input id="tk-repeat-title" name="title" required minLength={2} maxLength={200} defaultValue={p.title.slice(0, 200)} />
             </Field>
             <Field label="Repeats" htmlFor="tk-repeat-freq">
@@ -245,13 +245,13 @@ export function HeaderActions(p: ActionsProps) {
         title={`Delete ${p.ticketKey}?`}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDlg("")}>Keep ticket</Button>
-            <Button variant="primary-danger" onClick={onDelete} disabled={pending}>Delete ticket</Button>
+            <Button variant="ghost" onClick={() => setDlg("")}>Keep task</Button>
+            <Button variant="primary-danger" onClick={onDelete} disabled={pending}>Delete task</Button>
           </>
         }
       >
         <p>
-          This removes the ticket, its checklist, subtasks, {p.fileCount} {p.fileCount === 1 ? "file" : "files"} and {p.commentCount}{" "}
+          This removes the task, its checklist, subtasks, {p.fileCount} {p.fileCount === 1 ? "file" : "files"} and {p.commentCount}{" "}
           {p.commentCount === 1 ? "comment" : "comments"}. You can&apos;t undo this.
         </p>
       </Dialog>

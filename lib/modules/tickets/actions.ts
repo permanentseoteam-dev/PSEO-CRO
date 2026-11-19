@@ -114,7 +114,7 @@ export async function addSubtask(raw: unknown): Promise<Result<{ id: string; key
   if (!p.success) return BAD;
   const db = await createClient();
   const { data: parent } = await db.from("tickets").select("project_id, priority").eq("id", p.data.parentId).maybeSingle();
-  if (!parent) return { ok: false, error: "That ticket no longer exists." };
+  if (!parent) return { ok: false, error: "That task no longer exists." };
   return createTicket({
     title: p.data.title, parentId: p.data.parentId, projectId: parent.project_id, assigneeId: p.data.assigneeId, priority: parent.priority,
   });
@@ -160,7 +160,7 @@ export async function updateTicket(raw: unknown): Promise<Result> {
   const db = await createClient();
   const { data, error } = await db.from("tickets").update(cols).eq("id", p.data.id).select("id");
   if (error) return fail(error);
-  if (!data?.length) return { ok: false, error: "You can't edit this ticket." };
+  if (!data?.length) return { ok: false, error: "You can't edit this task." };
   refresh();
   return { ok: true };
 }
@@ -191,7 +191,7 @@ export async function deleteTicket(raw: unknown): Promise<Result> {
   const { data: files } = await db.from("attachments").select("path").eq("ticket_id", id.data);
   const { data, error } = await db.from("tickets").delete().eq("id", id.data).select("id");
   if (error) return fail(error);
-  if (!data?.length) return { ok: false, error: "You can't delete this ticket." };
+  if (!data?.length) return { ok: false, error: "You can't delete this task." };
   if (files?.length) await db.storage.from("ticket-files").remove(files.map((f) => f.path as string));
   refresh();
   return { ok: true };
@@ -206,7 +206,7 @@ export async function copyTicket(raw: unknown): Promise<Result<{ key: string }>>
   const d = p.data;
   const db = await createClient();
   const { data: src } = await db.from("tickets").select("*").eq("id", d.id).maybeSingle();
-  if (!src) return { ok: false, error: "That ticket no longer exists." };
+  if (!src) return { ok: false, error: "That task no longer exists." };
   const made = await createTicket({
     title: d.title, projectId: d.projectId, priority: src.priority, due: src.due_date, description: src.description ?? "",
     doneWhen: src.done_when ?? "", tags: src.tags ?? [], assigneeId: d.assignees ? src.assignee_id : undefined, source: `Copied from ${src.key}`,
@@ -409,14 +409,14 @@ export async function submitForReview(raw: unknown): Promise<Result> {
   if (p.data.reviewerId === me.id) return { ok: false, error: "Pick someone else to review your work." };
   const db = await createClient();
   const { data: t } = await db.from("tickets").select("review_round").eq("id", p.data.ticketId).maybeSingle();
-  if (!t) return { ok: false, error: "That ticket no longer exists." };
+  if (!t) return { ok: false, error: "That task no longer exists." };
   const { data, error } = await db
     .from("tickets")
     .update({ status: "in_review", reviewer_id: p.data.reviewerId, review_round: (t.review_round ?? 0) + 1 })
     .eq("id", p.data.ticketId)
     .select("id");
   if (error) return fail(error);
-  if (!data?.length) return { ok: false, error: "You can't edit this ticket." };
+  if (!data?.length) return { ok: false, error: "You can't edit this task." };
   await history(p.data.ticketId, me.id, "review_submit", null, p.data.note.trim() || null);
   refresh();
   return { ok: true };
@@ -439,7 +439,7 @@ export async function approveReview(raw: unknown): Promise<Result> {
   if (!me) return NO;
   const r = await reviewerDb(id.data, me);
   if (!r) return { ok: false, error: "Only the reviewer can approve this." };
-  if (r.status !== "in_review") return { ok: false, error: "This ticket isn't waiting for review." };
+  if (r.status !== "in_review") return { ok: false, error: "This task isn't waiting for review." };
   const { error } = await r.db.from("tickets").update({ status: "done" }).eq("id", id.data);
   if (error) return fail(error);
   await history(id.data, me.id, "review_approve", null, null);
@@ -454,7 +454,7 @@ export async function sendBack(raw: unknown): Promise<Result> {
   if (!me) return NO;
   const r = await reviewerDb(p.data.ticketId, me);
   if (!r) return { ok: false, error: "Only the reviewer can send this back." };
-  if (r.status !== "in_review") return { ok: false, error: "This ticket isn't waiting for review." };
+  if (r.status !== "in_review") return { ok: false, error: "This task isn't waiting for review." };
   const { error } = await r.db.from("tickets").update({ status: "in_progress" }).eq("id", p.data.ticketId);
   if (error) return fail(error);
   await history(p.data.ticketId, me.id, "review_back", p.data.reasons.join(", "), p.data.note);

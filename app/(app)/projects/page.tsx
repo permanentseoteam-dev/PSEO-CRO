@@ -34,7 +34,7 @@ export default async function ProjectsPage() {
 
   const cards: ProjectCard[] = projects.map((p) => ({
     ...p,
-    department: (p.departmentId && deptName.get(p.departmentId)) || "No department",
+    department: p.departmentIds.map((d) => deptName.get(d)).filter(Boolean).join(", ") || "No department",
     client: (p.clientId && clientName.get(p.clientId)) || "",
     lead: (p.leadId && person.get(p.leadId)?.name) || "No lead",
     ...(stats[p.id] ?? { open: 0, overdue: 0, done30: 0 }),

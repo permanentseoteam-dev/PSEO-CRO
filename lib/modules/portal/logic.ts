@@ -40,6 +40,16 @@ export function clientStatus(status: TicketStatus): Label {
   }
 }
 
+/** Home dashboard columns: every open task, to-do ones, and ones being worked on or reviewed. Done tasks are left out. */
+export function groupTasks<T extends { status: TicketStatus }>(tasks: T[]): { current: T[]; todo: T[]; processing: T[] } {
+  const current = tasks.filter((t) => t.status !== "done");
+  return {
+    current,
+    todo: current.filter((t) => t.status === "todo"),
+    processing: current.filter((t) => t.status === "in_progress" || t.status === "in_review"),
+  };
+}
+
 /** Whole days from `from` to `to` (both YYYY-MM-DD). */
 export function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);

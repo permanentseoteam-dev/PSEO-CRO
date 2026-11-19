@@ -4,14 +4,14 @@ import type { Tone } from "@/components/ui/tone";
 import { fmt12 } from "@/lib/format-time";
 
 /** Only same-site paths are allowed as a post-login target. */
-export function safeNext(next: string | null | undefined, fallback = "/home"): string {
+export function safeNext(next: string | null | undefined, fallback = "/tickets"): string {
   if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
   return next;
 }
 
 /** Where a signed-in person lands by default. */
 export function homeFor(kind: "staff" | "client") {
-  return kind === "client" ? "/portal" : "/home";
+  return kind === "client" ? "/portal" : "/tickets";
 }
 
 export type InviteState = "waiting" | "accepted" | "revoked" | "expired";

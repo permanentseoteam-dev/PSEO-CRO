@@ -1,6 +1,6 @@
 // Pure shell logic: page titles, nav filtering, clock and timer maths. No I/O.
 import type { NavGroup } from "@/lib/nav";
-import { STAFF_NAV, PORTAL_NAV } from "@/lib/nav";
+import { STAFF_NAV, PORTAL_NAV, UNLISTED_NAV } from "@/lib/nav";
 import { can, type Me } from "@/lib/auth/perms";
 import type { ClockSession, Presence, Theme } from "./types";
 import { time12 } from "@/lib/format-time";
@@ -22,7 +22,7 @@ const PAGES: Record<string, { title?: string; desc: string }> = {
   "/my": { desc: "Every ticket assigned to you, grouped by due date." },
   "/calendar": { desc: "Due dates, meetings and leave across the team." },
   "/chat": { desc: "Team and client conversations, updated live." },
-  "/tickets": { desc: "All tickets across projects, as a list or a board." },
+  "/tickets": { title: "Task", desc: "All tickets across projects, as a list or a board." },
   "/projects": { desc: "Client projects with leads, progress and budgets." },
   "/reviews": { desc: "Work waiting for approval before it goes to the client." },
   "/templates": { desc: "Reusable ticket checklists for repeat work." },
@@ -42,7 +42,10 @@ const PAGES: Record<string, { title?: string; desc: string }> = {
   "/performance": { desc: "Delivery, on-time rate and review scores by person." },
   "/me": { desc: "Your details, skills and working hours." },
   "/time": { desc: "Your timesheet and logged hours." },
-  "/settings": { desc: "Theme, density, notifications and account settings." },
+  "/departments": { title: "Departments", desc: "Departments and who belongs to each." },
+  "/services": { title: "Services", desc: "The services we offer clients." },
+  "/account": { title: "My account", desc: "Your details, password and preferences." },
+  "/settings": { title: "General Settings", desc: "Agency-wide settings for admins." },
   "/admin": { title: "Admin", desc: "Roles, permissions, invites and the audit log." },
   "/portal": { desc: "What is happening on your account right now." },
   "/portal/work": { desc: "Work in progress and work waiting for your approval." },
@@ -60,7 +63,9 @@ const DETAIL: { re: RegExp; title: string; desc: string }[] = [
   { re: /^\/finance\/invoices\/[^/]+/, title: "Invoice", desc: "Lines, payments and history for this invoice." },
 ];
 
-const NAV_TITLES = new Map([...STAFF_NAV, ...PORTAL_NAV].flatMap((g) => g.items.map((i) => [i.href, i.title] as const)));
+const NAV_TITLES = new Map(
+  [...[...STAFF_NAV, ...PORTAL_NAV].flatMap((g) => g.items), ...UNLISTED_NAV].map((i) => [i.href, i.title] as const),
+);
 const KNOWN = [...new Set([...NAV_TITLES.keys(), ...Object.keys(PAGES)])].sort((a, b) => b.length - a.length);
 
 /** Title and help text for a pathname: detail routes first, then the longest known prefix. */
@@ -84,7 +89,7 @@ export function activeHref(pathname: string, hrefs: string[]): string | null {
 /** Nav groups with the items this person may see; empty groups are dropped. */
 export function visibleNav(groups: NavGroup[], me: Pick<Me, "perms">): NavGroup[] {
   return groups
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.perm || can(me, i.perm)) }))
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.perm || can(me, i.perm, i.scope ?? "own")) }))
     .filter((g) => g.items.length > 0);
 }
 

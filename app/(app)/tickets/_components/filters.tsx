@@ -55,7 +55,7 @@ export function TicketFilters({ filters, people, projects, tags, views, canShare
   return (
     <>
       <div className="toolbar">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tickets" aria-label="Search tickets" />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" aria-label="Search tasks" />
         <select aria-label="Assignee" {...sel("who")}>
           <option value="">Any assignee</option>
           <option value="me">Me</option>

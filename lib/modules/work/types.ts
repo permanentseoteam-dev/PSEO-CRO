@@ -1,6 +1,7 @@
 import type { PriorityLevel } from "@/components/ui";
 
 export type Option = { id: string; name: string };
+export type Department = Option & { headId: string | null };
 
 export type Project = {
   id: string;
@@ -8,6 +9,8 @@ export type Project = {
   name: string;
   description: string | null;
   departmentId: string | null;
+  /** All departments, first = departmentId. */
+  departmentIds: string[];
   clientId: string | null;
   leadId: string | null;
   reviewerId: string | null;

@@ -20,7 +20,8 @@ type Props = {
   onDrawer: () => void;
   drawerOpen: boolean;
   onPalette: () => void;
-  onNew: () => void;
+  /** Omitted in the client portal: no new-task button. */
+  onNew?: () => void;
   newLabel: string;
   menu: Menu;
   onMenu: (m: Menu) => void;
@@ -179,12 +180,12 @@ export function Topbar(p: Props) {
           </>
         ) : null}
       </div>
+      <button type="button" className="search-btn" onClick={p.onPalette} aria-label="Search (Ctrl K)">
+        <Search aria-hidden="true" />
+        <span className="txt">Search</span>
+        <kbd>Ctrl K</kbd>
+      </button>
       <div className="tb-actions">
-        <button type="button" className="search-btn" onClick={p.onPalette} aria-label="Search (Ctrl K)">
-          <Search aria-hidden="true" />
-          <span className="txt">Search</span>
-          <kbd>Ctrl K</kbd>
-        </button>
         {p.timer ? <TimerChip timer={p.timer} /> : null}
         <button
           type="button"
@@ -203,10 +204,12 @@ export function Topbar(p: Props) {
         <button type="button" className="icon-btn" onClick={p.onTheme} title={themeLabel} aria-label={`${themeLabel}. Click to change`}>
           <ThemeIcon />
         </button>
-        <button type="button" className="btn primary new-ticket" onClick={p.onNew} title={`${p.newLabel} (C)`}>
-          <Plus aria-hidden="true" />
-          <span className="txt">{p.newLabel}</span>
-        </button>
+        {p.onNew ? (
+          <button type="button" className="btn primary new-ticket" onClick={p.onNew} title={`${p.newLabel} (C)`}>
+            <Plus aria-hidden="true" />
+            <span className="txt">{p.newLabel}</span>
+          </button>
+        ) : null}
       </div>
     </header>
   );

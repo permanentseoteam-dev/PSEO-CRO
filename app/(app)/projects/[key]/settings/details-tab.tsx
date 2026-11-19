@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { Button, Dialog, useToast } from "@/components/ui";
-import { deleteProject, updateProjectDetails } from "@/lib/modules/work/space-actions";
+import { Button, Dialog, Field, Select, useToast } from "@/components/ui";
+import { deleteProject, updateProjectDepartments, updateProjectDetails } from "@/lib/modules/work/space-actions";
+import type { Department, Option } from "@/lib/modules/work/types";
+import { DepartmentChecks, useDepartmentsAndLead } from "../../_components/department-picker";
 import s from "./settings.module.css";
 
-type Props = { projectId: string; name: string; projectKey: string; canManage: boolean };
+type Props = {
+  projectId: string;
+  name: string;
+  projectKey: string;
+  canManage: boolean;
+  departments: Department[];
+  people: Option[];
+  departmentIds: string[];
+  leadId: string | null;
+};
 
-export function DetailsTab({ projectId, name, projectKey, canManage }: Props) {
+export function DetailsTab({ projectId, name, projectKey, canManage, departments, people, departmentIds, leadId }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
@@ -49,12 +60,14 @@ export function DetailsTab({ projectId, name, projectKey, canManage }: Props) {
         </div>
       </section>
 
+      <TeamSection projectId={projectId} canManage={canManage} departments={departments} people={people} departmentIds={departmentIds} leadId={leadId} />
+
       {canManage ? (
         <>
           <hr className={s.divider} />
           <section className={s.section}>
             <h2>Delete project</h2>
-            <p className="muted">After deleting this project you will lose its notes and settings. Its tasks are kept in Tickets without a project.</p>
+            <p className="muted">After deleting this project you will lose its notes and settings. Its tasks are kept, without a project.</p>
             <div>
               <button type="button" className={s.dangerLink} onClick={() => setConfirming(true)}>
                 <Trash2 /> Delete project
@@ -65,6 +78,56 @@ export function DetailsTab({ projectId, name, projectKey, canManage }: Props) {
         </>
       ) : null}
     </>
+  );
+}
+
+function TeamSection({
+  projectId,
+  canManage,
+  departments,
+  people,
+  departmentIds,
+  leadId,
+}: Omit<Props, "name" | "projectKey">) {
+  const router = useRouter();
+  const toast = useToast();
+  const [pending, start] = useTransition();
+  const team = useDepartmentsAndLead(departments, departmentIds, leadId ?? "");
+  const changed = team.lead !== (leadId ?? "") || team.ids.join() !== departmentIds.join();
+
+  function save() {
+    start(async () => {
+      const r = await updateProjectDepartments({ projectId, departmentIds: team.ids, leadId: team.lead || null });
+      if (!r.ok) return toast(r.error);
+      toast("Saved");
+      router.refresh();
+    });
+  }
+
+  return (
+    <section className={s.section}>
+      <h2>Departments and lead</h2>
+      <Field label="Departments">
+        <DepartmentChecks departments={departments} value={team.ids} onToggle={team.toggle} disabled={!canManage} />
+      </Field>
+      <Field label="Lead" htmlFor="pd-lead">
+        <Select id="pd-lead" value={team.lead} disabled={!canManage} onChange={(e) => team.setLead(e.target.value)}>
+          <option value="">No lead</option>
+          {people.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      {canManage ? (
+        <div>
+          <Button variant="primary" disabled={!changed || pending} onClick={save}>
+            {pending ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
