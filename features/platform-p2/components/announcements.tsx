@@ -15,9 +15,21 @@ type Props = {
   myDepartmentId: string | null;
   departments: { id: string; name: string }[];
   meId: string;
+  /** Wording, so the same card can serve as "Rules & policies" in General Settings. */
+  labels?: Partial<typeof LABELS>;
 };
 
-export function AnnouncementsCard({ items, canPost, canPostAll, myDepartmentId, departments, meId }: Props) {
+const LABELS = {
+  title: "Announcements",
+  post: "Post announcement",
+  posted: "Announcement posted",
+  deleted: "Announcement deleted",
+  empty: "No announcements",
+  pin: "Pin to the top of Home",
+};
+
+export function AnnouncementsCard({ items, canPost, canPostAll, myDepartmentId, departments, meId, labels }: Props) {
+  const L = { ...LABELS, ...labels };
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
@@ -37,7 +49,7 @@ export function AnnouncementsCard({ items, canPost, canPostAll, myDepartmentId, 
       });
       if (!r.ok) return toast(r.error);
       setOpen(false);
-      toast("Announcement posted");
+      toast(L.posted);
     });
   }
 
@@ -50,10 +62,10 @@ export function AnnouncementsCard({ items, canPost, canPostAll, myDepartmentId, 
 
   return (
     <Card>
-      <CardHead title="Announcements" actions={canPost ? <Button size="sm" onClick={() => setOpen(true)}>Post announcement</Button> : null} />
+      <CardHead title={L.title} actions={canPost ? <Button size="sm" onClick={() => setOpen(true)}>{L.post}</Button> : null} />
       <CardBody className="stack">
         {items.length === 0 ? (
-          <EmptyState title="No announcements" />
+          <EmptyState title={L.empty} />
         ) : (
           items.map((a) => {
             const mine = canPostAll || a.author_id === meId;
@@ -71,7 +83,7 @@ export function AnnouncementsCard({ items, canPost, canPostAll, myDepartmentId, 
                       >
                         {a.pinned ? <PinOff size={14} /> : <Pin size={14} />}
                       </IconButton>
-                      <IconButton size="sm" label="Delete" disabled={pending} onClick={() => act(() => deleteAnnouncement({ id: a.id }), "Announcement deleted")}>
+                      <IconButton size="sm" label="Delete" disabled={pending} onClick={() => act(() => deleteAnnouncement({ id: a.id }), L.deleted)}>
                         <Trash2 size={14} />
                       </IconButton>
                     </span>
@@ -92,11 +104,11 @@ export function AnnouncementsCard({ items, canPost, canPostAll, myDepartmentId, 
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Post announcement"
+        title={L.post}
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="pp2-announce" disabled={pending}>Post announcement</Button>
+            <Button variant="primary" type="submit" form="pp2-announce" disabled={pending}>{L.post}</Button>
           </>
         }
       >
@@ -125,7 +137,7 @@ export function AnnouncementsCard({ items, canPost, canPostAll, myDepartmentId, 
             <Field label="Expires" htmlFor="pp2-a-exp">
               <Input id="pp2-a-exp" name="expires" type="date" />
             </Field>
-            <Checkbox name="pinned" label="Pin to the top of Home" />
+            <Checkbox name="pinned" label={L.pin} />
           </FormGrid>
         </form>
       </Dialog>

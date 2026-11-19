@@ -25,7 +25,7 @@ type Props = {
   apiKeys?: ReactNode;
   notifLog?: ReactNode;
   /** Extra admin-only sections, listed under "Admin" in the nav. Pass only when the user may see them. `editable` adds the pencil. */
-  adminSections?: { id: string; label: string; node: ReactNode; editable?: boolean }[];
+  adminSections?: { id: string; label: string; node: ReactNode; editable?: boolean; bare?: boolean }[];
   /** Personal settings; needed in "account" mode. */
   initial?: {
     theme: "system" | "light" | "dark";
@@ -409,11 +409,18 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
         ) : null}
 
         {general
-          ? adminSections?.map((s) => (
-              <Section key={s.id} id={s.id} title={s.label} editable={s.editable}>
-                {s.node}
-              </Section>
-            ))
+          ? adminSections?.map((s) =>
+              s.bare ? (
+                // The node is already a card (e.g. the Rules & policies list).
+                <div key={s.id} id={`pf-${s.id}`} data-sec={s.id} className="scroll-mt-4">
+                  {s.node}
+                </div>
+              ) : (
+                <Section key={s.id} id={s.id} title={s.label} editable={s.editable}>
+                  {s.node}
+                </Section>
+              ),
+            )
           : null}
 
         {general && apiKeys ? (
