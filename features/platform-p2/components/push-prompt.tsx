@@ -65,7 +65,7 @@ export function PushPrompt() {
             Browser notifications
           </h2>
           <p className={css.text}>
-            Get notified in your browser when something important happens — like tickets, mentions, due dates and meeting reminders.
+            Get notified in your browser when something important happens — like tasks, mentions, due dates and meeting reminders.
           </p>
         </div>
         <div className={css.footer}>

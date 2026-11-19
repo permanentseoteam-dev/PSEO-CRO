@@ -149,6 +149,7 @@ function ProjectEditor({
       const r = await saveProject({
         id: p?.id ?? null,
         name: s("name"),
+        key: s("key") || undefined,
         departmentIds: team.ids,
         clientId: id("client"),
         leadId: id("lead"),
@@ -197,7 +198,20 @@ function ProjectEditor({
           <Field label="Name" htmlFor="pj-name">
             <Input id="pj-name" name="name" required minLength={2} maxLength={120} defaultValue={p?.name} />
           </Field>
-          <Field label="Departments">
+          <Field label="Task prefix" htmlFor="pj-key">
+            <Input
+              id="pj-key"
+              name="key"
+              required={!!p}
+              pattern="[A-Za-z]{2,8}"
+              title="2 to 8 letters"
+              maxLength={8}
+              placeholder={p ? undefined : "Made from the name if empty"}
+              defaultValue={p?.key}
+              onChange={(e) => (e.target.value = e.target.value.toUpperCase())}
+            />
+          </Field>
+          <Field label="Departments" full>
             <DepartmentChecks departments={departments} value={team.ids} onToggle={team.toggle} />
           </Field>
           <Field label="Client" htmlFor="pj-client">
