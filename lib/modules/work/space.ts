@@ -42,7 +42,7 @@ export async function getWorkConfig(): Promise<WorkConfig> {
 export async function getProjectSpace(key: string): Promise<ProjectSpace | null> {
   const db = await createClient();
   const [{ data: p }, workspace, me] = await Promise.all([
-    db.from("projects").select("id, key, name, description, folder_id, department_id, lead_id, config_mode, config").eq("key", key.toUpperCase()).maybeSingle(),
+    db.from("projects").select("id, key, name, description, folder_id, department_id, lead_id, color, config_mode, config").eq("key", key.toUpperCase()).maybeSingle(),
     getWorkConfig(),
     getMe(),
   ]);
@@ -61,6 +61,7 @@ export async function getProjectSpace(key: string): Promise<ProjectSpace | null>
     folderId: p.folder_id,
     leadId: p.lead_id,
     departmentId: p.department_id,
+    color: p.color ?? null,
     configMode: mode,
     config: effectiveConfig(workspace, mode, p.config),
     canManage,
@@ -83,7 +84,15 @@ export async function listProjectTasks(projectId: string): Promise<ProjectTask[]
     await Promise.all(chunks.map((c) => db.from("tickets").select(TASK_COLS).in("parent_id", c).order("created_at", { ascending: true })))
   ).flatMap(rows);
   const list = [...top, ...subs];
-  const names = await memberNames(list.map((t) => t.assignee_id));
+  const [names, checks] = await Promise.all([
+    memberNames(list.map((t) => t.assignee_id)),
+    Promise.all(chunks.map((c) => db.from("checklist_items").select("ticket_id, done").in("ticket_id", c))).then((r) => r.flatMap(rows)),
+  ]);
+  const checklist = new Map<string, { done: number; total: number }>();
+  for (const c of checks) {
+    const n = checklist.get(c.ticket_id) ?? { done: 0, total: 0 };
+    checklist.set(c.ticket_id, { done: n.done + (c.done ? 1 : 0), total: n.total + 1 });
+  }
   return list.map((t) => ({
     id: t.id,
     key: t.key,
@@ -98,6 +107,8 @@ export async function listProjectTasks(projectId: string): Promise<ProjectTask[]
     createdAt: t.created_at,
     completedAt: t.completed_at,
     parentId: t.parent_id,
+    checklistDone: checklist.get(t.id)?.done ?? 0,
+    checklistTotal: checklist.get(t.id)?.total ?? 0,
   }));
 }
 

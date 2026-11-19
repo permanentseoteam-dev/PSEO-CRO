@@ -93,3 +93,17 @@ export function autoLead(heads: (string | null)[], current: string, lastAuto: st
   if (!head || head === current) return null;
   return current === "" || current === lastAuto ? head : null;
 }
+
+/**
+ * Days until a due date (both YYYY-MM-DD): "3 days left", "Due today", "2 days overdue".
+ * Null when there is no due date or the task is done.
+ */
+export function dueCountdown(due: string | null, today: string, done = false): { text: string; overdue: boolean } | null {
+  if (!due || done) return null;
+  const days = Math.round((Date.parse(`${due}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+  if (Number.isNaN(days)) return null;
+  if (days === 0) return { text: "Due today", overdue: false };
+  const n = Math.abs(days);
+  const unit = n === 1 ? "day" : "days";
+  return days > 0 ? { text: `${n} ${unit} left`, overdue: false } : { text: `${n} ${unit} overdue`, overdue: true };
+}

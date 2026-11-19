@@ -55,6 +55,15 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
+/** Time left on a due date, as of `today` (both YYYY-MM-DD): "3 days left", "Due today", "2 days overdue". */
+export function dueLabel(dueDate: string, today: string): { label: string; overdue: boolean } {
+  const d = daysBetween(today, dueDate);
+  if (d === 0) return { label: "Due today", overdue: false };
+  const n = Math.abs(d);
+  const days = n === 1 ? "1 day" : `${n} days`;
+  return d > 0 ? { label: `${days} left`, overdue: false } : { label: `${days} overdue`, overdue: true };
+}
+
 /** State of a dated commitment (a client-visible ticket) on `today`. */
 export function commitmentState(t: { status: TicketStatus; due_date: string | null }, today: string): Label {
   if (t.status === "done") return { label: "Done", tone: "ok" };

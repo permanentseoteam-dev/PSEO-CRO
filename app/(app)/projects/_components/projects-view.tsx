@@ -8,6 +8,7 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { groupInOrder } from "@/lib/modules/work/logic";
+import { PROJECT_COLORS } from "@/lib/modules/work/project-colors";
 import type { Department, Option, ProjectCard } from "@/lib/modules/work/types";
 import { saveProject } from "../actions";
 import { saveClient } from "../../clients/actions";
@@ -15,6 +16,10 @@ import { DepartmentChecks, useDepartmentsAndLead } from "./department-picker";
 
 type Props = { cards: ProjectCard[]; canCreate: boolean; canAddClient: boolean; people: Option[]; departments: Department[]; clients: Option[] };
 type State = "active" | "archived" | "all";
+
+// Names for the swatches, in PROJECT_COLORS order (screen readers and tooltips).
+const COLOR_NAMES = ["Blue", "Pink", "Mint", "Lavender", "Yellow", "Green", "Peach", "Sky"];
+type ProjectColor = (typeof PROJECT_COLORS)[number];
 
 const DEPT_ORDER = ["SEO", "PPC", "Web", "Content", "Design", "Social", "Client Success"];
 
@@ -64,7 +69,7 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
             <h3 className="m-0 mt-1 text-base">{dept}</h3>
             <div className="grid-3">
               {list.map((p) => (
-                <Card key={p.id} className="flex flex-col">
+                <Card key={p.id} className="flex flex-col" style={p.color ? { borderTop: `4px solid ${p.color}` } : undefined}>
                   <CardBody className="flex flex-1 flex-col gap-3">
                     <div className="grid gap-0.5">
                       <div className="flex items-baseline justify-between gap-3">
@@ -150,6 +155,7 @@ function ProjectEditor({
   const [clientList, setClientList] = useState(clients);
   const [clientId, setClientId] = useState(p?.clientId ?? "");
   const [newClient, setNewClient] = useState<string | null>(null);
+  const [color, setColor] = useState<string>(p?.color ?? "");
 
   function addClient() {
     const name = newClient?.trim() ?? "";
@@ -185,6 +191,7 @@ function ProjectEditor({
         description: s("description"),
         reviewRequired: fd.get("review") === "on",
         status,
+        color: (PROJECT_COLORS as readonly string[]).includes(color) ? (color as ProjectColor) : undefined,
       });
       if (!r.ok) return toast(r.error);
       toast(status === "archived" && p?.status !== "archived" ? "Project archived" : "Project saved");
@@ -238,6 +245,28 @@ function ProjectEditor({
               defaultValue={p?.key}
               onChange={(e) => (e.target.value = e.target.value.toUpperCase())}
             />
+          </Field>
+          <Field label="Colour" full>
+            <div role="radiogroup" aria-label="Colour" className="flex flex-wrap gap-2.5">
+              {PROJECT_COLORS.map((c, i) => (
+                <label
+                  key={c}
+                  title={COLOR_NAMES[i]}
+                  className="relative size-7 cursor-pointer rounded-full border border-line [&:has(:focus-visible)]:outline-2 [&:has(:focus-visible)]:outline-offset-2 [&:has(:focus-visible)]:outline-accent"
+                  style={{ background: c, ...(color === c ? { outline: "2px solid var(--accent)", outlineOffset: 2 } : {}) }}
+                >
+                  <input
+                    type="radio"
+                    name="color"
+                    value={c}
+                    className="sr-only"
+                    aria-label={COLOR_NAMES[i]}
+                    checked={color === c}
+                    onChange={() => setColor(c)}
+                  />
+                </label>
+              ))}
+            </div>
           </Field>
           <Field label="Departments" full>
             <DepartmentChecks departments={departments} value={team.ids} onToggle={team.toggle} />

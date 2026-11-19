@@ -58,12 +58,13 @@
 .taskCol { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 14px 16px 16px; min-width: 0; }
 .taskCol h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); font-size: 15px; letter-spacing: -0.01em; color: var(--ink); }
 .taskCol h2 span { color: var(--ink-3); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
-.taskCol ul { list-style: none; margin: 0; padding: 0; }
-.task { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.task:last-child { border-bottom: 0; padding-bottom: 0; }
+.taskCol ul { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.task { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: var(--radius); background: var(--tint, var(--surface-2, var(--surface))); }
+.task :global(.avatar) { flex: none; }
+.taskBody { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
 .task b { color: var(--ink); font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .taskMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.taskWho { margin-left: auto; min-width: 0; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.taskLate { color: var(--danger); }
 .taskEmpty { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 72px; margin: 12px 0 0; padding: 16px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--ink-2); text-align: center; }
 
 @media (max-width: 600px) {

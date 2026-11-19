@@ -186,6 +186,14 @@ export function groupTickets(
 }
 
 /** "Nov 4" from YYYY-MM-DD. */
+/** Days until the due date, for board cards: "Due today", "1 day left", "N days left", "N days overdue". */
+export function daysLeft(due: string, today: string): { label: string; overdue: boolean } {
+  const n = Math.round((Date.parse(`${due}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000);
+  if (n === 0) return { label: "Due today", overdue: false };
+  if (n < 0) return { label: `${-n} ${n === -1 ? "day" : "days"} overdue`, overdue: true };
+  return { label: `${n} ${n === 1 ? "day" : "days"} left`, overdue: false };
+}
+
 export function fmtDate(iso: string) {
   const [, m, d] = iso.split("-").map(Number);
   return `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]} ${d}`;

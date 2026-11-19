@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { Fragment, useOptimistic, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronRight, CornerDownRight, Plus } from "lucide-react";
-import { Button, Priority, Seg, useToast } from "@/components/ui";
+import { ChevronRight, CornerDownRight, ListChecks, Plus } from "lucide-react";
+import { Avatar, Button, Priority, Seg, useToast } from "@/components/ui";
 import { createProjectTask } from "@/lib/modules/work/space-actions";
+import { projectTint } from "@/lib/modules/work/project-colors";
+import { dueCountdown } from "@/lib/modules/work/space-logic";
 import { updateTicket } from "@/lib/modules/tickets/actions";
 import type { ProjectTask, StatusKey, TaskType, WorkConfig } from "@/lib/modules/work/space-types";
 import { cn } from "@/lib/utils";
@@ -16,9 +18,9 @@ import { landingIndex, moveTask } from "./kanban-move";
 const ORDER: StatusKey[] = ["todo", "in_progress", "in_review", "blocked", "done"];
 
 type View = "table" | "kanban";
-type Props = { projectId: string; tasks: ProjectTask[]; config: WorkConfig; view: View; today: string; canEdit: boolean };
+type Props = { projectId: string; projectColor: string | null; tasks: ProjectTask[]; config: WorkConfig; view: View; today: string; canEdit: boolean };
 
-export function TasksView({ projectId, tasks, config, view, today, canEdit }: Props) {
+export function TasksView({ projectId, projectColor, tasks, config, view, today, canEdit }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -59,7 +61,7 @@ export function TasksView({ projectId, tasks, config, view, today, canEdit }: Pr
       </div>
 
       {view === "kanban" ? (
-        <Kanban tasks={mains} subsOf={subsOf} config={config} taskHref={taskHref} today={today} canEdit={canEdit} />
+        <Kanban tasks={mains} subsOf={subsOf} tint={projectTint(projectColor)} config={config} taskHref={taskHref} today={today} canEdit={canEdit} />
       ) : (
         <>
           <Group title="Open tasks" rows={mains.filter((t) => t.status !== "done")} subsOf={subsOf} config={config} taskHref={taskHref} today={today} defaultOpen>
@@ -255,6 +257,8 @@ function CreateRow({ pending, onCreate }: { pending: boolean; onCreate: (title: 
 type KanbanProps = {
   tasks: ProjectTask[];
   subsOf: Map<string, ProjectTask[]>;
+  /** Card background in the project's colour. */
+  tint: string;
   config: WorkConfig;
   taskHref: (key: string) => string;
   today: string;
@@ -262,7 +266,7 @@ type KanbanProps = {
 };
 
 /** Drag a card to another column (or use its "Move to" select) to change its status. No reordering: tasks have no sort column. */
-function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps) {
+function Kanban({ tasks, subsOf, tint, config, taskHref, today, canEdit }: KanbanProps) {
   const router = useRouter();
   const toast = useToast();
   const [, start] = useTransition();
@@ -322,6 +326,7 @@ function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps
             {list.map((t, i) => {
               const ty = t.typeId ? types[t.typeId] : undefined;
               const subs = subsOf.get(t.id) ?? [];
+              const due = dueCountdown(t.dueDate, today, t.status === "done");
               return (
                 <Fragment key={t.id}>
                   {i === slotAt ? slot : null}
@@ -333,6 +338,7 @@ function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps
                       drag?.id === t.id && "dragging",
                       settledId === t.id && "card-settle",
                     )}
+                    style={{ background: tint }}
                     draggable={canEdit}
                     onClick={() => router.push(taskHref(t.key), { scroll: false })}
                     onDragStart={(e) => {
@@ -350,18 +356,26 @@ function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps
                     }}
                     onDragEnd={endDrag}
                   >
-                    <Link href={taskHref(t.key)} scroll={false} className={s.kTitle} title={t.title} draggable={false} onClick={(e) => e.stopPropagation()}>
-                      {t.title}
-                    </Link>
+                    <span className={s.kHead}>
+                      {t.assigneeName ? <Avatar name={t.assigneeName} size={22} /> : null}
+                      <Link href={taskHref(t.key)} scroll={false} className={s.kTitle} title={t.title} draggable={false} onClick={(e) => e.stopPropagation()}>
+                        {t.title}
+                      </Link>
+                    </span>
                     <span className={s.kFoot}>
                       {ty ? (
                         <span className={s.type}>
                           <span className={s.swatch} style={{ background: ty.color }} aria-hidden="true" /> {ty.name}
                         </span>
                       ) : null}
-                      <DueLabel due={t.dueDate} status={t.status} today={today} />
+                      {due ? <span className={cn("num", due.overdue && "text-danger")}>{due.text}</span> : null}
                       <Priority level={t.priority} />
                       {subs.length ? <SubCount subs={subs} /> : null}
+                      {t.checklistTotal ? (
+                        <span className={s.kCheck} aria-label={`${t.checklistDone} of ${t.checklistTotal} checklist items done`}>
+                          <ListChecks size={13} aria-hidden="true" /> {t.checklistDone}/{t.checklistTotal}
+                        </span>
+                      ) : null}
                     </span>
                     {t.assigneeName || canEdit ? (
                       <span className={s.kBottom}>

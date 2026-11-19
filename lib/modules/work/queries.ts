@@ -50,7 +50,7 @@ export async function listProjects(): Promise<Project[]> {
   const db = await createClient();
   const res = await db
     .from("projects")
-    .select("id, key, name, description, department_id, client_id, lead_id, reviewer_id, review_required, status")
+    .select("id, key, name, description, department_id, client_id, lead_id, reviewer_id, review_required, status, color")
     .order("name");
   const list = rows(res);
   const depts = await projectDepartmentIds(list as { id: string; department_id: string | null }[]);
@@ -66,6 +66,7 @@ export async function listProjects(): Promise<Project[]> {
     reviewerId: p.reviewer_id,
     reviewRequired: p.review_required,
     status: p.status,
+    color: p.color ?? null,
   }));
 }
 

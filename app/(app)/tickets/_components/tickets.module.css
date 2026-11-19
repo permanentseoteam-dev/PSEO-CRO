@@ -49,3 +49,29 @@
 .kMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-width: 0; font-size: 12px; color: var(--ink-2); }
 .kFoot .kMove { margin-left: auto; }
 .kMeta > * { font-size: 12px; }
+
+/* Board card: assignee avatar beside a two-line title; overdue days keep the danger colour. */
+.kHead { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.kHead > :global(.avatar) { flex: none; }
+.kOverdue { color: var(--danger); }
+.addTask { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: none; border: 0; border-radius: 8px; color: var(--ink-3); font-size: 13px; cursor: pointer; text-align: left; }
+.addTask:hover { background: var(--surface); color: var(--ink); }
+.addTask:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.quickAdd { width: 100%; min-height: 34px; font-size: 13px; }
+
+/* Toolbar people stack: overlapping faces; the active one gets an accent ring. */
+.faces { display: flex; align-items: center; padding-left: 6px; }
+.face { margin-left: -6px; padding: 0; border: 2px solid var(--surface); border-radius: 50%; background: var(--surface); cursor: pointer; line-height: 0; }
+.face:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.faceOn { border-color: var(--accent); }
+.faceMore { width: 34px; height: 34px; line-height: 30px; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); }
+
+/* Phone board: column tabs on top, one column shown. */
+.colTabs { display: none; }
+@media (max-width: 600px) {
+  .colTabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+  .colTabs button { flex: none; padding: 8px 10px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--ink-2); font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .colTabs button[aria-pressed="true"] { border-bottom-color: var(--accent); color: var(--ink); font-weight: 600; }
+  :global(.board).board { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr); overflow-x: visible; }
+  :global(.col).colOff { display: none; }
+}

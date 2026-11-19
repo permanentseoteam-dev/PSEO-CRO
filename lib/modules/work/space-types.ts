@@ -25,6 +25,7 @@ export type ProjectSpace = {
   folderId: string | null;
   leadId: string | null;
   departmentId: string | null;
+  color: string | null;
   configMode: ConfigMode;
   /** Effective config: workspace config, with the project's own merged over it in custom mode. */
   config: WorkConfig;
@@ -46,6 +47,9 @@ export type ProjectTask = {
   completedAt: string | null;
   /** Main task id for subtasks; null for main tasks. */
   parentId: string | null;
+  /** Checklist items done / total (0/0 when it has none). */
+  checklistDone: number;
+  checklistTotal: number;
 };
 
 export type ProjectNote = { id: string; title: string; body: string; authorName: string | null; updatedAt: string };

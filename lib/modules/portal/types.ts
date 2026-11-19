@@ -25,6 +25,8 @@ export type ClientTicket = {
   assignee: string | null;
   details: string | null;
   needsApproval: boolean;
+  /** Project colour (pastel hex), or null when there is no project or it can't be read. */
+  projectColor: string | null;
 };
 
 export type Activity = { id: string; actorName: string; action: string; href: string | null; happenedAt: string };

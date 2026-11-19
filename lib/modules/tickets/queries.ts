@@ -16,7 +16,7 @@ const rows = (res: { data: unknown; error: unknown }): Row[] => (res.error || !r
 
 const LIST_COLS = "id, key, title, status, priority, assignee_id, co_assignee_ids, reporter_id, project_id, parent_id, due_date, tags, updated_at";
 
-function toRow(t: Row, checks?: Map<string, [number, number]>): TicketRow {
+function toRow(t: Row, checks?: Map<string, [number, number]>, comments?: Map<string, number>): TicketRow {
   const c = checks?.get(t.id) ?? [0, 0];
   return {
     id: t.id,
@@ -34,22 +34,27 @@ function toRow(t: Row, checks?: Map<string, [number, number]>): TicketRow {
     updatedAt: t.updated_at,
     checkDone: c[0],
     checkTotal: c[1],
+    commentCount: comments?.get(t.id) ?? 0,
   };
 }
 
-/** Every ticket the user can see (RLS limits it), with checklist counts when asked. */
+/** Every ticket the user can see (RLS limits it), with checklist and comment counts when asked (board view). */
 export async function listTickets(withChecklist: boolean): Promise<TicketRow[]> {
   const db = await createClient();
-  const [tickets, checks] = await Promise.all([
+  const none = Promise.resolve({ data: [], error: null });
+  const [tickets, checks, comments] = await Promise.all([
     db.from("tickets").select(LIST_COLS).order("created_at", { ascending: false }).limit(3000),
-    withChecklist ? db.from("checklist_items").select("ticket_id, done").limit(50000) : Promise.resolve({ data: [], error: null }),
+    withChecklist ? db.from("checklist_items").select("ticket_id, done").limit(50000) : none,
+    withChecklist ? db.from("comments").select("ticket_id").limit(50000) : none,
   ]);
+  const commentCounts = new Map<string, number>();
+  for (const c of rows(comments)) commentCounts.set(c.ticket_id, (commentCounts.get(c.ticket_id) ?? 0) + 1);
   const counts = new Map<string, [number, number]>();
   for (const c of rows(checks)) {
     const cur = counts.get(c.ticket_id) ?? [0, 0];
     counts.set(c.ticket_id, [cur[0] + (c.done ? 1 : 0), cur[1] + 1]);
   }
-  return rows(tickets).map((t) => toRow(t, counts));
+  return rows(tickets).map((t) => toRow(t, counts, commentCounts));
 }
 
 export async function listPeople(): Promise<Person[]> {
@@ -61,7 +66,7 @@ export async function listPeople(): Promise<Person[]> {
 export async function listProjects(): Promise<ProjectOpt[]> {
   const db = await createClient();
   const res = await db.from("projects").select("*").order("key");
-  return rows(res).map((p) => ({ id: p.id, key: p.key, name: p.name, createdBy: p.created_by ?? null }));
+  return rows(res).map((p) => ({ id: p.id, key: p.key, name: p.name, createdBy: p.created_by ?? null, color: p.color ?? null }));
 }
 
 /** People in my team for the "My team" filter: my department plus my direct reports. */

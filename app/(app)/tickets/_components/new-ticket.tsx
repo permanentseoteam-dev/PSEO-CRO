@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Dialog, Field, FormGrid, Input, Select, Textarea, useToast } from "@/components/ui";
 import { addDays, parseTags, PRIORITIES, PRIORITY_LABEL } from "@/lib/modules/tickets/logic";
@@ -9,9 +9,9 @@ import { uploadTicketFiles } from "@/lib/modules/tickets/upload";
 import type { Person, ProjectOpt } from "@/lib/modules/tickets/types";
 
 type Template = { id: string; title: string; priority: string | null; dueInDays: number | null };
-type Props = { meId: string; people: Person[]; projects: ProjectOpt[]; templates: Template[]; today: string; defaultProject?: string; openOnMount?: boolean };
+type Props = { meId: string; people: Person[]; projects: ProjectOpt[]; templates: Template[]; today: string; defaultProject?: string; openOnMount?: boolean; label?: ReactNode };
 
-export function NewTicketButton({ people, projects, templates, today, defaultProject, openOnMount }: Props) {
+export function NewTicketButton({ people, projects, templates, today, defaultProject, openOnMount, label = "New task" }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -62,7 +62,7 @@ export function NewTicketButton({ people, projects, templates, today, defaultPro
 
   return (
     <>
-      <Button variant="primary" onClick={() => { setProjectId(null); setAssignee(null); setOpen(true); }}>New task</Button>
+      <Button variant="primary" onClick={() => { setProjectId(null); setAssignee(null); setOpen(true); }}>{label}</Button>
       <Dialog
         open={open}
         onClose={() => setOpen(false)}

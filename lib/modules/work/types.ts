@@ -16,6 +16,8 @@ export type Project = {
   reviewerId: string | null;
   reviewRequired: boolean;
   status: "active" | "archived";
+  /** Pastel hex from PROJECT_COLORS; null on rows from before 0229. */
+  color: string | null;
 };
 
 export type ProjectCard = Project & {

@@ -48,6 +48,7 @@ const NewTicket = z.object({
   parentId: uuid.nullable().optional(),
   templateId: uuid.nullable().optional(),
   source: z.string().max(200).optional(),
+  status: status.optional(),
 });
 
 /** Creates a ticket (key comes from the project, e.g. CPD-156). Applies a template's checklist and subtasks. */
@@ -84,7 +85,7 @@ export async function createTicket(raw: unknown): Promise<Result<{ id: string; k
       assignee_id: assigneeId,
       reporter_id: me.id,
       priority: d.priority,
-      status: "todo",
+      status: d.status ?? "todo",
       due_date: d.due ?? null,
       description: d.description?.trim() || null,
       done_when: d.doneWhen?.trim() || null,

@@ -3,7 +3,7 @@ import type { PriorityLevel, TicketStatus } from "@/components/ui";
 export type { PriorityLevel, TicketStatus };
 
 export type Person = { id: string; name: string };
-export type ProjectOpt = { id: string; key: string; name: string; createdBy?: string | null };
+export type ProjectOpt = { id: string; key: string; name: string; createdBy?: string | null; color?: string | null };
 
 /** A ticket as the list, board and calendar need it. */
 export type TicketRow = {
@@ -22,6 +22,8 @@ export type TicketRow = {
   updatedAt: string;
   checkDone: number;
   checkTotal: number;
+  /** Only filled for the board view. */
+  commentCount?: number;
 };
 
 export type View = "list" | "board" | "cal";

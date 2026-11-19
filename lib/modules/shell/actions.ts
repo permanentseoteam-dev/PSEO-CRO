@@ -3,7 +3,7 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getMe } from "@/lib/auth/can";
+import { can, getMe } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_PINS, timerMinutes } from "./logic";
 import { newTicketAssignee } from "@/lib/modules/tickets/assignment";
@@ -252,6 +252,17 @@ export async function createTicket(raw: unknown): Promise<Result<{ key: string }
   if (error) return { ok: false, error: error.message };
   revalidatePath("/tickets");
   return { ok: true, data: { key: (data as { key: string }).key } };
+}
+
+// ---------------------------------------------------------------- account menu: Login As
+
+/** Active clients the signed-in staff member may preview (RLS scopes the list), for the account menu. */
+export async function previewClients(): Promise<{ id: string; name: string }[]> {
+  const me = await getMe();
+  if (!me || me.kind !== "staff" || !can(me, "clients.view")) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("clients").select("id, name").in("status", ["active", "onboarding"]).order("name");
+  return (data ?? []) as { id: string; name: string }[];
 }
 
 // ---------------------------------------------------------------- sign out

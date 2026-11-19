@@ -28,6 +28,9 @@
 /* Kanban cards */
 .kcard { cursor: pointer; }
 .kTitle { font-weight: 500; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.kHead { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.kHead :global(.avatar) { flex: none; }
+.kCheck { display: inline-flex; align-items: center; gap: 3px; color: var(--ink-3); }
 .kFoot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 12px; min-width: 0; }
 .kBottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; min-width: 0; }
 .kFoot > * { font-size: 12px; }

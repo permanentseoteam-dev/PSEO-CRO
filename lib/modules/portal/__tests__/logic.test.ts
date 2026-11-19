@@ -4,6 +4,7 @@ import {
   commitmentState,
   dubaiHour,
   dubaiToday,
+  dueLabel,
   fileSize,
   fileType,
   fmtDate,
@@ -169,5 +170,15 @@ describe("groupTasks", () => {
   });
   it("handles no tasks", () => {
     expect(groupTasks([])).toEqual({ current: [], todo: [], processing: [] });
+  });
+});
+
+describe("dueLabel", () => {
+  it("counts days left, today and overdue", () => {
+    expect(dueLabel("2026-11-23", "2026-11-20")).toEqual({ label: "3 days left", overdue: false });
+    expect(dueLabel("2026-11-21", "2026-11-20")).toEqual({ label: "1 day left", overdue: false });
+    expect(dueLabel("2026-11-20", "2026-11-20")).toEqual({ label: "Due today", overdue: false });
+    expect(dueLabel("2026-11-19", "2026-11-20")).toEqual({ label: "1 day overdue", overdue: true });
+    expect(dueLabel("2026-11-10", "2026-11-20")).toEqual({ label: "10 days overdue", overdue: true });
   });
 });

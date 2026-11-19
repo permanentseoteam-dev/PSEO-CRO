@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button, Dialog, useToast } from "@/components/ui";
 import { PORTAL_NAV, STAFF_NAV } from "@/lib/nav";
 import type { Scope } from "@/lib/auth/perms";
@@ -13,6 +15,8 @@ import { paletteData, saveSidebar, setTheme, togglePin } from "@/lib/modules/she
 import type { PaletteItem, ShellData, Theme } from "@/lib/modules/shell/types";
 import type { SidebarProjects } from "@/lib/modules/work/space-types";
 import { Sidebar } from "./sidebar";
+import { AccountMenu } from "./account-menu";
+import { NavIcon } from "./icons";
 import { Topbar } from "./topbar";
 import { Palette } from "./palette";
 import { PageTitleContext } from "./page-title";
@@ -21,12 +25,12 @@ import { PushPrompt } from "@/features/platform-p2/components/push-prompt";
 export type ShellProps = {
   /** "staff" = agency app, "portal" = client portal (client sidebar, no clock or timer). */
   variant: "staff" | "portal";
-  me: { id: string; name: string; title: string | null; presence: string; kind: "staff" | "client"; perms: Record<string, Scope> };
+  me: { id: string; name: string; email?: string | null; title: string | null; presence: string; kind: "staff" | "client"; perms: Record<string, Scope> };
   /** Portal brand (the client's name). Ignored for staff. */
   org?: string;
   /** Portal logo URL, shown in place of the initials mark. Ignored for staff. */
   logo?: string | null;
-  /** Show the Team view / Client view switch. */
+  /** Show "Login As" (client preview) in the account menu. */
   viewSwitch: boolean;
   theme: Theme;
   /** agency: the agency brand and workday (getShellData); the defaults when absent. */
@@ -200,12 +204,8 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
         onCollapse={toggleCollapse}
         onFold={toggleFold}
         open={drawer}
-        me={me}
         clock={data.clock}
         workdayMin={agency.workdayMinutes}
-        viewSwitch={viewSwitch}
-        menuOpen={menu === "me"}
-        onMenu={() => setMenu(menu === "me" ? null : "me")}
         projects={portal ? undefined : projects}
       />
       <div className={cn("backdrop", drawer && "open")} aria-hidden="true" onClick={() => setDrawer(false)} />
@@ -228,11 +228,36 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
           theme={theme}
           onTheme={cycleTheme}
           brandName={agency.name}
+          account={
+            <AccountMenu
+              me={me}
+              portal={portal}
+              canPreview={viewSwitch}
+              open={menu === "me"}
+              onToggle={() => setMenu(menu === "me" ? null : "me")}
+              onClose={() => setMenu(null)}
+            />
+          }
         />
         <main id="main" tabIndex={-1}>
           <PageTitleContext.Provider value={setTitleOverride}>{children}</PageTitleContext.Provider>
         </main>
       </div>
+
+      {/* Phone only (CSS): bottom tabs for the main pages, plus a round "new task" button for staff. */}
+      <nav className="tabbar" aria-label="Main pages">
+        {groups.flatMap((g) => g.items).map((i) => (
+          <Link key={i.href} href={i.href} className={cn("tab", i.href === active && "on")} aria-current={i.href === active ? "page" : undefined}>
+            <NavIcon name={i.icon} />
+            <span>{i.title.split(" ").at(-1)}</span>
+          </Link>
+        ))}
+      </nav>
+      {!portal ? (
+        <button type="button" className="fab" onClick={openNew} aria-label="New task">
+          <Plus aria-hidden="true" />
+        </button>
+      ) : null}
 
       <PushPrompt />
       <Palette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={[...pages, ...extra]} />

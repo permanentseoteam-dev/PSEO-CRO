@@ -19,7 +19,7 @@ const tickets = [task("MY-1"), task("MY-2", { status: "done", doneOn: "2026-11-0
 describe("My work shared board", () => {
   it("keeps the assigned subset and hides done tasks by default", () => {
     const html = renderToStaticMarkup(createElement(MyWork, { tickets, meId: "me", today: "2026-11-06", initialView: "assigned", initialLayout: "board" }));
-    expect(html).toContain('class="board"');
+    expect(html).toMatch(/class="board[ "]/);
     expect(html).toContain("MY-1 title");
     expect(html).not.toContain("MY-2 title");
     expect(html).not.toContain("MY-3 title");
@@ -35,7 +35,7 @@ describe("My work shared board", () => {
 
   it("opens the board by default", () => {
     const html = renderToStaticMarkup(createElement(MyWork, { tickets, meId: "me", today: "2026-11-06", initialView: "assigned" }));
-    expect(html).toContain('class="board"');
+    expect(html).toMatch(/class="board[ "]/);
     expect(html).toContain("MY-1 title");
     expect(html).toContain('aria-label="My work layout"');
   });

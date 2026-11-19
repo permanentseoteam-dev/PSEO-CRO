@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTransition } from "react";
-import { ChevronDown, CircleUser, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { Avatar, Seg, StatusDot, useToast } from "@/components/ui";
+import { ChevronDown, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useToast } from "@/components/ui";
 import type { NavGroup } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { time12 } from "@/lib/format-time";
 import {
-  LONG_SESSION_MIN, PRESENCE, WORKDAY_MIN, fmtMinutes, localDay, openSession, runningMinutes, sinceLabel, todaySessions, workedMinutes,
+  LONG_SESSION_MIN, WORKDAY_MIN, fmtMinutes, localDay, openSession, runningMinutes, sinceLabel, todaySessions, workedMinutes,
 } from "@/lib/modules/shell/logic";
-import { setPresence, signOut, toggleClock } from "@/lib/modules/shell/actions";
-import type { ClockSession, Pin, Presence } from "@/lib/modules/shell/types";
+import { toggleClock } from "@/lib/modules/shell/actions";
+import type { ClockSession, Pin } from "@/lib/modules/shell/types";
 import type { SidebarProjects } from "@/lib/modules/work/space-types";
 import { NavIcon } from "./icons";
 import { ProjectsNav } from "./projects-nav";
@@ -29,12 +28,7 @@ type Props = {
   onCollapse: () => void;
   onFold: (group: string) => void;
   open: boolean;
-  me: { name: string; title: string | null; presence: string };
   clock: ClockSession[] | null;
-  /** Show the Team view / Client view switch (staff who can preview the portal). */
-  viewSwitch: boolean;
-  menuOpen: boolean;
-  onMenu: () => void;
   /** Staff only: the Projects section. Omitted in the client portal. */
   projects?: { list: SidebarProjects; canManage: boolean };
   /** Minutes in a full workday, for the clock progress bar. Defaults to WORKDAY_MIN (8h). */
@@ -101,19 +95,8 @@ function ClockWidget({ sessions, workdayMin }: { sessions: ClockSession[]; workd
 }
 
 export function Sidebar(p: Props) {
-  const pathname = usePathname();
-  const toast = useToast();
-  const [, start] = useTransition();
-  const status = PRESENCE.find((s) => s.value === p.me.presence) ?? PRESENCE[0];
   const navHrefs = new Set(p.groups.flatMap((g) => g.items.map((i) => i.href)));
   const pins = p.pins.filter((pin) => navHrefs.has(pin.href));
-
-  const pickStatus = (value: Presence, label: string) =>
-    start(async () => {
-      p.onMenu();
-      const r = await setPresence(value);
-      toast(r.ok ? `Status set to ${label}` : r.error);
-    });
 
   return (
     <aside id="sidebar" className={cn("sidebar", p.open && "open")} aria-label="Main navigation">
@@ -179,60 +162,6 @@ export function Sidebar(p: Props) {
 
       {!p.portal && p.projects ? <ProjectsNav projects={p.projects.list} canManage={p.projects.canManage} /> : null}
 
-      <div className="side-foot">
-        {p.viewSwitch ? (
-          <Seg
-            label="Preview as"
-            value={p.portal || pathname === "/clients/preview" ? "client" : "team"}
-            items={[
-              { value: "team", label: "Team view", href: "/tickets" },
-              { value: "client", label: "Client view", href: "/clients/preview" },
-            ]}
-          />
-        ) : null}
-        <button type="button" className="me-btn" data-menu-btn onClick={p.onMenu} aria-haspopup="menu" aria-expanded={p.menuOpen}>
-          <Avatar name={p.me.name} size={34} />
-          <span className="me-meta">
-            <b>{p.me.name}</b>
-            {p.portal ? (
-              <span className="small muted">{p.me.title ?? "Client"}</span>
-            ) : (
-              <StatusDot tone={status.tone}>{status.label}</StatusDot>
-            )}
-          </span>
-        </button>
-        {p.menuOpen ? (
-          <div className="menu" role="menu">
-            {!p.portal ? (
-              <>
-                {PRESENCE.map((s) => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={s.value === status.value}
-                    className={cn(s.value === status.value && "on")}
-                    onClick={() => pickStatus(s.value, s.label)}
-                  >
-                    <StatusDot tone={s.tone}>{s.label}</StatusDot>
-                  </button>
-                ))}
-                <hr />
-              </>
-            ) : null}
-            <Link role="menuitem" href={p.portal ? "/portal" : "/account"} onClick={p.onMenu}>
-              <CircleUser className="size-4" aria-hidden="true" />
-              My account
-            </Link>
-            <form action={signOut}>
-              <button type="submit" role="menuitem">
-                <LogOut className="size-4" aria-hidden="true" />
-                Sign out
-              </button>
-            </form>
-          </div>
-        ) : null}
-      </div>
     </aside>
   );
 }

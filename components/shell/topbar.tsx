@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useTransition } from "react";
+import { useEffect, useTransition, type ReactNode } from "react";
 import { Bell, CircleHelp, Menu, Monitor, Moon, Plus, Search, Square, Star, Sun } from "lucide-react";
 import { Avatar, Button, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,8 @@ type Props = {
   onTheme: () => void;
   /** Agency name, the avatar for notifications with no person behind them. */
   brandName: string;
+  /** The account menu (avatar), last in the bar. */
+  account?: ReactNode;
 };
 
 const HEARTBEAT_MS = 4 * 60 * 1000;
@@ -210,6 +212,7 @@ export function Topbar(p: Props) {
             <span className="txt">{p.newLabel}</span>
           </button>
         ) : null}
+        {p.account}
       </div>
     </header>
   );

@@ -6,6 +6,7 @@ import { getMe, can } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeKey } from "@/lib/modules/work/logic";
 import { suggestKey } from "@/lib/modules/work/space-logic";
+import { PROJECT_COLORS } from "@/lib/modules/work/project-colors";
 import type { Result } from "@/lib/modules/work/types";
 
 const uuid = z.string().uuid();
@@ -21,6 +22,8 @@ const Input = z.object({
   description: z.string().max(2000),
   reviewRequired: z.boolean(),
   status: z.enum(["active", "archived"]),
+  // Optional: new projects without one get the least-used palette colour; edits keep theirs.
+  color: z.enum(PROJECT_COLORS).optional(),
 });
 
 /** Creates or updates a project. RLS checks the manager's scope (all, or lead in their team). */
@@ -39,6 +42,12 @@ export async function saveProject(raw: unknown): Promise<Result> {
     const { data: keys } = await db.from("projects").select("key");
     newKey = suggestKey(d.name, (keys ?? []).map((k) => k.key as string));
   }
+  let color: string | undefined = d.color;
+  if (!color && !d.id) {
+    const { data: used } = await db.from("projects").select("color");
+    const count = (c: string) => (used ?? []).filter((u) => u.color === c).length;
+    color = PROJECT_COLORS.reduce((best, c) => (count(c) < count(best) ? c : best), PROJECT_COLORS[0] as string);
+  }
   const row = {
     ...(newKey ? { key: newKey } : {}),
     name: d.name,
@@ -49,6 +58,7 @@ export async function saveProject(raw: unknown): Promise<Result> {
     description: d.description.trim() || null,
     review_required: d.reviewRequired,
     status: d.status,
+    ...(color ? { color } : {}),
   };
   const res = d.id ? await db.from("projects").update(row).eq("id", d.id).select("id") : await db.from("projects").insert(row).select("id");
   if (res.error) {

@@ -87,17 +87,24 @@ export async function countWaitingApprovals(clientId: string): Promise<number> {
 export async function listClientTickets(clientId: string, done: boolean, limit = 50): Promise<ClientTicket[]> {
   const supabase = await portalDb(clientId, "tickets.view");
   if (!supabase) return [];
-  let q = supabase
-    .from("tickets")
-    .select("id, title, client_title, client_details, client_needs_approval, status, due_date, completed_at, assignee:members!tickets_assignee_id_fkey(name)")
-    .eq("client_id", clientId)
-    .eq("client_visible", true)
-    .is("parent_id", null)
-    .limit(limit);
-  q = done
-    ? q.eq("status", "done").order("completed_at", { ascending: false })
-    : q.neq("status", "done").order("due_date", { ascending: true, nullsFirst: false });
-  return rows(await q).map((r) => ({
+  const cols = "id, title, client_title, client_details, client_needs_approval, status, due_date, completed_at, assignee:members!tickets_assignee_id_fkey(name)";
+  const query = (select: string) => {
+    let q = supabase
+      .from("tickets")
+      .select(select)
+      .eq("client_id", clientId)
+      .eq("client_visible", true)
+      .is("parent_id", null)
+      .limit(limit);
+    q = done
+      ? q.eq("status", "done").order("completed_at", { ascending: false })
+      : q.neq("status", "done").order("due_date", { ascending: true, nullsFirst: false });
+    return q;
+  };
+  // The project colour is a nice-to-have: if the join is refused (RLS on projects), read without it.
+  let res = await query(`${cols}, project:projects(color)`);
+  if (res.error) res = await query(cols);
+  return rows(res).map((r) => ({
     id: r.id,
     title: r.client_title || r.title,
     status: r.status as TicketStatus,
@@ -106,6 +113,7 @@ export async function listClientTickets(clientId: string, done: boolean, limit =
     assignee: one<Row>(r.assignee)?.name ?? null,
     details: r.client_details ?? null,
     needsApproval: Boolean(r.client_needs_approval),
+    projectColor: one<Row>(r.project)?.color ?? null,
   }));
 }
 

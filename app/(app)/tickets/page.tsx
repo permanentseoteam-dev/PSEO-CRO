@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { requireMe, can } from "@/lib/auth/can";
 import { ButtonLink, NoAccess, Seg, Tabs } from "@/components/ui";
 import { WorkloadView } from "@/features/work-p2";
@@ -11,6 +12,7 @@ import { TicketFilters } from "./_components/filters";
 import { TicketList } from "./_components/ticket-list";
 import { TicketBoard } from "./_components/ticket-board";
 import { NewTicketButton } from "./_components/new-ticket";
+import { TaskToolbar } from "./_components/toolbar";
 import s from "./_components/tickets.module.css";
 
 export const metadata = { title: "Task" };
@@ -45,37 +47,46 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
   const dueToday = filtered.filter((t) => t.status !== "done" && t.due === today).length;
   const inTab = sortTickets(byStatusTab(filtered, f.st), f.sort);
   const canEdit = can(me, "tickets.manage");
+  const filtersActive = !!(f.q || f.who || f.pri || f.due || f.tag || f.proj || f.group);
+  const colors = Object.fromEntries(projects.map((p) => [p.id, p.color ?? null]));
   const href = (patch: Partial<Filters>) => `/tickets?${toQuery({ ...f, ...patch })}`;
 
   const tabs: { value: StatusTab; label: string }[] = [{ value: "active", label: "Active" }, ...STATUSES.map((st) => ({ value: st, label: STATUS_LABEL[st] }))];
 
   return (
     <div className="page">
-      <div className={s.headRow}>
-        <Seg
-          label="View"
-          value={workload ? "workload" : f.view}
-          items={[
-            { value: "list", label: "List", href: href({ view: "list" }) },
-            { value: "board", label: "Board", href: href({ view: "board" }) },
-            ...(canWorkload ? [{ value: "workload", label: "Workload", href: "/tickets?view=workload" }] : []),
-          ]}
-        />
-        <div className="row">
-          <ButtonLink href="/tickets/recurring">Recurring</ButtonLink>
-          {canEdit ? (
-            <NewTicketButton
-              meId={me.id}
-              people={people}
-              projects={projects}
-              templates={templates}
-              today={today}
-              defaultProject={f.proj || undefined}
-              openOnMount={one(sp.new) === "1"}
+      <TaskToolbar
+        left={
+          <>
+            {canEdit ? (
+              <NewTicketButton
+                meId={me.id}
+                people={people}
+                projects={projects}
+                templates={templates}
+                today={today}
+                defaultProject={f.proj || undefined}
+                openOnMount={one(sp.new) === "1"}
+                label={<><Plus size={16} aria-hidden="true" /> Add new</>}
+              />
+            ) : null}
+            <Seg
+              label="View"
+              value={workload ? "workload" : f.view}
+              items={[
+                { value: "list", label: "Table view", href: href({ view: "list" }) },
+                { value: "board", label: "Kanban board", href: href({ view: "board" }) },
+                ...(canWorkload ? [{ value: "workload", label: "Workload", href: "/tickets?view=workload" }] : []),
+              ]}
             />
-          ) : null}
-        </div>
-      </div>
+          </>
+        }
+        right={<ButtonLink href="/tickets/recurring">Recurring</ButtonLink>}
+        panel={workload ? null : <TicketFilters filters={f} people={people} projects={projects} tags={tags} views={views} canShare={!!me.departmentId} />}
+        filters={f}
+        people={people}
+        active={filtersActive}
+      />
 
       {!workload ? (
         <div className={s.stats}>
@@ -104,8 +115,6 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         />
       ) : null}
 
-      {!workload ? <TicketFilters filters={f} people={people} projects={projects} tags={tags} views={views} canShare={!!me.departmentId} /> : null}
-
       {!workload && f.view === "list" ? (
         <TicketList
           groups={groupTickets(inTab, f.group, { people: names, projects: projectNames, today })}
@@ -117,7 +126,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
           clearHref="/tickets"
         />
       ) : null}
-      {!workload && f.view === "board" ? <TicketBoard rows={sortTickets(filtered, f.sort)} names={names} today={today} canEdit={canEdit} /> : null}
+      {!workload && f.view === "board" ? <TicketBoard rows={sortTickets(filtered, f.sort)} names={names} colors={colors} today={today} canEdit={canEdit} defaultProject={f.proj || undefined} /> : null}
     </div>
   );
 }
