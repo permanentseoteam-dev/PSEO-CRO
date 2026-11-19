@@ -21,7 +21,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             </li>
             <li>
               <Ticket aria-hidden="true" />
-              Tickets and approvals
+              Tasks and approvals
             </li>
             <li>
               <ReceiptText aria-hidden="true" />
@@ -40,6 +40,14 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
 
 // Same mark as the staff sidebar: the agency logo, or its initials on the accent colour.
 function Brand({ brand }: { brand: AgencyBrand }) {
+  // No uploaded logo: the Permanent SEO wordmark (white text for the navy panel).
+  if (!brand.logoUrl)
+    return (
+      <div className="brand">
+        {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
+        <img src="/brand/logo-white.png" alt={brand.name} width={226} height={28} className="h-7 w-auto" />
+      </div>
+    );
   return (
     <div className="brand">
       {brand.logoUrl ? (

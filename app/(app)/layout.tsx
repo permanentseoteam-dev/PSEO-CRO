@@ -5,7 +5,7 @@ import { Shell } from "@/components/shell/shell";
 import { getShellData } from "@/lib/modules/shell/queries";
 import type { Theme } from "@/lib/modules/shell/types";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   const me = await requireMe();
   if (me.kind === "client") redirect("/portal");
 
@@ -23,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       // Sidebar Projects section hidden for now: pass projects={{ list: await listSidebarProjects(), canManage }} to show it again.
     >
       {children}
+      {modal}
     </Shell>
   );
 }

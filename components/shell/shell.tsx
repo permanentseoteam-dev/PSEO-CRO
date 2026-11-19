@@ -81,7 +81,7 @@ export function Shell({ variant, me, org, logo, viewSwitch, theme: initialTheme,
   const pinned = data.pins.some((p) => p.href === pathname);
   const brand = portal
     ? { name: org ?? "Client portal", sub: "Client portal", mark: initialsOf(org ?? "Client") || "C", logo: logo ?? null }
-    : { name: agency.name, sub: agency.subtitle, mark: agency.initials, logo: agency.logoUrl };
+    : { name: agency.name, sub: agency.subtitle, mark: agency.initials, logo: agency.logoUrl ?? "/icon-192.png" };
 
   const persistSidebar = (c: boolean, f: string[]) => start(async () => void (await saveSidebar({ collapsed: c, folded: f })));
   const toggleCollapse = () => {

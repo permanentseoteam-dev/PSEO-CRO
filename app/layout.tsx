@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: name, template: `%s · ${name}` },
     description: "Team and client portal",
     manifest: "/manifest.json",
-    icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+    icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
   };
 }
 

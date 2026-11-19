@@ -43,3 +43,10 @@
 .moreActions > summary { list-style: none; cursor: pointer; }
 .moreActions > summary::-webkit-details-marker { display: none; }
 .moreMenu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; gap: 4px; min-width: 160px; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lg); }
+
+/* Pop-up version of the task page (opened from the board, list, palette…). */
+dialog.modal:modal { width: min(1100px, 95vw); max-height: 92dvh; }
+.modalBody { display: block; }
+@media (max-width: 600px) {
+  dialog.modal:modal { width: 100vw; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; }
+}

@@ -80,7 +80,7 @@ export function NewTicketButton({ people, projects, templates, today, defaultPro
             {templates.length ? (
               <Field label="Start from template" htmlFor="tk-new-tpl" full>
                 <Select id="tk-new-tpl" value={tpl} onChange={(e) => setTpl(e.target.value)}>
-                  <option value="">Blank task</option>
+                  <option value="">No template</option>
                   {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
                 </Select>
               </Field>

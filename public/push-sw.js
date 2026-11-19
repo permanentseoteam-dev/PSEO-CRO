@@ -20,7 +20,7 @@ self.addEventListener("push", (event) => {
       return self.registration.showNotification(title, {
         body: data.body || "",
         tag: data.tag || undefined,
-        icon: "/icon.svg",
+        icon: "/icon-192.png",
         data: { url: data.url || "/home" },
       });
     }),
