@@ -5,7 +5,7 @@ Written 2026-11-20 for the next working session. Start here.
 ## Where things stand
 
 - Branch `build/full`, last pushed commit `2379c8f` (Bordio-style UI). Latest preview: https://pseo-cro-portal-c22ougso5-pseo-dev.vercel.app
-- Live site (https://pseo-cro-portal.vercel.app) is on `78e4ecc` (before the Bordio-style UI). Deploy to production only after the user says "push".
+- Live site (https://pseo-cro-portal.vercel.app) is on `48ba076` (Bordio-style UI + QA fixes), deployed 2026-11-20 00:58. Deploy to production only after the user says "push".
 - Database migrations applied to the live database: `0227_project_departments`, `0228_tasks_client_visible_default`, `0229_project_colors`.
 - Test task PSEO-3 (created by mistake in QA) was deleted on 2026-11-20.
 
