@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Dialog, Field, Input, Select, Table, Td, Th, useToast } from "@/components/ui";
+import { Button, Card, CardBody, Dialog, Field, Input, Select, Table, Td, Th, useToast } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { addDepartment, deleteDepartment, departmentUsage, updateDepartment } from "@/lib/modules/departments/actions";
-import { DepartmentName, deleteWarning, duplicateError, isDuplicateName, type Department } from "@/lib/modules/departments/logic";
+import { DepartmentName, deleteWarning, duplicateError, isDuplicateName, type Department, type DepartmentStats } from "@/lib/modules/departments/logic";
 
 type Staff = { id: string; name: string };
 type Draft = { id?: string; name: string; headId: string };
 
-/** Admin: list, add, rename and delete departments, and pick each one's head. */
-export function DepartmentsManager({ departments, staff }: { departments: Department[]; staff: Staff[] }) {
+type Props = { departments: Department[]; staff: Staff[]; view?: "list" | "board"; stats?: Record<string, DepartmentStats> };
+
+/** Admin: list, add, rename and delete departments, and pick each one's head. Board view shows them as cards with counts. */
+export function DepartmentsManager({ departments, staff, view = "list", stats }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -46,40 +49,82 @@ export function DepartmentsManager({ departments, staff }: { departments: Depart
 
   return (
     <div className="stack">
-      <Table>
-        <thead>
-          <tr>
-            <Th>Name</Th>
-            <Th>Head</Th>
-            <Th right>Actions</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {departments.map((d) => (
-            <tr key={d.id}>
-              <Td>{d.name}</Td>
-              <Td className="muted">{(d.headId && names.get(d.headId)) || "None"}</Td>
-              <Td right>
-                <div className="row justify-end">
-                  <Button size="sm" disabled={pending} onClick={() => setDraft({ id: d.id, name: d.name, headId: d.headId ?? "" })}>
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(d)}>
-                    Delete
-                  </Button>
-                </div>
-              </Td>
-            </tr>
-          ))}
-          {departments.length === 0 ? (
+      {view === "board" ? (
+        departments.length === 0 ? (
+          <p className="muted m-0">No departments yet.</p>
+        ) : (
+          <div className="grid-3">
+            {departments.map((d) => {
+              const st = stats?.[d.id] ?? { staff: 0, projects: 0, open: 0, overdue: 0 };
+              return (
+                <Card key={d.id}>
+                  <CardBody className="stack">
+                    <h4 className="m-0 text-[15px]">{d.name}</h4>
+                    <div className="muted small">{(d.headId && names.get(d.headId)) || "No head"}</div>
+                    <div className="flex flex-wrap gap-3.5 text-[13px] text-ink-2">
+                      <span>
+                        <b className="num text-ink">{st.staff}</b> staff
+                      </span>
+                      <span>
+                        <b className="num text-ink">{st.projects}</b> active projects
+                      </span>
+                      <span>
+                        <b className="num text-ink">{st.open}</b> open tasks
+                      </span>
+                      <span className={cn(st.overdue > 0 && "t-danger")}>
+                        <b className={cn("num", st.overdue > 0 ? "text-danger" : "text-ink")}>{st.overdue}</b> overdue
+                      </span>
+                    </div>
+                    <div className="row">
+                      <Button size="sm" disabled={pending} onClick={() => setDraft({ id: d.id, name: d.name, headId: d.headId ?? "" })}>
+                        Edit
+                      </Button>
+                      <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(d)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </CardBody>
+                </Card>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <Table>
+          <thead>
             <tr>
-              <Td colSpan={3} className="muted">
-                No departments yet.
-              </Td>
+              <Th>Name</Th>
+              <Th>Head</Th>
+              <Th right>Actions</Th>
             </tr>
-          ) : null}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {departments.map((d) => (
+              <tr key={d.id}>
+                <Td>{d.name}</Td>
+                <Td className="muted">{(d.headId && names.get(d.headId)) || "None"}</Td>
+                <Td right>
+                  <div className="row justify-end">
+                    <Button size="sm" disabled={pending} onClick={() => setDraft({ id: d.id, name: d.name, headId: d.headId ?? "" })}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(d)}>
+                      Delete
+                    </Button>
+                  </div>
+                </Td>
+              </tr>
+            ))}
+            {departments.length === 0 ? (
+              <tr>
+                <Td colSpan={3} className="muted">
+                  No departments yet.
+                </Td>
+              </tr>
+            ) : null}
+          </tbody>
+        </Table>
+      )}
       <div className="row">
         <Button variant="primary" disabled={pending} onClick={() => setDraft({ name: "", headId: "" })}>
           Add department

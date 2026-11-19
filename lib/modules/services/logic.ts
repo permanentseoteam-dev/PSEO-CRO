@@ -32,3 +32,17 @@ export function deleteWarning(name: string, u: ServiceUsage): string {
 export function withCurrent(names: string[], current: string[]): string[] {
   return [...names, ...current.filter((c, i) => c && !names.includes(c) && current.indexOf(c) === i)];
 }
+
+/** Per service id: how many templates (`service`) and clients (`services`) store its name. Same match as serviceUsage. */
+export function usageCounts(
+  services: Service[],
+  templates: { service: string | null }[],
+  clients: { services: string[] | null }[],
+): Record<string, ServiceUsage> {
+  return Object.fromEntries(
+    services.map((s) => [
+      s.id,
+      { templates: templates.filter((t) => t.service === s.name).length, clients: clients.filter((c) => c.services?.includes(s.name)).length },
+    ]),
+  );
+}

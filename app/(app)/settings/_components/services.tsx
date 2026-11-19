@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Dialog, Field, Input, Table, Td, Th, useToast } from "@/components/ui";
+import { Button, Card, CardBody, Dialog, Field, Input, Table, Td, Th, useToast } from "@/components/ui";
 import { addService, deleteService, renameService, serviceUsage } from "@/lib/modules/services/actions";
-import { ServiceName, deleteWarning, duplicateError, isDuplicateName, type Service } from "@/lib/modules/services/logic";
+import { ServiceName, deleteWarning, duplicateError, isDuplicateName, type Service, type ServiceUsage } from "@/lib/modules/services/logic";
 
 type Draft = { id?: string; name: string };
 
-/** Admin: list, add, rename and delete the services used by templates and clients. */
-export function ServicesManager({ services }: { services: Service[] }) {
+type Props = { services: Service[]; view?: "list" | "board"; usage?: Record<string, ServiceUsage> };
+
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** Admin: list, add, rename and delete the services used by templates and clients. Board view shows them as cards with usage. */
+export function ServicesManager({ services, view = "list", usage }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -43,38 +47,68 @@ export function ServicesManager({ services }: { services: Service[] }) {
 
   return (
     <div className="stack">
-      <Table>
-        <thead>
-          <tr>
-            <Th>Name</Th>
-            <Th right>Actions</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {services.map((s) => (
-            <tr key={s.id}>
-              <Td>{s.name}</Td>
-              <Td right>
-                <div className="row justify-end">
-                  <Button size="sm" disabled={pending} onClick={() => setDraft({ id: s.id, name: s.name })}>
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(s)}>
-                    Delete
-                  </Button>
-                </div>
-              </Td>
-            </tr>
-          ))}
-          {services.length === 0 ? (
+      {view === "board" ? (
+        services.length === 0 ? (
+          <p className="muted m-0">No services yet.</p>
+        ) : (
+          <div className="grid-3">
+            {services.map((s) => {
+              const u = usage?.[s.id] ?? { templates: 0, clients: 0 };
+              return (
+                <Card key={s.id}>
+                  <CardBody className="stack">
+                    <h4 className="m-0 text-[15px]">{s.name}</h4>
+                    <div className="muted small">
+                      {count(u.clients, "client", "clients")} · {count(u.templates, "template", "templates")}
+                    </div>
+                    <div className="row">
+                      <Button size="sm" disabled={pending} onClick={() => setDraft({ id: s.id, name: s.name })}>
+                        Edit
+                      </Button>
+                      <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(s)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </CardBody>
+                </Card>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <Table>
+          <thead>
             <tr>
-              <Td colSpan={2} className="muted">
-                No services yet.
-              </Td>
+              <Th>Name</Th>
+              <Th right>Actions</Th>
             </tr>
-          ) : null}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {services.map((s) => (
+              <tr key={s.id}>
+                <Td>{s.name}</Td>
+                <Td right>
+                  <div className="row justify-end">
+                    <Button size="sm" disabled={pending} onClick={() => setDraft({ id: s.id, name: s.name })}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="danger" disabled={pending} onClick={() => remove(s)}>
+                      Delete
+                    </Button>
+                  </div>
+                </Td>
+              </tr>
+            ))}
+            {services.length === 0 ? (
+              <tr>
+                <Td colSpan={2} className="muted">
+                  No services yet.
+                </Td>
+              </tr>
+            ) : null}
+          </tbody>
+        </Table>
+      )}
       <div className="row">
         <Button variant="primary" disabled={pending} onClick={() => setDraft({ name: "" })}>
           Add service

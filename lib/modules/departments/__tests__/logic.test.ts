@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DepartmentInput, DepartmentName, deleteWarning, isDuplicateName } from "../logic";
+import { DepartmentInput, DepartmentName, deleteWarning, departmentStats, isDuplicateName } from "../logic";
 
 const none = { members: 0, projects: 0, kpis: 0, announcements: 0, deliveryRatings: 0 };
 
@@ -49,5 +49,39 @@ describe("deleteWarning", () => {
     expect(t).toContain("2 announcements and 1 delivery rating for this department will be deleted.");
     expect(deleteWarning("SEO", none)).not.toContain("will be deleted");
     expect(deleteWarning("SEO", { ...none, kpis: 2 })).toContain("2 KPIs for this department will be switched off.");
+  });
+});
+
+describe("departmentStats", () => {
+  it("counts staff, active projects (join rows + primary) and open/overdue tasks of its staff", () => {
+    const s = departmentStats(
+      ["seo", "web"],
+      [
+        { id: "a", departmentId: "seo" },
+        { id: "b", departmentId: "seo" },
+        { id: "c", departmentId: "web" },
+        { id: "x", departmentId: null },
+      ],
+      [
+        { id: "p1", departmentId: "seo" },
+        { id: "p2", departmentId: null },
+      ],
+      [
+        { projectId: "p1", departmentId: "seo" },
+        { projectId: "p1", departmentId: "web" },
+        { projectId: "p2", departmentId: "web" },
+        { projectId: "archived", departmentId: "seo" },
+      ],
+      [
+        { assigneeId: "a", due: "2026-01-01" },
+        { assigneeId: "b", due: "2026-01-05" },
+        { assigneeId: "b", due: null },
+        { assigneeId: "x", due: "2026-01-01" },
+        { assigneeId: null, due: "2026-01-01" },
+      ],
+      "2026-01-05",
+    );
+    expect(s.seo).toEqual({ staff: 2, projects: 1, open: 3, overdue: 1 });
+    expect(s.web).toEqual({ staff: 1, projects: 2, open: 0, overdue: 0 });
   });
 });

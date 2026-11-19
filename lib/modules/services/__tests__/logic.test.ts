@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ServiceName, deleteWarning, duplicateError, isDuplicateName, withCurrent } from "../logic";
+import { ServiceName, deleteWarning, duplicateError, isDuplicateName, usageCounts, withCurrent } from "../logic";
 
 describe("ServiceName", () => {
   it("trims and accepts 2 to 40 characters", () => {
@@ -46,5 +46,19 @@ describe("withCurrent", () => {
   });
   it("returns the list when nothing is unknown", () => {
     expect(withCurrent(["SEO"], [])).toEqual(["SEO"]);
+  });
+});
+
+describe("usageCounts", () => {
+  it("counts templates and clients storing each service's exact name", () => {
+    const u = usageCounts(
+      [
+        { id: "1", name: "SEO" },
+        { id: "2", name: "PPC" },
+      ],
+      [{ service: "SEO" }, { service: "SEO" }, { service: "seo" }, { service: null }],
+      [{ services: ["SEO", "PPC"] }, { services: ["PPC"] }, { services: null }],
+    );
+    expect(u).toEqual({ "1": { templates: 2, clients: 1 }, "2": { templates: 0, clients: 2 } });
   });
 });
