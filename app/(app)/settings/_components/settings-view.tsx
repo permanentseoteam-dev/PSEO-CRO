@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button, Card, CardBody, CardHead, Field, FormGrid, Input, Table, Td, Th, useToast } from "@/components/ui";
 import { PushToggle } from "@/features/chat-p2/components/push-toggle";
@@ -195,6 +196,7 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
   const account = mode === "account" && initial;
   const general = mode === "general";
   const [active, setActive] = useState(account ? "design" : "admin");
+  const [navOpen, setNavOpen] = useState(true);
   const root = useRef<HTMLDivElement>(null);
 
   // scroll-spy
@@ -280,11 +282,21 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
   );
 
   return (
-    <div ref={root} className="grid items-start gap-4 min-[901px]:grid-cols-[200px_minmax(0,880px)] min-[901px]:gap-8">
+    <div ref={root} className={`grid items-start gap-4 min-[901px]:gap-8 ${navOpen ? "min-[901px]:grid-cols-[200px_minmax(0,880px)]" : "min-[901px]:grid-cols-[min-content_minmax(0,1fr)]"}`}>
       <nav aria-label="Settings sections" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 min-[901px]:sticky min-[901px]:top-4 min-[901px]:mx-0 min-[901px]:flex-col min-[901px]:gap-0.5 min-[901px]:overflow-visible min-[901px]:px-0 min-[901px]:pb-0">
-        {account ? SECTIONS.map(([id, l]) => navLink(id, l)) : null}
-        {account && notifLog ? navLink("nlog", "Notifications log") : null}
-        {general ? (
+        <button
+          type="button"
+          className="icon-btn sm shrink-0 self-start"
+          onClick={() => setNavOpen((v) => !v)}
+          aria-expanded={navOpen}
+          aria-label={navOpen ? "Collapse sections" : "Expand sections"}
+          title={navOpen ? "Collapse sections" : "Expand sections"}
+        >
+          {navOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+        </button>
+        {navOpen && account ? SECTIONS.map(([id, l]) => navLink(id, l)) : null}
+        {navOpen && account && notifLog ? navLink("nlog", "Notifications log") : null}
+        {navOpen && general ? (
           <>
             {navLink("admin", "Admin pages")}
             {adminSections?.map((s) => navLink(s.id, s.label))}
