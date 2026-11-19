@@ -269,11 +269,14 @@ function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps
   const [items, move] = useOptimistic(tasks, (cur: ProjectTask[], m: { id: string; status: StatusKey }) => moveTask(cur, m.id, m.status));
   const [drag, setDrag] = useState<{ id: string; height: number } | null>(null);
   const [over, setOver] = useState<StatusKey | null>(null);
+  // The card that just changed column plays a short settle when it mounts there.
+  const [settledId, setSettledId] = useState<string | null>(null);
   const types = Object.fromEntries(config.taskTypes.map((x) => [x.id, x]));
   const dragged = drag ? items.find((t) => t.id === drag.id) : undefined;
 
   function setStatus(t: ProjectTask, status: StatusKey) {
     if (t.status === status) return;
+    setSettledId(t.id);
     start(async () => {
       move({ id: t.id, status });
       const r = await updateTicket({ id: t.id, patch: { status } });
@@ -323,7 +326,13 @@ function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps
                 <Fragment key={t.id}>
                   {i === slotAt ? slot : null}
                   <article
-                    className={cn("kcard", s.kcard, canEdit && s.kDrag, drag?.id === t.id && "dragging")}
+                    className={cn(
+                      "kcard card-lift card-press",
+                      s.kcard,
+                      canEdit && s.kDrag,
+                      drag?.id === t.id && "dragging",
+                      settledId === t.id && "card-settle",
+                    )}
                     draggable={canEdit}
                     onClick={() => router.push(taskHref(t.key), { scroll: false })}
                     onDragStart={(e) => {
@@ -341,7 +350,7 @@ function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps
                     }}
                     onDragEnd={endDrag}
                   >
-                    <Link href={taskHref(t.key)} scroll={false} className={s.kTitle} draggable={false} onClick={(e) => e.stopPropagation()}>
+                    <Link href={taskHref(t.key)} scroll={false} className={s.kTitle} title={t.title} draggable={false} onClick={(e) => e.stopPropagation()}>
                       {t.title}
                     </Link>
                     <span className={s.kFoot}>
@@ -356,7 +365,7 @@ function Kanban({ tasks, subsOf, config, taskHref, today, canEdit }: KanbanProps
                     </span>
                     {t.assigneeName || canEdit ? (
                       <span className={s.kBottom}>
-                        {t.assigneeName ? <span className="muted small">{t.assigneeName}</span> : <span />}
+                        {t.assigneeName ? <span className={cn("muted small", s.kWho)}>{t.assigneeName}</span> : <span />}
                         {canEdit ? (
                           <select
                             className={s.kMove}

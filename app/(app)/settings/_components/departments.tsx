@@ -73,28 +73,30 @@ export function DepartmentsManager({ departments, staff, view = "list", stats, v
               const st = stats?.[d.id] ?? { staff: 0, projects: 0, open: 0, overdue: 0 };
               return (
                 <Card key={d.id} className="flex flex-col">
-                  <CardBody className="flex flex-1 flex-col gap-3">
+                  <CardBody className="flex flex-1 flex-col gap-4">
                     <div className="min-w-0">
-                      <h4 className="m-0 break-words text-[15px]">{d.name}</h4>
-                      <div className="muted small mt-0.5">{(d.headId && names.get(d.headId)) || "No head"}</div>
+                      <h4 className="m-0 truncate text-[15px] leading-snug tracking-[-0.01em]" title={d.name}>
+                        {d.name}
+                      </h4>
+                      <div className="muted small mt-0.5 truncate">{(d.headId && names.get(d.headId)) || "No head"}</div>
                     </div>
-                    <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13px] text-ink-2">
+                    <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(84px,1fr))] gap-x-4 gap-y-3 text-[13px] text-ink-2">
                       {[
                         { n: st.staff, label: "staff" },
                         { n: st.projects, label: "active projects" },
                         { n: st.open, label: "open tasks" },
                       ].map((x) => (
-                        <div key={x.label} className="flex min-w-0 flex-col-reverse">
-                          <dt>{x.label}</dt>
-                          <dd className="num m-0 text-lg font-semibold leading-tight text-ink">{x.n}</dd>
+                        <div key={x.label} className="flex min-w-0 flex-col-reverse gap-0.5">
+                          <dt className="truncate">{x.label}</dt>
+                          <dd className="num m-0 text-xl font-semibold leading-none text-ink">{x.n}</dd>
                         </div>
                       ))}
-                      <div className={cn("flex min-w-0 flex-col-reverse", st.overdue > 0 && "t-danger")}>
-                        <dt>overdue</dt>
-                        <dd className={cn("num m-0 text-lg font-semibold leading-tight", st.overdue > 0 ? "text-danger" : "text-ink")}>{st.overdue}</dd>
+                      <div className={cn("flex min-w-0 flex-col-reverse gap-0.5", st.overdue > 0 && "t-danger")}>
+                        <dt className="truncate">overdue</dt>
+                        <dd className={cn("num m-0 text-xl font-semibold leading-none", st.overdue > 0 ? "text-danger" : "text-ink")}>{st.overdue}</dd>
                       </div>
                     </dl>
-                    <div className="row mt-auto pt-1">
+                    <div className="row mt-auto border-t border-line pt-3">
                       <Button size="sm" disabled={pending} onClick={() => edit(d)}>
                         Edit
                       </Button>

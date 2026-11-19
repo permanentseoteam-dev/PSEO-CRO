@@ -60,20 +60,22 @@ export function ServicesManager({ services, view = "list", usage, viewSwitch }: 
               const u = usage?.[s.id] ?? { templates: 0, clients: 0 };
               return (
                 <Card key={s.id} className="flex flex-col">
-                  <CardBody className="flex flex-1 flex-col gap-3">
-                    <h4 className="m-0 break-words text-[15px]">{s.name}</h4>
+                  <CardBody className="flex flex-1 flex-col gap-4">
+                    <h4 className="m-0 truncate text-[15px] leading-snug tracking-[-0.01em]" title={s.name}>
+                      {s.name}
+                    </h4>
                     <dl className="muted m-0 grid grid-cols-2 gap-x-4 text-[13px]">
                       {[
                         { n: u.clients, label: u.clients === 1 ? "client" : "clients" },
                         { n: u.templates, label: u.templates === 1 ? "template" : "templates" },
                       ].map((x) => (
-                        <div key={x.label} className="flex min-w-0 flex-col-reverse">
-                          <dt>{x.label}</dt>
-                          <dd className="num m-0 text-lg font-semibold leading-tight">{x.n}</dd>
+                        <div key={x.label} className="flex min-w-0 flex-col-reverse gap-0.5">
+                          <dt className="truncate">{x.label}</dt>
+                          <dd className="num m-0 text-xl font-semibold leading-none">{x.n}</dd>
                         </div>
                       ))}
                     </dl>
-                    <div className="row mt-auto pt-1">
+                    <div className="row mt-auto border-t border-line pt-3">
                       <Button size="sm" disabled={pending} onClick={() => setDraft({ id: s.id, name: s.name })}>
                         Edit
                       </Button>

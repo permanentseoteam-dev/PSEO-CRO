@@ -19,11 +19,11 @@ function Column({ title, tasks, empty }: { title: string; tasks: ClientTicket[];
         <ul>
           {tasks.map((t) => (
             <li key={t.id} className={s.task}>
-              <b>{t.title}</b>
+              <b title={t.title}>{t.title}</b>
               <div className={s.taskMeta}>
                 <StatusDot tone={clientStatus(t.status).tone}>{STATUS_LABEL[t.status]}</StatusDot>
                 {t.dueDate ? <span>Due {fmtDate(t.dueDate)}</span> : null}
-                {t.assignee ? <span>{t.assignee}</span> : null}
+                {t.assignee ? <span className={s.taskWho}>{t.assignee}</span> : null}
               </div>
             </li>
           ))}

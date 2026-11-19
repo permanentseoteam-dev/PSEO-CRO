@@ -10,9 +10,9 @@
 .tags { color: var(--ink-3); font-size: 12px; }
 .title { color: var(--ink); font-weight: 500; }
 .groupHead { margin: 6px 0 0; font-size: 15px; color: var(--ink); display: flex; gap: 8px; align-items: baseline; }
-.kTop { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.kTitle { font-size: 14px; font-weight: 500; color: var(--ink); line-height: 1.35; }
-.kFoot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
+/* Board card: title first (two lines max), then key/priority/due/checklist, then people and the move select. */
+.kTitle { font-size: 14px; font-weight: 500; color: var(--ink); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.kFoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; font-size: 12px; color: var(--ink-2); }
 .kMove { width: auto; min-height: 28px; padding: 2px 6px; font-size: 12px; }
 .kBlocked { font-size: 12px; color: var(--danger); }
 .colN { color: var(--ink-3); font-variant-numeric: tabular-nums; }
@@ -45,6 +45,7 @@
 .keySm { display: none; }
 @media (max-width: 900px) { .keySm { display: block; font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 12px; } }
 
-/* Board card: people, due and checklist on the left, the move select pinned right. */
-.kMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+
+.kMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-width: 0; font-size: 12px; color: var(--ink-2); }
 .kFoot .kMove { margin-left: auto; }
+.kMeta > * { font-size: 12px; }

@@ -76,10 +76,11 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
                         {p.status === "archived" ? " · Archived" : ""}
                       </div>
                     </div>
-                    <div className="row small">
-                      <Avatar name={p.lead} size={22} /> {p.lead}
+                    <div className="flex min-w-0 items-center gap-2 text-[12.5px]">
+                      <Avatar name={p.lead} size={22} />
+                      <span className="min-w-0 truncate" title={p.lead}>{p.lead}</span>
                     </div>
-                    <div className="flex flex-wrap gap-x-3.5 gap-y-1 border-t border-line pt-3 text-[13px] text-ink-2">
+                    <div className="mt-auto flex flex-wrap gap-x-3.5 gap-y-1 border-t border-line pt-3 text-[13px] text-ink-2">
                       <span>
                         <b className="num text-ink">{p.open}</b> open
                       </span>
@@ -90,7 +91,7 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
                         <b className="num text-ink">{p.done30}</b> done in 30 days
                       </span>
                     </div>
-                    <div className="row mt-auto">
+                    <div className="row">
                       <ButtonLink size="sm" href={`/tickets?view=board&proj=${p.id}`}>
                         Board
                       </ButtonLink>

@@ -25,6 +25,8 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: BoardTicket
   );
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<TicketStatus | null>(null);
+  // The card that just changed column plays a short settle when it mounts there.
+  const [settledId, setSettledId] = useState<string | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Someone else moved a ticket: refetch (debounced).
@@ -53,6 +55,7 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: BoardTicket
   // Shared by drag and drop and the keyboard "Move to" select.
   function setStatus(t: BoardTicket, status: TicketStatus) {
     if (t.status === status) return;
+    setSettledId(t.id);
     start(async () => {
       move({ id: t.id, status });
       const r = await updateTicket({ id: t.id, patch: { status } });
@@ -89,7 +92,7 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: BoardTicket
             {list.map((t) => (
               <article
                 key={t.id}
-                className={cn("kcard", dragId === t.id && "dragging")}
+                className={cn("kcard card-lift card-press", dragId === t.id && "dragging", settledId === t.id && "card-settle")}
                 draggable={canEdit}
                 onDragStart={(e) => {
                   setDragId(t.id);
@@ -101,21 +104,19 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: BoardTicket
                   setOver(null);
                 }}
               >
-                <div className={s.kTop}>
+                <Link href={`/t/${t.key}`} className={s.kTitle} title={t.title}>{t.title}</Link>
+                <div className={s.kMeta}>
                   <span className={s.key}>{t.key}</span>
                   <Priority level={t.priority} />
+                  <DueLabel due={t.due} status={t.status} today={today} />
+                  {t.checkTotal ? (
+                    <span className="num row" style={{ gap: 4 }} title="Checklist">
+                      <ListChecks size={14} aria-hidden="true" /> {t.checkDone}/{t.checkTotal}
+                    </span>
+                  ) : null}
                 </div>
-                <Link href={`/t/${t.key}`} className={s.kTitle}>{t.title}</Link>
                 <div className={s.kFoot}>
-                  <div className={s.kMeta}>
-                    <People ids={[t.assigneeId, ...t.coAssigneeIds]} names={names} size={22} />
-                    <DueLabel due={t.due} status={t.status} today={today} />
-                    {t.checkTotal ? (
-                      <span className="num row" style={{ gap: 4 }} title="Checklist">
-                        <ListChecks size={14} aria-hidden="true" /> {t.checkDone}/{t.checkTotal}
-                      </span>
-                    ) : null}
-                  </div>
+                  <People ids={[t.assigneeId, ...t.coAssigneeIds]} names={names} size={22} />
                   {canEdit ? (
                     <select
                       className={s.kMove}
