@@ -34,6 +34,14 @@ function TaskDialog({ children }: { children: ReactNode }) {
       onClick={(e) => {
         if (e.target === e.currentTarget) router.back();
       }}
+      // Links that leave the task (breadcrumb, project) need a full load: a soft push from an intercepted route doesn't leave /t/KEY.
+      onClickCapture={(e) => {
+        const a = (e.target as HTMLElement).closest("a");
+        const href = a?.getAttribute("href");
+        if (!a || !href?.startsWith("/") || href.startsWith("/t/") || a.target || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        window.location.assign(href);
+      }}
     >
       <div className="modal-head">
         <h2>{decodeURIComponent(key ?? "").toUpperCase()}</h2>

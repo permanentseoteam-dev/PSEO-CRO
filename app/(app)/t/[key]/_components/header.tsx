@@ -146,7 +146,8 @@ export function HeaderActions(p: ActionsProps) {
       const r = await deleteTicket(p.id);
       if (!r.ok) return toast(r.error);
       toast(`${p.ticketKey} deleted`);
-      router.push("/tickets");
+      // Full load: a soft push from the task pop-up (intercepted route) does not leave /t/KEY.
+      window.location.assign("/tickets");
     });
   }
 
