@@ -324,10 +324,10 @@ export const DOC_TYPE_LABEL = { id: "ID", visa: "Visa", contract: "Contract", le
 // ---------------------------------------------------------------- settings
 
 export const NOTIF_EVENTS: { event: NotifEvent; label: string; inApp: boolean; email: boolean; phone: boolean }[] = [
-  { event: "assigned", label: "I am assigned a ticket", inApp: true, email: true, phone: true },
+  { event: "assigned", label: "I am assigned a task", inApp: true, email: true, phone: true },
   { event: "mention", label: "Someone mentions me", inApp: true, email: false, phone: true },
   { event: "client_reply", label: "A client replies", inApp: true, email: true, phone: true },
-  { event: "watch_change", label: "A ticket I watch changes", inApp: true, email: false, phone: false },
+  { event: "watch_change", label: "A task I watch changes", inApp: true, email: false, phone: false },
   { event: "review_wait", label: "A review waits for me", inApp: true, email: true, phone: false },
   { event: "invoice_overdue", label: "An invoice is overdue", inApp: true, email: true, phone: false },
 ];

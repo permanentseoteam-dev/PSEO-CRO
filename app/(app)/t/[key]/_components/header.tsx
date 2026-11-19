@@ -147,6 +147,7 @@ export function HeaderActions(p: ActionsProps) {
       if (!r.ok) return toast(r.error);
       toast(`${p.ticketKey} deleted`);
       // Full load: a soft push from the task pop-up (intercepted route) does not leave /t/KEY.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see comment above
       window.location.assign("/tickets");
     });
   }

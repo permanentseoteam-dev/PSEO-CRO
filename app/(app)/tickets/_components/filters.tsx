@@ -53,7 +53,7 @@ export function TicketFilters({ filters, people, projects, tags, views, canShare
   }
 
   return (
-    <>
+    <div className={s.filterGroup}>
       <div className="toolbar">
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" aria-label="Search tasks" />
         <select aria-label="Assignee" {...sel("who")}>
@@ -150,6 +150,6 @@ export function TicketFilters({ filters, people, projects, tags, views, canShare
           </FormGrid>
         </form>
       </Dialog>
-    </>
+    </div>
   );
 }

@@ -66,13 +66,13 @@ function SegButtons<T extends string>({ label, items, value, onChange }: { label
   );
 }
 
-/** Settings card. `editable` cards open read-only, with a pencil that switches them to edit mode (see edit-mode.tsx). */
-function Section({ id, domId, title, editable, children }: { id: string; domId?: string; title: string; editable?: boolean; children: ReactNode }) {
+/** Settings card. `editable` cards open read-only, with a pencil that switches them to edit mode (see edit-mode.tsx). `flush` drops the body padding so a table or list meets the card edges. */
+function Section({ id, domId, title, editable, flush, children }: { id: string; domId?: string; title: string; editable?: boolean; flush?: boolean; children: ReactNode }) {
   const [editing, setEditing] = useState(false);
   return (
     <Card id={domId ?? `pf-${id}`} data-sec={id} className="scroll-mt-4">
       <CardHead title={title} actions={editable && !editing ? <EditToggle label={title} onClick={() => setEditing(true)} /> : undefined} />
-      <CardBody className="stack">{editable ? <EditCtx.Provider value={{ editing, setEditing }}>{children}</EditCtx.Provider> : children}</CardBody>
+      {flush ? children : <CardBody className="flex min-w-0 flex-col gap-3">{editable ? <EditCtx.Provider value={{ editing, setEditing }}>{children}</EditCtx.Provider> : children}</CardBody>}
     </Card>
   );
 }
@@ -147,7 +147,7 @@ function QuietCard({ initial }: { initial: { from: string; to: string } }) {
     <>
       {c.editing ? (
         <>
-          <div className="row items-end">
+          <div className="flex flex-wrap items-end gap-3">
             <Field label="From" htmlFor="pf-qfrom">
               <Input id="pf-qfrom" type="time" value={from} onChange={(e) => c.setDraft({ from: e.currentTarget.value, to })} />
             </Field>
@@ -273,15 +273,15 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
         e.preventDefault();
         go(id);
       }}
-      className={`whitespace-nowrap rounded-[var(--radius)] px-2.5 py-[7px] no-underline hover:bg-surface-2 ${active === id ? "bg-accent-soft font-semibold text-accent-ink" : "text-ink-2"}`}
+      className={`shrink-0 whitespace-nowrap rounded-[var(--radius)] px-3 py-2 leading-tight no-underline hover:bg-surface-2 ${active === id ? "bg-accent-soft font-semibold text-accent-ink" : "text-ink-2"}`}
     >
       {label}
     </a>
   );
 
   return (
-    <div ref={root} className="grid items-start gap-6 min-[901px]:grid-cols-[200px_1fr]">
-      <nav aria-label="Settings sections" className="flex gap-1 overflow-x-auto min-[901px]:sticky min-[901px]:top-3 min-[901px]:flex-col min-[901px]:gap-0.5">
+    <div ref={root} className="grid items-start gap-4 min-[901px]:grid-cols-[200px_minmax(0,880px)] min-[901px]:gap-8">
+      <nav aria-label="Settings sections" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 min-[901px]:sticky min-[901px]:top-4 min-[901px]:mx-0 min-[901px]:flex-col min-[901px]:gap-0.5 min-[901px]:overflow-visible min-[901px]:px-0 min-[901px]:pb-0">
         {account ? SECTIONS.map(([id, l]) => navLink(id, l)) : null}
         {account && notifLog ? navLink("nlog", "Notifications log") : null}
         {general ? (
@@ -300,14 +300,14 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
               <DesignCard initial={{ theme: account.theme, density: account.density }} />
             </Section>
 
-            <Section id="notif" title="Notifications">
+            <Section id="notif" title="Notifications" flush>
               <Table>
                 <thead>
                   <tr>
                     <Th>When</Th>
-                    <Th>In app</Th>
-                    <Th>Email</Th>
-                    <Th>Phone</Th>
+                    <Th className="w-[88px] text-center">In app</Th>
+                    <Th className="w-[88px] text-center">Email</Th>
+                    <Th className="w-[88px] text-center">Phone</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,7 +315,7 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
                     <tr key={r.event}>
                       <Td>{r.label}</Td>
                       {(["inApp", "email", "phone"] as const).map((ch) => (
-                        <Td key={ch}>
+                        <Td key={ch} className="text-center">
                           <input type="checkbox" aria-label={`${r.label}: ${ch === "inApp" ? "in app" : ch}`} checked={r[ch]} onChange={(e) => toggle(i, ch, e.currentTarget.checked)} />
                         </Td>
                       ))}
@@ -360,13 +360,17 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
                   <Button type="submit" disabled={pending}>Change password</Button>
                 </div>
               </form>
-              <h4 className="mt-3">Sessions</h4>
-              <div className="row between">
-                <span>Signed in on this device</span>
-                <Button size="sm" variant="ghost" disabled={pending} onClick={signOutOthers}>Sign out everywhere else</Button>
+              <div className="stack mt-3">
+                <h4 className="m-0">Sessions</h4>
+                <div className="row between">
+                  <span>Signed in on this device</span>
+                  <Button size="sm" variant="ghost" disabled={pending} onClick={signOutOthers}>Sign out everywhere else</Button>
+                </div>
               </div>
-              <h4 className="mt-3">2-step sign-in</h4>
-              <TwoStep required={twoStepRequired} onChange={setTwoStep} />
+              <div className="stack mt-3">
+                <h4 className="m-0">2-step sign-in</h4>
+                <TwoStep required={twoStepRequired} onChange={setTwoStep} />
+              </div>
             </Section>
 
             {notifLog ? (
@@ -378,7 +382,7 @@ export function SettingsView({ mode, email = "", name = "", twoStepRequired = fa
         ) : null}
 
         {general ? (
-          <Section id="admin" title="Admin">
+          <Section id="admin" title="Admin" flush>
             <div className="list">
               {ADMIN.map(([id, label, href]) => (
                 <div key={id} className="item between">

@@ -99,7 +99,7 @@ export function TicketList({ groups, names, people, projects, today, canEdit, cl
                     />
                   </Th>
                 ) : null}
-                <Th>Key</Th>
+                <Th hideSm>Key</Th>
                 <Th>Title</Th>
                 <Th>Status</Th>
                 <Th>Priority</Th>
@@ -122,8 +122,9 @@ export function TicketList({ groups, names, people, projects, today, canEdit, cl
                       <input type="checkbox" aria-label={`Select ${t.key}`} checked={picked.has(t.id)} onChange={(e) => toggle(t.id, e.target.checked)} />
                     </Td>
                   ) : null}
-                  <Td className={s.key}>{t.key}</Td>
+                  <Td hideSm className={s.key}>{t.key}</Td>
                   <Td>
+                    <span className={s.keySm}>{t.key}</span>
                     <Link href={`/t/${t.key}`} className={s.title}>{t.title}</Link>
                     {t.tags.length ? <div className={s.tags}>{t.tags.map((x) => `#${x}`).join(" ")}</div> : null}
                   </Td>

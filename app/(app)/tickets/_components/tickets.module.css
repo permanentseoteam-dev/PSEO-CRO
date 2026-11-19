@@ -11,7 +11,7 @@
 .title { color: var(--ink); font-weight: 500; }
 .groupHead { margin: 6px 0 0; font-size: 15px; color: var(--ink); display: flex; gap: 8px; align-items: baseline; }
 .kTop { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.kTitle { font-size: 14px; color: var(--ink); line-height: 1.35; }
+.kTitle { font-size: 14px; font-weight: 500; color: var(--ink); line-height: 1.35; }
 .kFoot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
 .kMove { width: auto; min-height: 28px; padding: 2px 6px; font-size: 12px; }
 .kBlocked { font-size: 12px; color: var(--danger); }
@@ -21,3 +21,30 @@
 .ev { cursor: grab; }
 .ev a { color: inherit; }
 .ev a:hover { text-decoration: none; }
+
+/* Stat strip: one compact row of five cells instead of five tall cards (same tokens as global .stat). */
+.stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow); overflow: hidden; }
+.stat { display: grid; gap: 2px; align-content: space-between; padding: 12px 16px; min-width: 0; color: var(--ink); border-left: 1px solid var(--line); }
+.stat:first-child { border-left: 0; }
+.stat:hover { text-decoration: none; background: var(--surface-2); }
+.stat:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.statLabel { font-size: 13px; font-weight: 500; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statValue { font: 800 22px/1.2 var(--font-head); font-variant-numeric: tabular-nums; color: var(--ink); }
+.statValue.danger { color: var(--danger); }
+@media (max-width: 520px) {
+  .stat { padding: 10px 8px; }
+  .statLabel { font-size: 11.5px; white-space: normal; line-height: 1.25; }
+  .statValue { font-size: 18px; }
+}
+
+/* Filters and saved views read as one group. */
+.filterGroup { display: grid; gap: 10px; }
+.filterGroup :global(.toolbar) > :global(.btn) { height: var(--ctl-h); }
+
+/* List: key moves under the title on phones, where the Key column is hidden. */
+.keySm { display: none; }
+@media (max-width: 900px) { .keySm { display: block; font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 12px; } }
+
+/* Board card: people, due and checklist on the left, the move select pinned right. */
+.kMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.kFoot .kMove { margin-left: auto; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Button, Card, CardBody, Dialog, Field, Input, Select, Table, Td, Th, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { addDepartment, deleteDepartment, departmentUsage, setDepartmentMembers, updateDepartment } from "@/lib/modules/departments/actions";
@@ -9,10 +9,10 @@ import { DepartmentName, deleteWarning, duplicateError, isDuplicateName, type De
 type Staff = { id: string; name: string; departmentId?: string | null };
 type Draft = { id?: string; name: string; headId: string; memberIds: string[] };
 
-type Props = { departments: Department[]; staff: Staff[]; view?: "list" | "board"; stats?: Record<string, DepartmentStats> };
+type Props = { departments: Department[]; staff: Staff[]; view?: "list" | "board"; stats?: Record<string, DepartmentStats>; viewSwitch?: ReactNode };
 
 /** Admin: list, add, rename and delete departments, and pick each one's head. Board view shows them as cards with counts. */
-export function DepartmentsManager({ departments, staff, view = "list", stats }: Props) {
+export function DepartmentsManager({ departments, staff, view = "list", stats, viewSwitch }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -57,7 +57,13 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
   }
 
   return (
-    <div className="stack">
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {viewSwitch}
+        <Button variant="primary" className="ml-auto" disabled={pending} onClick={() => setDraft({ name: "", headId: "", memberIds: [] })}>
+          Add department
+        </Button>
+      </div>
       {view === "board" ? (
         departments.length === 0 ? (
           <p className="muted m-0">No departments yet.</p>
@@ -66,25 +72,29 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
             {departments.map((d) => {
               const st = stats?.[d.id] ?? { staff: 0, projects: 0, open: 0, overdue: 0 };
               return (
-                <Card key={d.id}>
-                  <CardBody className="stack">
-                    <h4 className="m-0 text-[15px]">{d.name}</h4>
-                    <div className="muted small">{(d.headId && names.get(d.headId)) || "No head"}</div>
-                    <div className="flex flex-wrap gap-3.5 text-[13px] text-ink-2">
-                      <span>
-                        <b className="num text-ink">{st.staff}</b> staff
-                      </span>
-                      <span>
-                        <b className="num text-ink">{st.projects}</b> active projects
-                      </span>
-                      <span>
-                        <b className="num text-ink">{st.open}</b> open tasks
-                      </span>
-                      <span className={cn(st.overdue > 0 && "t-danger")}>
-                        <b className={cn("num", st.overdue > 0 ? "text-danger" : "text-ink")}>{st.overdue}</b> overdue
-                      </span>
+                <Card key={d.id} className="flex flex-col">
+                  <CardBody className="flex flex-1 flex-col gap-3">
+                    <div className="min-w-0">
+                      <h4 className="m-0 break-words text-[15px]">{d.name}</h4>
+                      <div className="muted small mt-0.5">{(d.headId && names.get(d.headId)) || "No head"}</div>
                     </div>
-                    <div className="row">
+                    <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13px] text-ink-2">
+                      {[
+                        { n: st.staff, label: "staff" },
+                        { n: st.projects, label: "active projects" },
+                        { n: st.open, label: "open tasks" },
+                      ].map((x) => (
+                        <div key={x.label} className="flex min-w-0 flex-col-reverse">
+                          <dt>{x.label}</dt>
+                          <dd className="num m-0 text-lg font-semibold leading-tight text-ink">{x.n}</dd>
+                        </div>
+                      ))}
+                      <div className={cn("flex min-w-0 flex-col-reverse", st.overdue > 0 && "t-danger")}>
+                        <dt>overdue</dt>
+                        <dd className={cn("num m-0 text-lg font-semibold leading-tight", st.overdue > 0 ? "text-danger" : "text-ink")}>{st.overdue}</dd>
+                      </div>
+                    </dl>
+                    <div className="row mt-auto pt-1">
                       <Button size="sm" disabled={pending} onClick={() => edit(d)}>
                         Edit
                       </Button>
@@ -134,11 +144,6 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
           </tbody>
         </Table>
       )}
-      <div className="row">
-        <Button variant="primary" disabled={pending} onClick={() => setDraft({ name: "", headId: "", memberIds: [] })}>
-          Add department
-        </Button>
-      </div>
 
       <Dialog
         open={!!draft}
@@ -176,15 +181,15 @@ export function DepartmentsManager({ departments, staff, view = "list", stats }:
               </Select>
             </Field>
             <Field label="Members">
-              <div className="max-h-48 overflow-y-auto rounded-[var(--radius-ctl)] border border-line p-2">
+              <div className="max-h-56 overflow-y-auto rounded-[var(--radius-ctl)] border border-line px-3 py-1.5">
                 {staff.length === 0 ? <p className="muted m-0 small">No active staff yet.</p> : null}
                 {staff.map((s) => {
                   const other = s.departmentId && s.departmentId !== draft.id ? deptNames.get(s.departmentId) : null;
                   return (
-                    <label key={s.id} className="flex items-center gap-2 py-1 text-[13px]">
+                    <label key={s.id} className="flex min-h-9 cursor-pointer items-center gap-2.5 text-[13px]">
                       <input type="checkbox" checked={draft.memberIds.includes(s.id)} onChange={() => toggleMember(s.id)} />
-                      {s.name}
-                      {other ? <span className="muted small">in {other}</span> : null}
+                      <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                      {other ? <span className="muted small shrink-0">in {other}</span> : null}
                     </label>
                   );
                 })}

@@ -107,19 +107,21 @@ function TeamSection({
   return (
     <section className={s.section}>
       <h2>Departments and lead</h2>
-      <Field label="Departments">
-        <DepartmentChecks departments={departments} value={team.ids} onToggle={team.toggle} disabled={!canManage} />
-      </Field>
-      <Field label="Lead" htmlFor="pd-lead">
-        <Select id="pd-lead" value={team.lead} disabled={!canManage} onChange={(e) => team.setLead(e.target.value)}>
-          <option value="">No lead</option>
-          {people.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      <div className={s.fields}>
+        <Field label="Departments">
+          <DepartmentChecks departments={departments} value={team.ids} onToggle={team.toggle} disabled={!canManage} />
+        </Field>
+        <Field label="Lead" htmlFor="pd-lead">
+          <Select id="pd-lead" value={team.lead} disabled={!canManage} onChange={(e) => team.setLead(e.target.value)}>
+            <option value="">No lead</option>
+            {people.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
       {canManage ? (
         <div>
           <Button variant="primary" disabled={!changed || pending} onClick={save}>

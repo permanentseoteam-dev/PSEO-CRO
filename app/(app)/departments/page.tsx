@@ -21,16 +21,22 @@ export default async function DepartmentsPage({ searchParams }: { searchParams: 
   return (
     <div className="page">
       <h1>Departments</h1>
-      <Seg
-        label="View"
-        className="self-start"
-        value={view}
-        items={[
-          { value: "list", label: "List", href: "/departments?view=list" },
-          { value: "board", label: "Board", href: "/departments" },
-        ]}
+      <DepartmentsManager
+        departments={departments}
+        staff={(staff.data ?? []).map((m) => ({ id: m.id as string, name: m.name as string, departmentId: (m.department_id as string | null) ?? null }))}
+        view={view}
+        stats={stats}
+        viewSwitch={
+          <Seg
+            label="View"
+            value={view}
+            items={[
+              { value: "list", label: "List", href: "/departments?view=list" },
+              { value: "board", label: "Board", href: "/departments" },
+            ]}
+          />
+        }
       />
-      <DepartmentsManager departments={departments} staff={(staff.data ?? []).map((m) => ({ id: m.id as string, name: m.name as string, departmentId: (m.department_id as string | null) ?? null }))} view={view} stats={stats} />
     </div>
   );
 }

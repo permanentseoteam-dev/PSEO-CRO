@@ -107,13 +107,15 @@ export function TicketBoard({ rows, names, today, canEdit }: { rows: BoardTicket
                 </div>
                 <Link href={`/t/${t.key}`} className={s.kTitle}>{t.title}</Link>
                 <div className={s.kFoot}>
-                  <People ids={[t.assigneeId, ...t.coAssigneeIds]} names={names} size={22} />
-                  <DueLabel due={t.due} status={t.status} today={today} />
-                  {t.checkTotal ? (
-                    <span className="num row" style={{ gap: 4 }} title="Checklist">
-                      <ListChecks size={14} aria-hidden="true" /> {t.checkDone}/{t.checkTotal}
-                    </span>
-                  ) : null}
+                  <div className={s.kMeta}>
+                    <People ids={[t.assigneeId, ...t.coAssigneeIds]} names={names} size={22} />
+                    <DueLabel due={t.due} status={t.status} today={today} />
+                    {t.checkTotal ? (
+                      <span className="num row" style={{ gap: 4 }} title="Checklist">
+                        <ListChecks size={14} aria-hidden="true" /> {t.checkDone}/{t.checkTotal}
+                      </span>
+                    ) : null}
+                  </div>
                   {canEdit ? (
                     <select
                       className={s.kMove}

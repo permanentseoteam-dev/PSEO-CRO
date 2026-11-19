@@ -14,16 +14,21 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
   return (
     <div className="page">
       <h1>Services</h1>
-      <Seg
-        label="View"
-        className="self-start"
-        value={view}
-        items={[
-          { value: "list", label: "List", href: "/services?view=list" },
-          { value: "board", label: "Board", href: "/services" },
-        ]}
+      <ServicesManager
+        services={services}
+        view={view}
+        usage={usage}
+        viewSwitch={
+          <Seg
+            label="View"
+            value={view}
+            items={[
+              { value: "list", label: "List", href: "/services?view=list" },
+              { value: "board", label: "Board", href: "/services" },
+            ]}
+          />
+        }
       />
-      <ServicesManager services={services} view={view} usage={usage} />
     </div>
   );
 }

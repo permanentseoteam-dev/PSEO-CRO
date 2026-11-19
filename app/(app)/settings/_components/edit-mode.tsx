@@ -22,11 +22,11 @@ export function EditToggle({ label, onClick }: { label: string; onClick: () => v
 /** Saved values shown as compact label/value rows. */
 export function ReadRows({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="m-0 grid grid-cols-[minmax(96px,max-content)_1fr] gap-x-6 gap-y-1.5">
+    <dl className="m-0 grid grid-cols-1 gap-x-6 min-[480px]:grid-cols-[160px_minmax(0,1fr)] min-[480px]:gap-y-2">
       {rows.map(([k, v]) => (
         <Fragment key={k}>
           <dt className="text-ink-3">{k}</dt>
-          <dd className="m-0 min-w-0 break-words">{v}</dd>
+          <dd className="m-0 mb-2 min-w-0 break-words last:mb-0 min-[480px]:mb-0">{v}</dd>
         </Fragment>
       ))}
     </dl>
@@ -36,7 +36,7 @@ export function ReadRows({ rows }: { rows: [string, ReactNode][] }) {
 /** Save and Cancel for a card in edit mode. Save is a submit button when `onSave` is left out. */
 export function SaveCancel({ pending, disabled, onSave, onCancel }: { pending: boolean; disabled?: boolean; onSave?: () => void; onCancel: () => void }) {
   return (
-    <div className="row">
+    <div className="row pt-1">
       <Button variant="primary" type={onSave ? "button" : "submit"} disabled={pending || disabled} onClick={onSave}>
         Save
       </Button>

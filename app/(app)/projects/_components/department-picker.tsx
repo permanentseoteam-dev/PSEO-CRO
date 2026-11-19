@@ -40,7 +40,7 @@ export function DepartmentChecks({
 }) {
   if (!departments.length) return <span className="muted small">No departments yet.</span>;
   return (
-    <div role="group" aria-label="Departments" className="grid max-h-40 gap-1.5 overflow-y-auto rounded-[var(--radius-ctl)] border border-line p-2">
+    <div role="group" aria-label="Departments" className="grid max-h-40 gap-x-4 gap-y-2 overflow-y-auto rounded-[var(--radius-ctl)] border border-line px-3 py-2.5 sm:grid-cols-2">
       {departments.map((d) => (
         <Checkbox
           key={d.id}

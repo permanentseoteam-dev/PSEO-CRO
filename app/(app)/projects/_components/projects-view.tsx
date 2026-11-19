@@ -32,8 +32,10 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
   return (
     <div className="page">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="row">
-          <Input type="search" placeholder="Search projects" aria-label="Search projects" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex min-w-0 basis-full flex-wrap items-center gap-2.5 sm:flex-1 sm:basis-auto">
+          <div className="w-full sm:w-80">
+            <Input type="search" placeholder="Search projects" aria-label="Search projects" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
           <Seg
             label="Project state"
             value={state}
@@ -58,24 +60,26 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
         </EmptyState>
       ) : (
         groups.map(([dept, list]) => (
-          <section key={dept} className="stack">
+          <section key={dept} className="stack gap-2.5">
             <h3 className="m-0 mt-1 text-base">{dept}</h3>
             <div className="grid-3">
               {list.map((p) => (
-                <Card key={p.id}>
-                  <CardBody className="stack">
-                    <div className="row between">
-                      <h4 className="m-0 text-[15px]">{p.name}</h4>
-                      <span className="num text-xs font-semibold text-ink-3">{p.key}</span>
-                    </div>
-                    <div className="muted small">
-                      {p.client || "No client"}
-                      {p.status === "archived" ? " · Archived" : ""}
+                <Card key={p.id} className="flex flex-col">
+                  <CardBody className="flex flex-1 flex-col gap-3">
+                    <div className="grid gap-0.5">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <h4 className="m-0 min-w-0 truncate text-[15px]" title={p.name}>{p.name}</h4>
+                        <span className="num flex-none text-xs font-semibold text-ink-3">{p.key}</span>
+                      </div>
+                      <div className="muted small truncate">
+                        {p.client || "No client"}
+                        {p.status === "archived" ? " · Archived" : ""}
+                      </div>
                     </div>
                     <div className="row small">
                       <Avatar name={p.lead} size={22} /> {p.lead}
                     </div>
-                    <div className="flex flex-wrap gap-3.5 text-[13px] text-ink-2">
+                    <div className="flex flex-wrap gap-x-3.5 gap-y-1 border-t border-line pt-3 text-[13px] text-ink-2">
                       <span>
                         <b className="num text-ink">{p.open}</b> open
                       </span>
@@ -86,7 +90,7 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
                         <b className="num text-ink">{p.done30}</b> done in 30 days
                       </span>
                     </div>
-                    <div className="row">
+                    <div className="row mt-auto">
                       <ButtonLink size="sm" href={`/tickets?view=board&proj=${p.id}`}>
                         Board
                       </ButtonLink>

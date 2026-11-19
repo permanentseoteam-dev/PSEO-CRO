@@ -78,7 +78,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
       </div>
 
       {!workload ? (
-        <div className="stats">
+        <div className={s.stats}>
           {[
             { label: "Open", value: counts.active, href: href({ view: "list", st: "active" }) },
             { label: "Overdue", value: overdue, href: href({ due: "overdue" }), danger: overdue > 0 },
@@ -86,9 +86,9 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
             { label: "Blocked", value: counts.blocked, href: href({ view: "list", st: "blocked" }) },
             { label: "In review", value: counts.in_review, href: href({ view: "list", st: "in_review" }) },
           ].map((x) => (
-            <Link key={x.label} className="stat text-ink hover:no-underline" href={x.href}>
-              <span className="label">{x.label}</span>
-              <span className={x.danger ? "value num t-danger" : "value num"}>{x.value}</span>
+            <Link key={x.label} className={s.stat} href={x.href}>
+              <span className={s.statLabel}>{x.label}</span>
+              <span className={x.danger ? `${s.statValue} ${s.danger}` : s.statValue}>{x.value}</span>
             </Link>
           ))}
         </div>

@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Button, Card, CardBody, Dialog, Field, Input, Table, Td, Th, useToast } from "@/components/ui";
 import { addService, deleteService, renameService, serviceUsage } from "@/lib/modules/services/actions";
 import { ServiceName, deleteWarning, duplicateError, isDuplicateName, type Service, type ServiceUsage } from "@/lib/modules/services/logic";
 
 type Draft = { id?: string; name: string };
 
-type Props = { services: Service[]; view?: "list" | "board"; usage?: Record<string, ServiceUsage> };
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+type Props = { services: Service[]; view?: "list" | "board"; usage?: Record<string, ServiceUsage>; viewSwitch?: ReactNode };
 
 /** Admin: list, add, rename and delete the services used by templates and clients. Board view shows them as cards with usage. */
-export function ServicesManager({ services, view = "list", usage }: Props) {
+export function ServicesManager({ services, view = "list", usage, viewSwitch }: Props) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -46,7 +44,13 @@ export function ServicesManager({ services, view = "list", usage }: Props) {
   }
 
   return (
-    <div className="stack">
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {viewSwitch}
+        <Button variant="primary" className="ml-auto" disabled={pending} onClick={() => setDraft({ name: "" })}>
+          Add service
+        </Button>
+      </div>
       {view === "board" ? (
         services.length === 0 ? (
           <p className="muted m-0">No services yet.</p>
@@ -55,13 +59,21 @@ export function ServicesManager({ services, view = "list", usage }: Props) {
             {services.map((s) => {
               const u = usage?.[s.id] ?? { templates: 0, clients: 0 };
               return (
-                <Card key={s.id}>
-                  <CardBody className="stack">
-                    <h4 className="m-0 text-[15px]">{s.name}</h4>
-                    <div className="muted small">
-                      {count(u.clients, "client", "clients")} · {count(u.templates, "template", "templates")}
-                    </div>
-                    <div className="row">
+                <Card key={s.id} className="flex flex-col">
+                  <CardBody className="flex flex-1 flex-col gap-3">
+                    <h4 className="m-0 break-words text-[15px]">{s.name}</h4>
+                    <dl className="muted m-0 grid grid-cols-2 gap-x-4 text-[13px]">
+                      {[
+                        { n: u.clients, label: u.clients === 1 ? "client" : "clients" },
+                        { n: u.templates, label: u.templates === 1 ? "template" : "templates" },
+                      ].map((x) => (
+                        <div key={x.label} className="flex min-w-0 flex-col-reverse">
+                          <dt>{x.label}</dt>
+                          <dd className="num m-0 text-lg font-semibold leading-tight">{x.n}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <div className="row mt-auto pt-1">
                       <Button size="sm" disabled={pending} onClick={() => setDraft({ id: s.id, name: s.name })}>
                         Edit
                       </Button>
@@ -109,11 +121,6 @@ export function ServicesManager({ services, view = "list", usage }: Props) {
           </tbody>
         </Table>
       )}
-      <div className="row">
-        <Button variant="primary" disabled={pending} onClick={() => setDraft({ name: "" })}>
-          Add service
-        </Button>
-      </div>
 
       <Dialog
         open={!!draft}
