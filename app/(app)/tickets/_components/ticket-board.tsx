@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ListChecks, MessageSquare, Plus } from "lucide-react";
-import { Avatar, Priority, TicketStatusDot, useToast } from "@/components/ui";
+import { Avatar, EmptyState, Priority, TicketStatusDot, useToast } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { daysLeft, STATUSES, STATUS_LABEL } from "@/lib/modules/tickets/logic";
 import { createTicket, updateTicket } from "@/lib/modules/tickets/actions";
@@ -25,10 +25,12 @@ type Props = {
   canEdit: boolean;
   /** Project for tasks made with quick add (the active project filter). */
   defaultProject?: string;
+  /** Link that clears the filters. When set and no tasks are left, a message shows above the board. */
+  clearHref?: string;
 };
 
 /** Kanban board: drag a card to another column to change its status. Live-updates from Supabase Realtime. */
-export function TicketBoard({ rows, names, colors = {}, today, canEdit, defaultProject }: Props) {
+export function TicketBoard({ rows, names, colors = {}, today, canEdit, defaultProject, clearHref }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [, start] = useTransition();
@@ -97,6 +99,9 @@ export function TicketBoard({ rows, names, colors = {}, today, canEdit, defaultP
 
   return (
     <>
+      {clearHref && items.length === 0 ? (
+        <EmptyState title="No tasks match these filters" action={<Link className="btn sm" href={clearHref}>Clear filters</Link>} />
+      ) : null}
       <div className={s.colTabs} role="group" aria-label="Column">
         {STATUSES.map((st) => (
           <button key={st} type="button" aria-pressed={tab === st} onClick={() => setTab(st)}>

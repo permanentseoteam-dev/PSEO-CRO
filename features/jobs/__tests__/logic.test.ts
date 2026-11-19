@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   agoLabel,
   bearerOk,
+  detailLabel,
   dubaiDate,
   hoursLabel,
   isAppJob,
@@ -124,5 +125,13 @@ describe("job list", () => {
     expect(agoLabel("2026-11-04T09:00:00Z", now)).toBe("1 day ago");
     expect(profitabilityDetail(32.4, 0, 35)).toBe("is ready: margin 32%.");
     expect(profitabilityDetail(32.4, 2, 35)).toBe("is ready: margin 32%, 2 clients under 35%.");
+  });
+});
+
+describe("detailLabel", () => {
+  it("shows the recurring job's count as tasks", () => {
+    expect(detailLabel("0 tickets created")).toBe("0 tasks created");
+    expect(detailLabel("3 draft invoices for May 2026.")).toBe("3 draft invoices for May 2026.");
+    expect(detailLabel(null)).toBe("");
   });
 });

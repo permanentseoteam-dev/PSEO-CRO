@@ -10,12 +10,12 @@ import { time12 } from "@/lib/format-time";
 import type { Comment, HistoryItem } from "@/lib/modules/tickets/types";
 import s from "./ticket.module.css";
 
-type Props = { ticketId: string; comments: Comment[]; history: HistoryItem[]; names: Record<string, string>; meId: string; canModerate: boolean };
+type Props = { ticketId: string; comments: Comment[]; history: HistoryItem[]; names: Record<string, string>; meId: string; canModerate: boolean; /** Shows "Reply to the client". Pass false for tasks with no client. */ hasClient?: boolean };
 
 const when = (iso: string) =>
   `${new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Dubai" })}, ${time12(iso, "Asia/Dubai")}`;
 
-export function Activity({ ticketId, comments, history, names, meId, canModerate }: Props) {
+export function Activity({ ticketId, comments, history, names, meId, canModerate, hasClient = true }: Props) {
   const toast = useToast();
   const router = useRouter();
   const [tab, setTab] = useState("all");
@@ -134,7 +134,7 @@ export function Activity({ ticketId, comments, history, names, meId, canModerate
           <div className="row between">
             <span className="row">
               <Checkbox name="isUpdate" label="Progress update" />
-              <Checkbox name="toClient" label="Reply to the client" />
+              {hasClient ? <Checkbox name="toClient" label="Reply to the client" /> : null}
             </span>
             <Button size="sm" variant="primary" type="submit" disabled={pending}>Post</Button>
           </div>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FileText, Plus, Trash2 } from "lucide-react";
-import { Button, IconButton, useToast } from "@/components/ui";
+import { Button, IconButton, Input, useToast } from "@/components/ui";
 import { createNote, deleteNote, updateNote } from "@/lib/modules/work/space-actions";
 import type { ProjectNote } from "@/lib/modules/work/space-types";
 import { cn } from "@/lib/utils";
@@ -24,13 +24,15 @@ export function NotesView({ projectId, notes, selected }: { projectId: string; n
   const pathname = usePathname();
   const toast = useToast();
   const [creating, setCreating] = useState(false);
+  const [naming, setNaming] = useState(false);
   const saveBeforeLeave = useRef<(() => Promise<boolean>) | null>(null);
-  async function add() {
+  async function add(title: string) {
     setCreating(true);
     try {
       if (saveBeforeLeave.current && !(await saveBeforeLeave.current())) return;
-      const r = await createNote({ projectId, title: "New note" });
+      const r = await createNote({ projectId, title });
       if (!r.ok) return toast(r.error);
+      setNaming(false);
       router.push(pathname + "?note=" + r.id);
       router.refresh();
     } catch { toast("Could not create the note. Please try again."); }
@@ -38,7 +40,28 @@ export function NotesView({ projectId, notes, selected }: { projectId: string; n
   }
   return (
     <section className={s.workspace} aria-label="Project notes">
-      <header className={s.header}><Button variant="primary" onClick={add} disabled={creating}><Plus /> {creating ? "Adding…" : "Add new"}</Button></header>
+      <header className={s.header}>
+        {naming ? (
+          <Input
+            autoFocus
+            maxLength={200}
+            placeholder="Note title"
+            aria-label="New note title"
+            disabled={creating}
+            style={{ maxWidth: 320 }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setNaming(false);
+              if (e.key === "Enter") {
+                const v = e.currentTarget.value.trim();
+                if (v) add(v);
+              }
+            }}
+            onBlur={(e) => !e.currentTarget.value.trim() && setNaming(false)}
+          />
+        ) : (
+          <Button variant="primary" onClick={() => setNaming(true)} disabled={creating}><Plus /> Add new</Button>
+        )}
+      </header>
       <div className={s.wrap}>
         <nav className={s.list} aria-label="Notes">
           {notes.map((n) => (

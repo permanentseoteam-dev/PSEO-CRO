@@ -32,7 +32,7 @@ export function RecurringClient(p: Props) {
   return (
     <>
       <div className="row between">
-        <h2 style={{ margin: 0 }}>Recurring tickets</h2>
+        <h2 style={{ margin: 0 }}>Recurring tasks</h2>
         <div className="row">
           {p.canRunNow ? (
             <Button disabled={pending} onClick={() => run(runDueRules, "Due rules checked")}>
@@ -48,13 +48,13 @@ export function RecurringClient(p: Props) {
       </div>
 
       {p.rules.length === 0 ? (
-        <EmptyState icon={<Repeat />} title="No recurring tickets yet" />
+        <EmptyState icon={<Repeat />} title="No recurring tasks yet" />
       ) : (
         <Table>
           <thead>
             <tr>
               <Th>Template</Th>
-              <Th>Ticket title</Th>
+              <Th>Task title</Th>
               <Th>Project</Th>
               <Th hideSm>Assignee</Th>
               <Th>Repeats</Th>
@@ -193,7 +193,7 @@ function RuleDialog({ rule, onClose, projects, people, templates, today, meId, c
               ))}
             </Select>
           </Field>
-          <Field label="Ticket title" htmlFor="rr-title" hint="Use {client}, {project}, {month} or {date}">
+          <Field label="Task title" htmlFor="rr-title" hint="Use {client}, {project}, {month} or {date}">
             <Input id="rr-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="{client} SEO report · {month}" required minLength={2} maxLength={200} />
           </Field>
           <Field label="Project" htmlFor="rr-project">
@@ -243,7 +243,7 @@ function RuleDialog({ rule, onClose, projects, people, templates, today, meId, c
           <Field label="Due after (days)" htmlFor="rr-due">
             <Input id="rr-due" name="dueOffsetDays" type="number" min={0} max={90} defaultValue={r?.due_offset_days ?? 5} required />
           </Field>
-          <Field label="Start" htmlFor="rr-start" hint={next ? `First ticket on ${shortDate(next)}` : undefined}>
+          <Field label="Start" htmlFor="rr-start" hint={next ? `First task on ${shortDate(next)}` : undefined}>
             <Input id="rr-start" type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} required />
           </Field>
           <Field label="Priority" htmlFor="rr-pri">

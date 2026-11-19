@@ -49,14 +49,15 @@ export type DepartmentStats = { staff: number; projects: number; open: number; o
 
 /**
  * Per department id: active staff, active projects (join rows plus projects.department_id) and
- * open/overdue tasks assigned to its staff. `members` and `tickets` are pre-filtered (active staff, not done).
+ * open/overdue tasks. A task counts for a department when its active project belongs to it or its
+ * assignee is in it, at most once per department. `members` and `tickets` are pre-filtered (active staff, not done).
  */
 export function departmentStats(
   deptIds: string[],
   members: { id: string; departmentId: string | null }[],
   projects: { id: string; departmentId: string | null }[],
   projectDepts: { projectId: string; departmentId: string }[],
-  tickets: { assigneeId: string | null; due: string | null }[],
+  tickets: { assigneeId: string | null; projectId?: string | null; due: string | null }[],
   today: string,
 ): Record<string, DepartmentStats> {
   const out: Record<string, DepartmentStats> = Object.fromEntries(deptIds.map((id) => [id, { staff: 0, projects: 0, open: 0, overdue: 0 }]));
@@ -70,10 +71,14 @@ export function departmentStats(
   for (const r of projectDepts) active.get(r.projectId)?.add(r.departmentId);
   for (const set of active.values()) for (const d of set) if (out[d]) out[d].projects++;
   for (const t of tickets) {
-    const d = t.assigneeId ? deptOf.get(t.assigneeId) : undefined;
-    if (!d) continue;
-    out[d].open++;
-    if (t.due && t.due < today) out[d].overdue++;
+    const depts = new Set(t.projectId ? active.get(t.projectId) : undefined);
+    const own = t.assigneeId ? deptOf.get(t.assigneeId) : undefined;
+    if (own) depts.add(own);
+    for (const d of depts) {
+      if (!out[d]) continue;
+      out[d].open++;
+      if (t.due && t.due < today) out[d].overdue++;
+    }
   }
   return out;
 }

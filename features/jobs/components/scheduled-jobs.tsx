@@ -1,7 +1,7 @@
 import { StatusDot, Table, Td, Th } from "@/components/ui";
 import { can, getMe } from "@/lib/auth/can";
 import { createClient } from "@/lib/supabase/server";
-import { agoLabel, STATUS_LABEL, withLastRuns, type JobRunRow } from "../logic";
+import { agoLabel, detailLabel, STATUS_LABEL, withLastRuns, type JobRunRow } from "../logic";
 
 /**
  * Settings -> Scheduled jobs (admins only, read-only). Each job with its schedule (Dubai time) and its last run.
@@ -35,7 +35,7 @@ export async function ScheduledJobsSection() {
               {last ? <time dateTime={last.started_at} title={last.started_at}>{agoLabel(last.started_at, now)}</time> : "Never"}
             </Td>
             <Td>{last ? <StatusDot tone={STATUS_LABEL[last.status].tone}>{STATUS_LABEL[last.status].label}</StatusDot> : null}</Td>
-            <Td hideSm>{last?.detail ?? ""}</Td>
+            <Td hideSm>{detailLabel(last?.detail ?? null)}</Td>
           </tr>
         ))}
       </tbody>

@@ -126,7 +126,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
           clearHref="/tickets"
         />
       ) : null}
-      {!workload && f.view === "board" ? <TicketBoard rows={sortTickets(filtered, f.sort)} names={names} colors={colors} today={today} canEdit={canEdit} defaultProject={f.proj || undefined} /> : null}
+      {!workload && f.view === "board" ? <TicketBoard rows={sortTickets(filtered, f.sort)} names={names} colors={colors} today={today} canEdit={canEdit} defaultProject={f.proj || undefined} clearHref="/tickets" /> : null}
     </div>
   );
 }

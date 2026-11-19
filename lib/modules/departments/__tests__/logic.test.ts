@@ -84,4 +84,25 @@ describe("departmentStats", () => {
     expect(s.seo).toEqual({ staff: 2, projects: 1, open: 3, overdue: 1 });
     expect(s.web).toEqual({ staff: 1, projects: 2, open: 0, overdue: 0 });
   });
+
+  it("counts a task by its project's departments or its assignee's, once per department", () => {
+    const s = departmentStats(
+      ["seo", "web"],
+      [{ id: "a", departmentId: "seo" }],
+      [
+        { id: "p1", departmentId: "seo" },
+        { id: "p2", departmentId: null },
+      ],
+      [{ projectId: "p2", departmentId: "web" }],
+      [
+        { assigneeId: null, projectId: "p1", due: "2026-01-01" },
+        { assigneeId: "a", projectId: "p1", due: null },
+        { assigneeId: "a", projectId: "p2", due: "2026-01-01" },
+        { assigneeId: null, projectId: "archived", due: null },
+      ],
+      "2026-01-05",
+    );
+    expect(s.seo).toEqual({ staff: 1, projects: 1, open: 3, overdue: 2 });
+    expect(s.web).toEqual({ staff: 0, projects: 1, open: 1, overdue: 1 });
+  });
 });

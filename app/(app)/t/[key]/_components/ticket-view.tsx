@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageTitle } from "@/components/shell/page-title";
 import { requireMe, can } from "@/lib/auth/can";
+import { createClient } from "@/lib/supabase/server";
 import { EmptyState, NoAccess } from "@/components/ui";
 import { getTicket, listPeople, listProjects } from "@/lib/modules/tickets/queries";
 import { markRead } from "@/lib/modules/tickets/actions";
@@ -36,7 +37,9 @@ export async function TicketView({ ticketKey }: { ticketKey: string }) {
       </div>
     );
   }
-  await markRead(t.id);
+  // Client-facing controls only make sense when the task has a client.
+  const [, own] = await Promise.all([markRead(t.id), (await createClient()).from("tickets").select("client_id").eq("id", t.id).maybeSingle()]);
+  const hasClient = Boolean(own.data?.client_id);
   const today = todayIn();
   const names = Object.fromEntries(people.map((p) => [p.id, p.name]));
 
@@ -74,7 +77,7 @@ export async function TicketView({ ticketKey }: { ticketKey: string }) {
           <Description id={t.id} description={t.description} doneWhen={t.doneWhen} canEdit={t.canEdit} />
           {!t.parent ? <div id="tp-subtasks"><Subtasks key={t.id} parentId={t.id} items={t.subtasks} people={people} canEdit={t.canEdit} defaultAssigneeId={t.project?.createdBy} /></div> : null}
           <div id="tp-files"><Files ticketId={t.id} files={t.attachments} canDelete={t.canEdit} /></div>
-          <Activity ticketId={t.id} comments={t.comments} history={t.history} names={names} meId={me.id} canModerate={t.canModerate} />
+          <Activity ticketId={t.id} comments={t.comments} history={t.history} names={names} meId={me.id} canModerate={t.canModerate} hasClient={hasClient} />
         </div>
         <aside className="stack" style={{ gap: 16 }}>
           <SidePanel

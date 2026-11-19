@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FolderKanban } from "lucide-react";
 import {
@@ -73,7 +74,9 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
                   <CardBody className="flex flex-1 flex-col gap-3">
                     <div className="grid gap-0.5">
                       <div className="flex items-baseline justify-between gap-3">
-                        <h4 className="m-0 min-w-0 truncate text-[15px]" title={p.name}>{p.name}</h4>
+                        <h4 className="m-0 min-w-0 truncate text-[15px]" title={p.name}>
+                          <Link href={`/projects/${p.key}/tasks`} className="text-inherit hover:underline">{p.name}</Link>
+                        </h4>
                         <span className="num flex-none text-xs font-semibold text-ink-3">{p.key}</span>
                       </div>
                       <div className="muted small truncate">
@@ -97,6 +100,9 @@ export function ProjectsView({ cards, canCreate, canAddClient, people, departmen
                       </span>
                     </div>
                     <div className="row">
+                      <ButtonLink size="sm" href={`/projects/${p.key}/tasks`}>
+                        Open
+                      </ButtonLink>
                       <ButtonLink size="sm" href={`/tickets?view=board&proj=${p.id}`}>
                         Board
                       </ButtonLink>

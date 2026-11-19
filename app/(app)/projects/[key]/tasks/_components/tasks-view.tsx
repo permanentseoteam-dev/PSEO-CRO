@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Fragment, useOptimistic, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, CornerDownRight, ListChecks, Plus } from "lucide-react";
-import { Avatar, Button, Priority, Seg, useToast } from "@/components/ui";
+import { Avatar, Button, Input, Priority, Seg, useToast } from "@/components/ui";
 import { createProjectTask } from "@/lib/modules/work/space-actions";
 import { projectTint } from "@/lib/modules/work/project-colors";
 import { dueCountdown } from "@/lib/modules/work/space-logic";
@@ -25,6 +25,7 @@ export function TasksView({ projectId, projectColor, tasks, config, view, today,
   const pathname = usePathname();
   const toast = useToast();
   const [pending, start] = useTransition();
+  const [adding, setAdding] = useState(false);
 
   const viewQs = view === "kanban" ? "view=kanban&" : "";
   const taskHref = (key: string) => `${pathname}?${viewQs}task=${encodeURIComponent(key)}`;
@@ -47,9 +48,28 @@ export function TasksView({ projectId, projectColor, tasks, config, view, today,
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="row" style={{ gap: 12 }}>
-        <Button variant="primary" onClick={() => create("New task")} disabled={pending}>
-          <Plus size={16} aria-hidden="true" /> Add new
-        </Button>
+        {adding ? (
+          <Input
+            autoFocus
+            maxLength={200}
+            placeholder="Task title"
+            aria-label="New task title"
+            disabled={pending}
+            style={{ maxWidth: 320 }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setAdding(false);
+              if (e.key === "Enter") {
+                const v = e.currentTarget.value.trim();
+                if (v) create(v, () => setAdding(false));
+              }
+            }}
+            onBlur={(e) => !e.currentTarget.value.trim() && setAdding(false)}
+          />
+        ) : (
+          <Button variant="primary" onClick={() => setAdding(true)} disabled={pending}>
+            <Plus size={16} aria-hidden="true" /> Add new
+          </Button>
+        )}
         <Seg
           label="View"
           value={view}

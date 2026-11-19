@@ -41,6 +41,8 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         <ConfigTab projectId={space.id} mode={space.configMode} config={space.config} canManage={space.canManage} />
       ) : (
         <DetailsTab
+          // Remount when the saved values change: the form keeps its own state from the first render.
+          key={`${space.id}:${space.leadId ?? ""}:${(deptIds.get(space.id) ?? []).join()}`}
           projectId={space.id}
           name={space.name}
           projectKey={space.key}

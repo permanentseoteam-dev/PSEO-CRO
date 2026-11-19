@@ -13,7 +13,7 @@ export type JobDef = { name: string; label: string; schedule: string; via: JobVi
 
 /** Every job scheduled in supabase/migrations/0210_scheduled_jobs.sql, in display order. */
 export const JOBS = [
-  { name: "recurring-tickets", label: "Recurring tickets", schedule: "Daily 6:00 AM", via: "database" },
+  { name: "recurring-tickets", label: "Recurring tasks", schedule: "Daily 6:00 AM", via: "database" },
   { name: "reminders-sync", label: "Payment reminders: sync", schedule: "Daily 7:00 AM", via: "database" },
   { name: "reminders-autosend", label: "Payment reminders: auto-send", schedule: "Daily 8:00 AM", via: "app" },
   { name: "monthly-drafts", label: "Monthly draft invoices", schedule: "1st of the month 6:00 AM", via: "app" },
@@ -141,4 +141,9 @@ export function agoLabel(iso: string, now: Date): string {
   if (h < 24) return `${h} h ago`;
   const d = Math.floor(h / 24);
   return `${d} ${d === 1 ? "day" : "days"} ago`;
+}
+
+/** Run detail as shown to admins. The database job still writes "N tickets created"; the app calls them tasks. */
+export function detailLabel(detail: string | null): string {
+  return (detail ?? "").replace(/\btickets created\b/, "tasks created");
 }
